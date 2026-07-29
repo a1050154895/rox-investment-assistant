@@ -109,6 +109,8 @@ const ROX = {
       handler = this.routes['/journal'];
     } else if (path.startsWith('/framework')) {
       handler = this.routes['/framework'];
+    } else if (path.startsWith('/intelligence')) {
+      handler = this.routes['/intelligence'];
     }
 
     // Update nav active state
@@ -121,11 +123,12 @@ const ROX = {
     });
 
     // Update page title and search visibility
-    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架' };
+    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架', '/intelligence': '宏观情报' };
     let titleKey = '/';
     if (path.startsWith('/stock')) titleKey = '/stock';
     else if (path.startsWith('/journal')) titleKey = '/journal';
     else if (path.startsWith('/framework')) titleKey = '/framework';
+    else if (path.startsWith('/intelligence')) titleKey = '/intelligence';
     document.getElementById('page-title').textContent = titles[titleKey] || 'ROX投资助手';
     document.getElementById('search-box').style.display = titleKey === '/stock' ? 'block' : 'none';
 
@@ -152,6 +155,7 @@ const ROX = {
       { route: '/stock', label: '个股', icon: '<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>' },
       { route: '/journal', label: '日志', icon: '<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>' },
       { route: '/framework', label: '框架', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>' },
+      { route: '/intelligence', label: '情报', icon: '<path d="M4 5h16v14H4z"/><path d="M7 9h10M7 13h7"/>' },
     ];
     nav.innerHTML = items.map(item => {
       const active = (item.route === '/' && (path === '/' || path === '')) || (item.route !== '/' && path.startsWith(item.route));
@@ -341,6 +345,13 @@ const ROX = {
           'cancel-decision': () => this.closeModal(),
           'generate-review': () => this.showReviewReport(),
           'search-stock': () => this.searchStock(),
+          'refresh-intelligence': async () => {
+            const button = actionEl;
+            button.disabled = true;
+            button.textContent = '刷新中…';
+            await this.api.get('/api/intelligence/brief?refresh=true');
+            this.render('/intelligence');
+          },
           'view-stock': () => {
             const code = actionEl.dataset.code;
             if (code) this.navigate(`/stock/${code}`);

@@ -1,78 +1,152 @@
 /* ============================================
-   ROX投资助手 — Design Tokens
-   唯一的 CSS 变量定义源，所有样式文件引用此文件
+   ROX投资助手 — Design Tokens v2
+   「战略文房」— 墨砚朱砂色系 · 宋体+等宽数字
    ============================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 :root {
-  /* 品牌色 */
-  --rox-primary: #38bdf8;
-  --rox-primary-hover: #0ea5e9;
-  --rox-secondary: #6366f1;
-  --rox-accent: #fbbf24;
+  /* ========== 品牌色 — 墨砚朱砂 ========== */
+  --ink-vermilion: #c8412c;
+  --ink-vermilion-soft: #d96a52;
+  --ink-vermilion-deep: #9e2e1e;
+  --ink-vermilion-glow: rgba(200, 65, 44, 0.12);
+  --ink-indigo: #4a6fa5;
+  --ink-indigo-soft: #6b8cb8;
 
-  /* 语义色 — A股惯例：涨红跌绿 */
-  --rox-up: #ef4444;
-  --rox-up-bg: rgba(239, 68, 68, 0.1);
-  --rox-down: #22c55e;
-  --rox-down-bg: rgba(34, 197, 94, 0.1);
-  --rox-success: #10b981;
-  --rox-warning: #f59e0b;
-  --rox-danger: #ef4444;
+  /* 兼容旧变量名 */
+  --rox-primary: var(--ink-vermilion);
+  --rox-primary-hover: var(--ink-vermilion-soft);
+  --rox-secondary: var(--ink-indigo);
+  --rox-accent: #c89942;
 
-  /* 背景色 — 暗色主题 */
-  --bg-page: #0b0f1a;
-  --bg-surface: #111827;
-  --bg-elevated: #1a2332;
-  --bg-input: #0d1421;
-  --bg-hover: rgba(255, 255, 255, 0.05);
-  --bg-active: rgba(56, 189, 248, 0.1);
+  /* ========== 语义色 ========== */
+  --ink-up: #d4574a;
+  --ink-up-bg: rgba(212, 87, 74, 0.08);
+  --ink-down: #7a9e6e;
+  --ink-down-bg: rgba(122, 158, 110, 0.08);
+  --ink-warn: #c89942;
+  --ink-info: var(--ink-indigo);
+  --ink-success: #7a9e6e;
+  --ink-danger: var(--ink-vermilion);
 
-  /* 边框色 */
-  --border-default: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(255, 255, 255, 0.12);
-  --border-active: rgba(56, 189, 248, 0.3);
+  --rox-up: var(--ink-up);
+  --rox-up-bg: var(--ink-up-bg);
+  --rox-down: var(--ink-down);
+  --rox-down-bg: var(--ink-down-bg);
+  --rox-success: var(--ink-success);
+  --rox-warning: var(--ink-warn);
+  --rox-danger: var(--ink-danger);
 
-  /* 文字色 */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
-  --text-muted: #475569;
+  /* ========== 背景 — 暖墨色暗主题 ========== */
+  --ink-bg-void: #1a1612;
+  --ink-bg-deep: #221d18;
+  --ink-bg-surface: #2a241e;
+  --ink-bg-raised: #332c25;
+  --ink-bg-hover: rgba(200, 65, 44, 0.04);
+  --ink-bg-active: rgba(200, 65, 44, 0.08);
 
-  /* 字体 */
-  --font-sans: -apple-system, 'SF Pro Display', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --bg-page: var(--ink-bg-void);
+  --bg-surface: var(--ink-bg-deep);
+  --bg-elevated: var(--ink-bg-surface);
+  --bg-input: var(--ink-bg-raised);
+  --bg-hover: var(--ink-bg-hover);
+  --bg-active: var(--ink-bg-active);
+
+  /* ========== 边框 — 暖灰 ========== */
+  --ink-border-faint: rgba(200, 180, 160, 0.06);
+  --ink-border: rgba(200, 180, 160, 0.10);
+  --ink-border-strong: rgba(200, 180, 160, 0.18);
+  --ink-border-accent: rgba(200, 65, 44, 0.25);
+
+  --border-default: var(--ink-border-faint);
+  --border-hover: var(--ink-border);
+  --border-active: var(--ink-border-accent);
+
+  /* ========== 文字 — 暖白系 ========== */
+  --ink-text-bright: #f5ede0;
+  --ink-text: #d4c9b8;
+  --ink-text-muted: #8a7f70;
+  --ink-text-faint: #5a5048;
+
+  --text-primary: var(--ink-text-bright);
+  --text-secondary: var(--ink-text);
+  --text-tertiary: var(--ink-text-muted);
+  --text-muted: var(--ink-text-faint);
+
+  /* ========== 字体 ========== */
+  --font-display: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+  --font-body: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', 'Menlo', monospace;
 
-  /* 圆角 */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --font-sans: var(--font-body);
+  --rox-font-sans: var(--font-body);
+  --rox-font-mono: var(--font-mono);
+
+  /* ========== 模数比 — 纯四度 1.333 ========== */
+  --scale-xs: 0.694rem;
+  --scale-sm: 0.851rem;
+  --scale-base: 1rem;
+  --scale-lg: 1.333rem;
+  --scale-xl: 1.777rem;
+  --scale-2xl: 2.369rem;
+
+  /* ========== 间距 — 4pt 基数 ========== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-base: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 72px;
+
+  --space-1: var(--space-xs);
+  --space-2: var(--space-sm);
+  --space-3: var(--space-md);
+  --space-4: var(--space-base);
+  --space-5: 20px;
+  --space-6: var(--space-lg);
+  --space-8: var(--space-xl);
+
+  /* ========== 圆角 — 克制 ========== */
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
   --radius-full: 999px;
 
-  /* 间距 */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
+  --rox-radius-sm: var(--radius-sm);
+  --rox-radius-md: var(--radius-md);
+  --rox-radius-lg: var(--radius-lg);
+  --rox-radius-full: var(--radius-full);
 
-  /* 侧边栏 */
-  --sidebar-width: 56px;
-  --sidebar-width-expanded: 200px;
+  /* ========== 侧边栏/顶栏 ========== */
+  --sidebar-width: 64px;
+  --sidebar-width-expanded: 220px;
+  --topbar-height: 52px;
 
-  /* 顶栏 */
-  --topbar-height: 48px;
+  --rox-sidebar-width: var(--sidebar-width);
+  --rox-sidebar-width-expanded: var(--sidebar-width-expanded);
+  --rox-topbar-height: var(--topbar-height);
 
-  /* 过渡 */
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s ease;
-  --transition-slow: 0.4s ease;
+  /* ========== 动效 ========== */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-instant: 100ms;
+  --dur-fast: 200ms;
+  --dur-normal: 350ms;
+  --dur-slow: 500ms;
 
-  /* 阴影 */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.15);
+  --transition-fast: var(--dur-instant) var(--ease-out-quart);
+  --transition-normal: var(--dur-fast) var(--ease-out-quart);
+  --transition-slow: var(--dur-normal) var(--ease-out-quart);
+
+  /* ========== 阴影 — 暖色系 ========== */
+  --shadow-sm: 0 1px 2px rgba(20, 10, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(20, 10, 0, 0.35);
+  --shadow-lg: 0 12px 40px rgba(20, 10, 0, 0.45);
+  --shadow-vermilion: 0 0 24px rgba(200, 65, 44, 0.08);
+  --shadow-glow: var(--shadow-vermilion);
 }

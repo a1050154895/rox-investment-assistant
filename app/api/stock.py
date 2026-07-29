@@ -99,6 +99,9 @@ async def stock_analysis(code: str):
     # 资金流向
     fund_flow = await get_fund_flow(code)
 
+    from app.services.intelligence_data import get_stock_intelligence
+    intelligence = await get_stock_intelligence(code, name, quote.get("industry", ""))
+
     return {
         "code": code, "name": name,
         "consistency_score": total,
@@ -135,6 +138,7 @@ async def stock_analysis(code: str):
             "pricing_power": random.choice(["强", "中", "弱"]),
         },
         "fund_flow": fund_flow,
+        "intelligence": intelligence,
         "position_recommendation": {
             "stage": "确认仓30%" if total >= 60 else "首仓30%",
             "trigger": "2个以上独立信号验证" if total >= 60 else "趋势结构初步出现",

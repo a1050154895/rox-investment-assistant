@@ -8,6 +8,7 @@ from datetime import datetime
 from fastapi import APIRouter
 
 from app.services.market_data import get_market_indices, get_stock_quote
+from app.services.intelligence_data import get_intelligence_brief
 
 router = APIRouter()
 
@@ -17,6 +18,9 @@ async def overview():
     """仪表盘聚合数据"""
     # 获取实时市场指数
     market_indices = await get_market_indices()
+
+    # 资讯研判面板：超时或数据源异常时独立降级，不影响行情主看板
+    intelligence = await get_intelligence_brief()
 
     # 自选股实时行情
     watchlist = []
@@ -110,6 +114,7 @@ async def overview():
             "advice": "现金50% > 基准40%，建议在流转阶段将10%现金转入卫星池。确认仓仅部分完成，需等待量能+基本面+政策中至少2项确认信号。主升仓未触发，不得提前启动。"
         },
         "watchlist": watchlist,
+        "intelligence": intelligence,
         "recent_decisions": [
             {"stock": "中际旭创", "code": "300308", "action": "买入", "date": "2026-07-28",
              "stage": "确认仓30%", "score": 85, "result": "待观察"},

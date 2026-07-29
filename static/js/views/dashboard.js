@@ -38,7 +38,7 @@ ROX.register('/', async function(container) {
             <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">${data.macro_compass.value_realization.detail}</div>
           </div>
         </div>
-        <div style="margin-top:12px;padding:10px 14px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:var(--radius-md);font-size:12px;color:var(--rox-primary);">
+        <div style="margin-top:12px;padding:12px 14px;background:var(--ink-vermilion-glow);border-left:2px solid var(--ink-vermilion);font-size:12px;color:var(--ink-vermilion-soft);">
           ${data.macro_compass.framework_advice}
         </div>
       </div>
@@ -116,7 +116,7 @@ ROX.register('/', async function(container) {
             <div style="font-size:11px;color:var(--text-secondary);">核心池：${data.discipline_334.core.stocks.join('、')}</div>
             <div style="font-size:11px;color:var(--text-secondary);">卫星池：${data.discipline_334.satellite.stocks.join('、')}</div>
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.12);border-radius:var(--radius-md);font-size:11px;color:var(--rox-accent);">
+          <div style="margin-top:12px;padding:10px 12px;background:rgba(200,153,66,0.08);border-left:2px solid var(--ink-warn);font-size:11px;color:var(--ink-warn);">
             ${data.discipline_334.advice}
           </div>
         </div>
@@ -146,6 +146,34 @@ ROX.register('/', async function(container) {
           </div>
         </div>
       </div>
+
+      <!-- 宏观资讯研判摘要 -->
+      ${data.intelligence ? `
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">政策与全球变量</div><div class="card-subtitle">先看传导路径，再看交易信号</div></div>
+            <button class="btn btn-ghost btn-sm" data-route="/intelligence">查看情报台</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${data.intelligence.global_risk.slice(0, 3).map(item => `
+              <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--ink-border-faint);">
+                <div><div class="stock-name">${item.factor}</div><div class="stock-code">${item.transmission}</div></div>
+                <span class="tag ${item.direction === 'warning' ? 'tag-amber' : item.direction === 'positive' ? 'tag-red' : 'tag-gray'}">${item.status}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">最新资讯线索</div><div class="card-subtitle">${data.intelligence.source_status}</div></div><span class="tag tag-gray">公开信息</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            ${data.intelligence.news.slice(0, 3).map(item => `
+              <div style="border-left:2px solid var(--ink-indigo);padding-left:10px;">
+                <div style="font-size:12px;color:var(--text-primary);line-height:1.6;">${item.title}</div>
+                <div style="margin-top:3px;font-size:10px;color:var(--text-tertiary);">${item.category} · ${item.fact_or_view}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>` : ''}
 
       <!-- 最近决策 -->
       <div class="card full-width">

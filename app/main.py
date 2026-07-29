@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from app.core.config import settings
-from app.api import dashboard, stock, journal, framework, settings_api
+from app.api import dashboard, stock, journal, framework, settings_api, intelligence
 
 app = FastAPI(
     title="ROX投资助手",
@@ -40,6 +40,7 @@ app.include_router(stock.router, prefix="/api/stock", tags=["stock"])
 app.include_router(journal.router, prefix="/api/journal", tags=["journal"])
 app.include_router(framework.router, prefix="/api/framework", tags=["framework"])
 app.include_router(settings_api.router, prefix="/api/settings", tags=["settings"])
+app.include_router(intelligence.router, prefix="/api/intelligence", tags=["intelligence"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
