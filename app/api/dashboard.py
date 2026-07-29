@@ -1,6 +1,9 @@
-"""仪表盘聚合 API — 一次请求返回宏观+周期+矛盾+334+自选概览"""
+"""仪表盘聚合 API — 一次请求返回宏观+周期+矛盾+334+自选概览
+
+方法论来源：卢麒元公开讲座思想提炼 + 马克思主义政治经济学公有领域理论
+"""
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi import APIRouter
 
 router = APIRouter()
@@ -17,29 +20,72 @@ async def overview():
             {"name": "沪深300", "code": "000300.SH", "price": 3842.16, "change": 5.67, "change_pct": 0.15},
         ],
         "macro_compass": {
-            "sovereign_credit": {"status": "平衡", "score": 62, "trend": "stable",
-                                 "detail": "财政纪律中等，直接税占比缓慢提升"},
-            "value_realization": {"status": "中", "score": 55, "trend": "up",
-                                  "detail": "社会总资本周转率回升，消费端温和复苏"},
-            "framework_advice": "当前处于资本周期「流转」阶段中期，建议维持核心30%仓位不变，关注主力资金持续流入的周期股。"
+            "sovereign_credit": {
+                "status": "中性信用", "score": 62, "trend": "stable",
+                "detail": "直接税占比缓慢提升，财政纪律中等，人民币国际化稳步推进"
+            },
+            "value_realization": {
+                "status": "中价值实现", "score": 55, "trend": "up",
+                "detail": "社会总资本周转率回升，消费端温和复苏，积累与消费尚不平衡"
+            },
+            "matrix_cell": "中性信用 × 中价值实现",
+            "matrix_action": "保持默认30/30/40",
+            "framework_advice": "当前处于资本周期「流转」阶段中期，宏观分类为中性信用×中价值实现，保持默认30/30/40配置。成交额维持高位但赚钱效应一般，建议维持核心仓位不变，卫星池关注资金流入确认的标的。"
         },
         "capital_cycle": {
             "stages": ["积累", "集中", "流转", "分配", "再生产"],
             "current_stage": 2,
             "stage_name": "流转",
             "stage_detail": "资本从金融体系向实体经济流转加速，产业资本活跃度提升",
-            "progress": 45
+            "characteristics": {
+                "成交额": "维持高位",
+                "龙头集中度": "龙头扩散",
+                "北向资金": "波动加大",
+                "政策导向": "政策落地观察"
+            },
+            "progress": 45,
+            "rule": "不先定阶段，不要讲仓位；阶段判断不清时建议观望"
         },
         "contradictions": {
-            "primary": {"name": "扩大内需 vs 居民收入增长放缓", "intensity": 72, "trend": "up"},
-            "secondary": {"name": "产业升级 vs 传统产能出清", "intensity": 58, "trend": "stable"},
-            "tertiary": {"name": "直接融资 vs 间接融资结构", "intensity": 41, "trend": "down"},
+            "primary": {
+                "name": "政策预期 vs 经济现实", "type": "预期矛盾",
+                "intensity": 72, "trend": "up",
+                "desc": "稳增长政策密集出台，但实体经济数据仍偏弱，预期差扩大"
+            },
+            "secondary": {
+                "name": "量能 vs 赚钱效应", "type": "量价矛盾",
+                "intensity": 58, "trend": "stable",
+                "desc": "成交额维持高位但赚钱效应一般，存量博弈特征明显"
+            },
+            "tertiary": {
+                "name": "北向资金 vs 主力资金", "type": "资金矛盾",
+                "intensity": 41, "trend": "down",
+                "desc": "北向资金波动加大，与内资主力流向存在分歧"
+            },
+            "rule": "矛盾强度>70为强矛盾，需重点关注；矛盾转化时调整持仓结构"
         },
         "discipline_334": {
-            "core": {"target": 30, "actual": 28, "stocks": ["贵州茅台", "宁德时代", "招商银行"]},
-            "satellite": {"target": 30, "actual": 22, "stocks": ["中际旭创", "北方华创"]},
-            "cash": {"target": 40, "actual": 50, "note": "现金比例偏高，可适度加仓卫星池"},
-            "advice": "现金50% > 基准40%，建议在流转阶段将10%现金转入卫星池，关注资金流入确认的标的。"
+            "core": {
+                "target": 30, "actual": 28,
+                "stocks": ["贵州茅台", "宁德时代", "招商银行"],
+                "rule": "宽基ETF或高确定性龙头，低换手，只在宏观分类根本变化时调整"
+            },
+            "satellite": {
+                "target": 30, "actual": 22,
+                "stocks": ["中际旭创", "北方华创"],
+                "rule": "阶段景气行业，单月换手≤2次"
+            },
+            "cash": {
+                "target": 40, "actual": 50,
+                "note": "现金比例偏高，只在阶段切换+恐慌指标触发时启用",
+                "rule": "货币基金/逆回购，不得因短期波动消耗"
+            },
+            "position_stages": [
+                {"name": "首仓", "ratio": "30%", "trigger": "趋势结构初步出现", "status": "已完成"},
+                {"name": "确认仓", "ratio": "30%", "trigger": "2个以上独立信号验证", "status": "部分完成"},
+                {"name": "主升仓", "ratio": "40%", "trigger": "突破关键结构位+资金面共振", "status": "未触发"},
+            ],
+            "advice": "现金50% > 基准40%，建议在流转阶段将10%现金转入卫星池。确认仓仅部分完成，需等待量能+基本面+政策中至少2项确认信号。主升仓未触发，不得提前启动。"
         },
         "watchlist": [
             {"name": "贵州茅台", "code": "600519", "price": 1689.50, "change_pct": 0.82,
@@ -55,11 +101,11 @@ async def overview():
         ],
         "recent_decisions": [
             {"stock": "中际旭创", "code": "300308", "action": "买入", "date": "2026-07-28",
-             "stage": "确认30%", "score": 85, "result": "待观察"},
+             "stage": "确认仓30%", "score": 85, "result": "待观察"},
             {"stock": "贵州茅台", "code": "600519", "action": "持有", "date": "2026-07-25",
-             "stage": "主力40%", "score": 78, "result": "+2.3%"},
+             "stage": "主升仓40%", "score": 78, "result": "+2.3%"},
             {"stock": "宁德时代", "code": "300750", "action": "减仓", "date": "2026-07-22",
-             "stage": "确认30%", "score": 52, "result": "-1.5%"},
+             "stage": "确认仓30%", "score": 52, "result": "-1.5%"},
         ],
         "updated_at": datetime.now().isoformat(),
     }
