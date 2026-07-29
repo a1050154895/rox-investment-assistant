@@ -65,6 +65,11 @@ const ROX = {
   },
 
   // Utils
+  escape(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[char]));
+  },
   fmt: {
     num(v, dec = 2) { return v != null ? Number(v).toFixed(dec) : '--'; },
     pct(v, dec = 2) { return v != null ? (v > 0 ? '+' : '') + Number(v).toFixed(dec) + '%' : '--'; },

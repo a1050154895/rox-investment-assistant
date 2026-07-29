@@ -110,9 +110,17 @@ else:
     logger.info("AKShare 不可用，使用 NeoData 真实数据快照")
 
 
+def normalize_stock_code(code: str) -> str:
+    """标准化 A 股代码，避免 str.lstrip 对字符集合的误删行为。"""
+    normalized = code.strip().lower()
+    if normalized.startswith(("sh", "sz", "bj")):
+        normalized = normalized[2:]
+    return normalized.split(".")[0]
+
+
 async def get_stock_quote(code: str) -> dict[str, Any]:
-    """获取个股实时行情"""
-    code = code.lstrip('sh').lstrip('sz')
+    """获取个股行情，并明确标注实时/快照状态。"""
+    code = normalize_stock_code(code)
 
     # 尝试 AKShare（带短超时，失败快速回退）
     if AKSHARE_AVAILABLE:
@@ -150,6 +158,8 @@ async def get_stock_quote(code: str) -> dict[str, Any]:
                     "high": float(r.get('最高', 0) or 0),
                     "low": float(r.get('最低', 0) or 0),
                     "volume": int(r.get('成交量', 0) or 0),
+                    "data_status": "realtime", "data_source": "AKShare/东方财富公开接口",
+                    "as_of": str(r.get('更新时间', '') or ''), "stale": False,
                 }
         except Exception as e:
             logger.warning(f"AKShare 行情获取失败: {e}")
@@ -163,14 +173,16 @@ async def get_stock_quote(code: str) -> dict[str, Any]:
             "change_pct": q["change_pct"], "pe": q["pe"], "pb": q["pb"],
             "market_cap": f"{q['market_cap']:.0f}亿", "turnover": q["turnover"],
             "open": q["open"], "high": q["high"], "low": q["low"],
+            "data_status": "snapshot", "data_source": "NeoData 历史快照",
+            "as_of": "2026-07-29", "stale": True,
         }
 
-    return {"error": "未找到该股票", "code": code}
+    return {"error": "未找到该股票或数据源暂不可用", "code": code, "data_status": "unavailable", "stale": True}
 
 
 async def get_kline(code: str, period: str = "daily", limit: int = 120) -> dict[str, Any]:
-    """获取K线数据"""
-    code = code.lstrip('sh').lstrip('sz')
+    """获取K线数据；失败时不生成模拟行情。"""
+    code = normalize_stock_code(code)
     ak_period = "daily" if period == "daily" else "weekly"
 
     # 尝试 AKShare
@@ -193,49 +205,21 @@ async def get_kline(code: str, period: str = "daily", limit: int = 120) -> dict[
                         "volume": int(r['成交量']),
                     })
                 return {"code": code, "name": REAL_QUOTES.get(code, {}).get("name", code),
-                        "period": period, "candles": candles[-limit:]}
+                        "period": period, "candles": candles[-limit:], "data_status": "realtime",
+                        "data_source": "AKShare/东方财富公开接口", "stale": False}
         except Exception as e:
             logger.warning(f"AKShare K线获取失败: {e}")
 
-    # 回退：生成基于真实最新价格的模拟K线
-    return _generate_fallback_kline(code, period, limit)
-
-
-def _generate_fallback_kline(code: str, period: str, limit: int) -> dict[str, Any]:
-    """基于真实价格生成回退K线"""
-    import random
-    from datetime import datetime, timedelta
-
-    base_price = REAL_QUOTES.get(code, {}).get("price", 100)
-    name = REAL_QUOTES.get(code, {}).get("name", code)
-    days = limit if period == "daily" else min(limit, 52)
-    candles = []
-    price = base_price * 0.85
-
-    for i in range(days):
-        date = datetime.now() - timedelta(days=days - i)
-        vol = random.uniform(0.01, 0.035)
-        open_p = price
-        close_p = price * (1 + (random.random() - 0.5) * vol * 2)
-        high_p = max(open_p, close_p) * (1 + random.random() * 0.015)
-        low_p = min(open_p, close_p) * (1 - random.random() * 0.015)
-        candles.append({
-            "date": date.strftime("%Y-%m-%d"),
-            "open": round(open_p, 2), "close": round(close_p, 2),
-            "high": round(high_p, 2), "low": round(low_p, 2),
-            "volume": random.randint(50000, 500000),
-        })
-        price = close_p
-
-    if candles:
-        candles[-1]["close"] = base_price
-
-    return {"code": code, "name": name, "period": period, "candles": candles}
+    return {
+        "code": code, "name": REAL_QUOTES.get(code, {}).get("name", code), "period": period,
+        "candles": [], "data_status": "unavailable", "data_source": None, "stale": True,
+        "message": "K线数据源暂不可用，系统不会生成模拟行情。",
+    }
 
 
 async def get_fund_flow(code: str) -> dict[str, Any]:
-    """获取资金流向"""
-    code = code.lstrip('sh').lstrip('sz')
+    """获取资金流向；失败时仅返回已登记快照。"""
+    code = normalize_stock_code(code)
 
     # 尝试 AKShare
     if AKSHARE_AVAILABLE:
@@ -250,28 +234,25 @@ async def get_fund_flow(code: str) -> dict[str, Any]:
                 for _, r in df.tail(10).iterrows():
                     trend_data.append(round(float(r.get('主力净流入-净额', 0) or 0) / 1e8, 2))
                 return {
-                    "main_inflow": round(main_inflow, 2),
-                    "trend": trend_data,
-                    "north_flow": 0,
-                    "sector_comparison": 0,
+                    "main_inflow": round(main_inflow, 2), "trend": trend_data,
+                    "north_flow": None, "sector_comparison": None,
+                    "data_status": "realtime", "data_source": "AKShare/东方财富公开接口", "stale": False,
                 }
         except Exception as e:
             logger.warning(f"AKShare 资金流获取失败: {e}")
 
-    # 回退
-    import random
     if code in REAL_FUND_FLOW:
         ff = REAL_FUND_FLOW[code]
         return {
-            "main_inflow": ff["main_inflow"],
-            "trend": [round(ff["main_inflow"] * (0.5 + random.random()), 2) for _ in range(10)],
-            "north_flow": 0,
-            "sector_comparison": 0,
+            "main_inflow": ff["main_inflow"], "trend": [],
+            "north_flow": None, "sector_comparison": None,
+            "data_status": "snapshot", "data_source": "NeoData 历史快照",
+            "as_of": "2026-07-29", "stale": True,
         }
     return {
-        "main_inflow": round(random.uniform(-5, 15), 2),
-        "trend": [round(random.uniform(-2, 3), 2) for _ in range(10)],
-        "north_flow": 0, "sector_comparison": 0,
+        "main_inflow": None, "trend": [], "north_flow": None, "sector_comparison": None,
+        "data_status": "unavailable", "data_source": None, "stale": True,
+        "message": "资金流数据源暂不可用。",
     }
 
 

@@ -20,10 +20,10 @@ async def methodology():
                 "summary": "宏观判断从主权信用与价值实现两个维度交叉，将宏观环境分为3×3矩阵，不同组合对应不同仓位基准",
                 "key_concepts": ["主权信用", "直接税占比", "财政纪律", "人民币国际化", "社会总资本周转率", "消费率", "积累与消费均衡度"],
                 "indicators": [
-                    {"name": "主权信用状态", "value": "中性信用", "score": 62,
-                     "detail": "直接税占比缓慢提升，财政纪律中等，人民币国际化稳步推进"},
-                    {"name": "价值实现度", "value": "中价值实现", "score": 55,
-                     "detail": "社会总资本周转率回升，消费端温和复苏，积累与消费尚不平衡"},
+                    {"name": "主权信用状态", "value": "未评估", "score": None,
+                     "detail": "待接入财政、税收与人民币国际化的授权宏观数据"},
+                    {"name": "价值实现度", "value": "未评估", "score": None,
+                     "detail": "待接入消费、资本周转与积累率的授权宏观数据"},
                 ],
                 "matrix": {
                     "rows": ["扩张信用", "中性信用", "收缩信用"],
@@ -48,7 +48,7 @@ async def methodology():
                 "title": "五阶段资本流转模型",
                 "summary": "资本运动经历积累→集中→流转→分配→再生产五个阶段，每阶段有可观测的盘面特征，阶段判断不清时建议观望",
                 "key_concepts": ["积累阶段", "集中阶段", "流转阶段", "分配阶段", "再生产阶段"],
-                "current_stage": 2,
+                "current_stage": None,
                 "stages": [
                     {
                         "name": "积累", "desc": "资本蓄积，寻找价值洼地",
@@ -89,12 +89,7 @@ async def methodology():
                     {"name": "结构矛盾", "desc": "行业分化 vs 指数共振", "example": "少数板块涨 vs 全市场普涨"},
                     {"name": "预期矛盾", "desc": "政策预期 vs 经济现实", "example": "政策利好 vs 基本面未改善"},
                 ],
-                "current": {
-                    "primary": {"name": "政策预期 vs 经济现实", "intensity": 72, "trend": "up",
-                                "desc": "稳增长政策密集出台，但实体经济数据仍偏弱，预期差扩大"},
-                    "secondary": {"name": "量能 vs 赚钱效应", "intensity": 58, "trend": "stable",
-                                  "desc": "成交额维持高位但赚钱效应一般，存量博弈特征明显"},
-                },
+                "current": None,
                 "rule": "矛盾强度>70为强矛盾，需重点关注；矛盾转化时调整持仓结构"
             },
             {
@@ -119,11 +114,7 @@ async def methodology():
                      "rule": "仓位+40%；出现破位信号按反向顺序减仓"},
                 ],
                 "rule": "任意一段未触发，后面一段不能启动；出现破位信号，按反向顺序减仓",
-                "current": {
-                    "core": {"target": 30, "actual": 28},
-                    "satellite": {"target": 30, "actual": 22},
-                    "cash": {"target": 40, "actual": 50},
-                }
+                "current": None
             },
             {
                 "level": "L5", "name": "一致性评分",

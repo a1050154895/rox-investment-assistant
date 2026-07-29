@@ -34,6 +34,7 @@ ROX.register('/stock', async function(container, params) {
               <h2 style="font-size:18px;font-weight:600;">${info.name}</h2>
               <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);">${info.code}</span>
               <span class="tag tag-gray">${info.industry}</span>
+              <span class="tag ${info.stale ? 'tag-amber' : 'tag-green'}">${info.stale ? `历史快照 ${info.as_of || ''}` : '实时数据'}</span>
             </div>
             <div style="display:flex;align-items:center;gap:16px;">
               <div style="text-align:right;">
@@ -58,14 +59,14 @@ ROX.register('/stock', async function(container, params) {
 
         <!-- K-Line Chart -->
         <div class="card" style="flex:1;padding:12px;overflow:hidden;">
-          <div id="kline-chart" class="chart-container"></div>
+          ${kline?.data_status === 'unavailable' ? `<div class="empty-state"><p>${kline.message || 'K线数据暂不可用'}</p></div>` : `<div id="kline-chart" class="chart-container"></div>`}
         </div>
 
         <!-- Fund Flow -->
         <div class="card" style="padding:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <span style="font-size:12px;font-weight:500;">主力资金流向</span>
-            <span style="font-family:var(--font-mono);font-size:13px;color:${analysis?.fund_flow?.main_inflow>=0?'var(--rox-up)':'var(--rox-down)'};">${analysis?.fund_flow?.main_inflow>=0?'+':''}${ROX.fmt.num(analysis?.fund_flow?.main_inflow)} 亿</span>
+            <span style="font-family:var(--font-mono);font-size:13px;color:${analysis?.fund_flow?.main_inflow != null && analysis.fund_flow.main_inflow>=0?'var(--rox-up)':'var(--rox-down)'};">${analysis?.fund_flow?.main_inflow == null ? '数据不可用' : `${analysis.fund_flow.main_inflow>=0?'+':''}${ROX.fmt.num(analysis.fund_flow.main_inflow)} 亿`}</span>
           </div>
           <div id="flow-chart"></div>
         </div>
@@ -78,16 +79,16 @@ ROX.register('/stock', async function(container, params) {
           <div class="card">
             <div class="card-header">
               <div class="card-title">框架一致性评分</div>
-              <span class="score-badge ${ROX.fmt.scoreClass(analysis.consistency_score)}" style="font-size:16px;min-width:48px;height:28px;">${analysis.consistency_score}</span>
+              <span class="score-badge ${analysis.consistency_score == null ? 'score-low' : ROX.fmt.scoreClass(analysis.consistency_score)}" style="font-size:16px;min-width:48px;height:28px;">${analysis.consistency_score ?? '--'}</span>
             </div>
             <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:12px;">总体评价：${analysis.score_label}</div>
             ${Object.entries(analysis.dimensions).map(([key, dim]) => `
               <div style="margin-bottom:10px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
                   <span style="font-size:11px;color:var(--text-secondary);">${dim.label} <span style="color:var(--text-muted);">(${dim.weight}%)</span></span>
-                  <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);">${dim.score}</span>
+                  <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);">${dim.score ?? '--'}</span>
                 </div>
-                <div class="progress"><div class="progress-fill ${dim.score>=70?'green':dim.score>=45?'amber':'red'}" style="width:${dim.score}%"></div></div>
+                ${dim.score != null ? `<div class="progress"><div class="progress-fill ${dim.score>=70?'green':dim.score>=45?'amber':'red'}" style="width:${dim.score}%"></div></div>` : ''}
                 <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">${dim.detail}</div>
               </div>
             `).join('')}
@@ -95,52 +96,23 @@ ROX.register('/stock', async function(container, params) {
 
           <!-- Contradictions -->
           <div class="card">
-            <div class="card-header"><div class="card-title">矛盾分析</div></div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                  <span style="font-size:11px;color:var(--text-primary);">主要矛盾</span>
-                  <span style="font-size:11px;color:var(--text-tertiary);">强度 ${analysis.contradictions.primary.intensity}</span>
-                </div>
-                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">${analysis.contradictions.primary.name}</div>
-                <div class="progress"><div class="progress-fill red" style="width:${analysis.contradictions.primary.intensity}%"></div></div>
-              </div>
-              <div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                  <span style="font-size:11px;color:var(--text-primary);">次要矛盾</span>
-                  <span style="font-size:11px;color:var(--text-tertiary);">强度 ${analysis.contradictions.secondary.intensity}</span>
-                </div>
-                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">${analysis.contradictions.secondary.name}</div>
-                <div class="progress"><div class="progress-fill amber" style="width:${analysis.contradictions.secondary.intensity}%"></div></div>
-              </div>
-            </div>
+            <div class="card-header"><div class="card-title">矛盾分析</div><span class="tag tag-amber">待验证</span></div>
+            <div style="font-size:11px;color:var(--text-secondary);line-height:1.7;">当前没有足够的真实量价、政策与行业数据计算矛盾强度，系统不会生成随机结论。</div>
           </div>
 
           <!-- Value Assessment -->
           <div class="card">
             <div class="card-header"><div class="card-title">价值规律评估</div></div>
             <div class="grid-2" style="gap:8px;">
-              <div>
-                <div style="font-size:10px;color:var(--text-tertiary);">剩余价值率</div>
-                <div style="font-family:var(--font-mono);font-size:14px;font-weight:500;">${analysis.value_assessment.surplus_rate}%</div>
-              </div>
-              <div>
-                <div style="font-size:10px;color:var(--text-tertiary);">资本有机构成</div>
-                <div style="font-family:var(--font-mono);font-size:14px;font-weight:500;">${analysis.value_assessment.organic_composition}</div>
-              </div>
-              <div>
-                <div style="font-size:10px;color:var(--text-tertiary);">周转率</div>
-                <div style="font-family:var(--font-mono);font-size:14px;font-weight:500;">${analysis.value_assessment.turnover_rate}</div>
-              </div>
-              <div>
-                <div style="font-size:10px;color:var(--text-tertiary);">定价权</div>
-                <div style="font-size:14px;font-weight:500;">${analysis.value_assessment.pricing_power}</div>
-              </div>
+              <div><div style="font-size:10px;color:var(--text-tertiary);">PE</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;">${ROX.fmt.num(analysis.value_assessment.pe,1)}</div></div>
+              <div><div style="font-size:10px;color:var(--text-tertiary);">PB</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;">${ROX.fmt.num(analysis.value_assessment.pb,2)}</div></div>
+              <div><div style="font-size:10px;color:var(--text-tertiary);">ROE代理</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;">${analysis.value_assessment.roe_proxy == null ? '--' : ROX.fmt.num(analysis.value_assessment.roe_proxy,1)+'%'}</div></div>
+              <div><div style="font-size:10px;color:var(--text-tertiary);">结论</div><div style="font-size:12px;font-weight:500;">${analysis.value_assessment.value_grade}</div></div>
             </div>
           </div>
 
           <!-- Indicators -->
-          ${indicators && !indicators.error ? `
+          ${indicators && indicators.data_status !== 'unavailable' ? `
           <div class="card">
             <div class="card-header"><div class="card-title">技术指标</div></div>
             <div class="grid-2" style="gap:8px;">
@@ -157,23 +129,26 @@ ROX.register('/stock', async function(container, params) {
   `;
 
   // Render charts
-  if (kline && kline.candles) {
+  if (kline?.candles?.length) {
     renderKline(kline.candles, info);
   }
 
   // Period switch
   document.getElementById('btn-daily')?.addEventListener('click', async () => {
     const data = await ROX.api.get(`/api/stock/${code}/kline?period=daily`);
-    if (data && data.candles) renderKline(data.candles, info);
+    if (data?.candles?.length) renderKline(data.candles, info);
   });
   document.getElementById('btn-weekly')?.addEventListener('click', async () => {
     const data = await ROX.api.get(`/api/stock/${code}/kline?period=weekly`);
-    if (data && data.candles) renderKline(data.candles, info);
+    if (data?.candles?.length) renderKline(data.candles, info);
   });
 
   // Fund flow mini chart
-  if (analysis && analysis.fund_flow) {
-    renderFlowChart(analysis.fund_flow.trend || []);
+  if (analysis?.fund_flow?.trend?.length) {
+    renderFlowChart(analysis.fund_flow.trend);
+  } else {
+    const flowEl = document.getElementById('flow-chart');
+    if (flowEl) flowEl.innerHTML = '<div class="empty-state" style="padding:16px;"><p>资金趋势数据暂不可用</p></div>';
   }
 });
 

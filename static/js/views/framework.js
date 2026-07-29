@@ -68,9 +68,9 @@ function renderMethodology(data) {
                 <div>
                   <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
                     <span style="color:var(--text-secondary);">${ind.name}</span>
-                    <span style="color:var(--text-tertiary);">${ind.value} (${ind.score})</span>
+                    <span style="color:var(--text-tertiary);">${ind.value}${ind.score != null ? ` (${ind.score})` : ''}</span>
                   </div>
-                  <div class="progress"><div class="progress-fill amber" style="width:${ind.score}%"></div></div>
+                  ${ind.score != null ? `<div class="progress"><div class="progress-fill amber" style="width:${ind.score}%"></div></div>` : `<div style="font-size:10px;color:var(--text-muted);">${ind.detail}</div>`}
                 </div>
               `).join('')}
             </div>
@@ -79,17 +79,15 @@ function renderMethodology(data) {
           ${layer.stages ? `
             <div class="cycle-stages" style="margin-top:8px;">
               ${layer.stages.map((s, i) => `
-                <div class="cycle-stage ${i === layer.current_stage ? 'active' : i < layer.current_stage ? 'passed' : ''}">
+                <div class="cycle-stage ${layer.current_stage != null && i === layer.current_stage ? 'active' : layer.current_stage != null && i < layer.current_stage ? 'passed' : ''}">
                   ${s.name}
                 </div>
               `).join('')}
             </div>
-            <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">
-              当前阶段：${layer.stages[layer.current_stage]?.name} — ${layer.stages[layer.current_stage]?.desc}
-            </div>
-            <div style="font-size:11px;color:var(--rox-primary);margin-top:4px;">
-              策略建议：${layer.stages[layer.current_stage]?.strategy}
-            </div>
+            ${layer.current_stage != null ? `
+              <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">当前阶段：${layer.stages[layer.current_stage]?.name} — ${layer.stages[layer.current_stage]?.desc}</div>
+              <div style="font-size:11px;color:var(--rox-primary);margin-top:4px;">策略建议：${layer.stages[layer.current_stage]?.strategy}</div>
+            ` : `<div style="font-size:11px;color:var(--ink-warn);margin-top:6px;">当前阶段未评估：缺少可靠实时宏观数据</div>`}
           ` : ''}
 
           ${layer.current ? `

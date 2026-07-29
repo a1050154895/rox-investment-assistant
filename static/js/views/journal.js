@@ -72,8 +72,8 @@ ROX.register('/journal', async function(container) {
               <div class="decision-header">
                 <div style="display:flex;align-items:center;gap:12px;">
                   <div>
-                    <div class="decision-stock" style="cursor:pointer;" data-action="view-stock" data-code="${d.code}">${d.stock}</div>
-                    <div class="decision-meta">${d.code} · ${d.date} · 持仓 ${d.holding_days} 天</div>
+                    <div class="decision-stock" style="cursor:pointer;" data-action="view-stock" data-code="${ROX.escape(d.code)}">${ROX.escape(d.stock)}</div>
+                    <div class="decision-meta">${ROX.escape(d.code)} · ${ROX.escape(d.date)} · 持仓 ${Number(d.holding_days) || 0} 天</div>
                   </div>
                   <span class="tag ${ROX.fmt.actionTag(d.action)}">${d.action}</span>
                   <span class="tag tag-gray">${d.stage}</span>
@@ -91,7 +91,7 @@ ROX.register('/journal', async function(container) {
               </div>
 
               <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;padding:8px 12px;background:var(--bg-input);border-radius:var(--radius-md);">
-                ${d.reason || '未填写决策理由'}
+                ${ROX.escape(d.reason || '未填写决策理由')}
               </div>
 
               <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -99,7 +99,7 @@ ROX.register('/journal', async function(container) {
                   ${d.result === '盈' ? `<span class="tag tag-red">盈 ${d.result_pct>=0?'+':''}${d.result_pct}%</span>` :
                     d.result === '亏' ? `<span class="tag tag-green">亏 ${d.result_pct}%</span>` :
                     `<span class="tag tag-gray">待观察</span>`}
-                  ${d.review ? `<span style="font-size:11px;color:var(--text-tertiary);">📝 ${d.review}</span>` : ''}
+                  ${d.review ? `<span style="font-size:11px;color:var(--text-tertiary);">${ROX.escape(d.review)}</span>` : ''}
                 </div>
                 <button class="btn btn-ghost btn-sm" data-action="edit-decision" data-id="${d.id}">更新结果</button>
               </div>
@@ -155,7 +155,7 @@ ROX.register('/journal', async function(container) {
                 ${d.result === '盈' ? `<span class="tag tag-red">盈 ${d.result_pct>=0?'+':''}${d.result_pct}%</span>` :
                   d.result === '亏' ? `<span class="tag tag-green">亏 ${d.result_pct}%</span>` :
                   `<span class="tag tag-gray">待观察</span>`}
-                ${d.review ? `<span style="font-size:11px;color:var(--text-tertiary);">📝 ${d.review}</span>` : ''}
+                ${d.review ? `<span style="font-size:11px;color:var(--text-tertiary);">${ROX.escape(d.review)}</span>` : ''}
               </div>
               <button class="btn btn-ghost btn-sm" data-action="edit-decision" data-id="${d.id}">更新结果</button>
             </div>
@@ -174,7 +174,7 @@ ROX.register('/journal', async function(container) {
 
       ROX.showModal(`
         <div class="modal-header">
-          <span class="modal-title">更新决策结果 — ${decision.stock}</span>
+          <span class="modal-title">更新决策结果 — ${ROX.escape(decision.stock)}</span>
           <div class="modal-close" data-action="close-modal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:16px;">
@@ -194,7 +194,7 @@ ROX.register('/journal', async function(container) {
           </div>
           <div class="form-group">
             <label class="form-label">复盘笔记</label>
-            <textarea class="form-textarea" id="edit-review" placeholder="事后总结...">${decision.review||''}</textarea>
+            <textarea class="form-textarea" id="edit-review" placeholder="事后总结...">${ROX.escape(decision.review || '')}</textarea>
           </div>
           <div style="display:flex;gap:8px;justify-content:flex-end;">
             <button class="btn btn-secondary" data-action="close-modal">取消</button>

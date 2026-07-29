@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from app.core.config import settings
+from app.core.security import SecurityHeadersMiddleware
 from app.api import dashboard, stock, journal, framework, settings_api, intelligence
 
 app = FastAPI(
@@ -15,6 +16,9 @@ app = FastAPI(
     version="3.0.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
+
+# 安全响应头与统一错误响应
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS
 app.add_middleware(
@@ -47,7 +51,19 @@ app.include_router(intelligence.router, prefix="/api/intelligence", tags=["intel
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.0.0", "name": "ROX投资助手"}
+    return {"status": "ok", "version": "3.1.0", "name": "ROX投资助手"}
+
+
+@app.get("/ready")
+async def ready():
+    """就绪检查：当前阶段验证应用配置和关键服务可加载。"""
+    from app.services.market_data import REAL_QUOTES
+    checks = {
+        "configuration": {"status": "ok", "environment": settings.ENVIRONMENT},
+        "market_snapshot": {"status": "ok" if REAL_QUOTES else "degraded", "symbols": len(REAL_QUOTES)},
+        "database": {"status": "not_configured", "message": "PostgreSQL 将在下一阶段接入"},
+    }
+    return {"status": "degraded" if checks["database"]["status"] != "ok" else "ok", "checks": checks}
 
 
 # ========== SPA 前端路由 ==========

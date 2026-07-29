@@ -6,56 +6,9 @@ from pydantic import BaseModel, Field
 
 router = APIRouter()
 
-# 内存存储（生产环境替换为数据库）
-_journal: list[dict] = [
-    {
-        "id": 1, "stock": "中际旭创", "code": "300308", "action": "买入",
-        "date": "2026-07-28", "stage": "确认30%",
-        "cycle_stage": "流转", "contradiction_intensity": 68,
-        "value_realization": 55, "consistency_score": 85,
-        "reason": "主力资金连续3日净流入，行业景气度上行，处于流转阶段中期，框架一致性评分85分。",
-        "result": "待观察", "result_pct": None, "holding_days": 1,
-        "review": None,
-    },
-    {
-        "id": 2, "stock": "贵州茅台", "code": "600519", "action": "持有",
-        "date": "2026-07-25", "stage": "主力40%",
-        "cycle_stage": "流转", "contradiction_intensity": 62,
-        "value_realization": 58, "consistency_score": 78,
-        "reason": "核心仓位不动，估值合理，主力资金稳定，维持持有。",
-        "result": "盈", "result_pct": 2.3, "holding_days": 4,
-        "review": "持有判断正确，框架一致性高。",
-    },
-    {
-        "id": 3, "stock": "宁德时代", "code": "300750", "action": "减仓",
-        "date": "2026-07-22", "stage": "确认30%",
-        "cycle_stage": "流转", "contradiction_intensity": 45,
-        "value_realization": 40, "consistency_score": 52,
-        "reason": "一致性评分偏低，矛盾强度下降，减仓规避不确定性。",
-        "result": "亏", "result_pct": -1.5, "holding_days": 7,
-        "review": "减仓时机合理，后续确实继续下跌。",
-    },
-    {
-        "id": 4, "stock": "北方华创", "code": "002371", "action": "买入",
-        "date": "2026-07-18", "stage": "试仓30%",
-        "cycle_stage": "集中", "contradiction_intensity": 72,
-        "value_realization": 60, "consistency_score": 80,
-        "reason": "半导体设备国产替代逻辑强化，资本集中阶段先行布局。",
-        "result": "盈", "result_pct": 8.5, "holding_days": 11,
-        "review": "买入时机优秀，框架分析准确抓住了集中阶段机会。",
-    },
-    {
-        "id": 5, "stock": "招商银行", "code": "600036", "action": "持有",
-        "date": "2026-07-15", "stage": "主力40%",
-        "cycle_stage": "流转", "contradiction_intensity": 55,
-        "value_realization": 50, "consistency_score": 71,
-        "reason": "银行股息率稳定，核心仓位继续持有。",
-        "result": "盈", "result_pct": 1.2, "holding_days": 14,
-        "review": None,
-    },
-]
-
-_next_id = 6
+# 临时单用户内存存储。生产环境不预置虚构交易数据；下一阶段迁移 PostgreSQL。
+_journal: list[dict] = []
+_next_id = 1
 
 
 class DecisionCreate(BaseModel):
@@ -155,9 +108,8 @@ async def stats_summary():
     losses = [d for d in _journal if d["result"] == "亏"]
     win_rate = round(len(wins) / max(len(wins) + len(losses), 1) * 100, 1)
 
-    # 最常犯错模式
     low_score = [d for d in _journal if d["consistency_score"] < 60]
-    error_patterns = "技术分析权重过高，忽视宏观周期阶段" if low_score else "暂无明显错误模式"
+    error_patterns = "存在低一致性记录，请逐条复核证据与纪律" if low_score else "暂无足够样本识别错误模式"
 
     return {
         "total": total,
@@ -213,13 +165,12 @@ async def generate_review(
         "avg_consistency": avg_score,
         "total_return": round(sum(d.get("result_pct", 0) or 0 for d in decisions), 2),
         "stage_breakdown": stage_stats,
-        "insights": [
-            "流转阶段的决策胜率最高，说明宏观周期判断有效",
-            "低一致性评分（<60）的决策亏损率较高，建议严格执行框架纪律",
-            "核心仓位持有时间长、收益稳定，符合334纪律设计初衷",
+        "insights": ["当前样本不足，无法得出稳定胜率或阶段有效性结论"] if total < 10 else [
+            "请结合样本量、市场环境和最大回撤评估框架表现",
+            "一致性评分只反映纪律匹配，不代表未来收益",
         ],
         "suggestions": [
-            "建议将技术分析权重从5%进一步降低至3%，增加价值规律权重",
-            "积累阶段的决策样本不足，可考虑增加该阶段的观察频率",
+            "持续记录事实依据、数据来源、建仓触发和退出条件",
+            "至少积累10条已完成决策后再评估统计结果",
         ]
     }

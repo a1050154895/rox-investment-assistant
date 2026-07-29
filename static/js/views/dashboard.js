@@ -53,7 +53,7 @@ ROX.register('/', async function(container) {
           </div>
           <div class="cycle-stages" style="margin-bottom:12px;">
             ${data.capital_cycle.stages.map((stage, i) => `
-              <div class="cycle-stage ${i < data.capital_cycle.current_stage ? 'passed' : i === data.capital_cycle.current_stage ? 'active' : ''}">${stage}</div>
+              <div class="cycle-stage ${data.capital_cycle.current_stage != null && i < data.capital_cycle.current_stage ? 'passed' : data.capital_cycle.current_stage != null && i === data.capital_cycle.current_stage ? 'active' : ''}">${stage}</div>
             `).join('')}
           </div>
           <div class="progress" style="margin-bottom:8px;"><div class="progress-fill blue" style="width:${data.capital_cycle.progress}%"></div></div>
@@ -135,7 +135,7 @@ ROX.register('/', async function(container) {
                   <div class="stock-code">${s.code}</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:12px;">
-                  <span class="score-badge ${ROX.fmt.scoreClass(s.score)}">${s.score}</span>
+                  <span class="tag ${s.stale ? 'tag-amber' : 'tag-green'}">${s.stale ? '快照' : '实时'}</span>
                   <div style="text-align:right;">
                     <div class="stock-price ${ROX.fmt.color(s.change_pct)}">${ROX.fmt.num(s.price)}</div>
                     <div class="stock-change ${ROX.fmt.color(s.change_pct)}">${ROX.fmt.pct(s.change_pct)}</div>
@@ -182,24 +182,10 @@ ROX.register('/', async function(container) {
           <button class="btn btn-secondary btn-sm" data-action="add-decision">+ 记录决策</button>
         </div>
         <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;">
-          ${data.recent_decisions.map(d => `
+          ${data.recent_decisions.length ? data.recent_decisions.map(d => `
             <div class="decision-card ${d.score < 60 ? 'low-score' : ''}" data-action="view-stock" data-code="${d.code}">
-              <div class="decision-header">
-                <div>
-                  <div class="decision-stock">${d.stock}</div>
-                  <div class="decision-meta">${d.code} · ${d.date}</div>
-                </div>
-                <span class="tag ${ROX.fmt.actionTag(d.action)}">${d.action}</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span class="score-badge ${ROX.fmt.scoreClass(d.score)}">${d.score}</span>
-                <span style="font-size:11px;color:var(--text-tertiary);">${d.stage}</span>
-              </div>
-              <div style="font-size:11px;color:var(--text-tertiary);">
-                结果：${d.result}${d.result !== '待观察' ? ` (${d.result.startsWith('+')||d.result.startsWith('-')?d.result:d.result})` : ''}
-              </div>
-            </div>
-          `).join('')}
+              <div class="decision-header"><div><div class="decision-stock">${d.stock}</div><div class="decision-meta">${d.code} · ${d.date}</div></div><span class="tag ${ROX.fmt.actionTag(d.action)}">${d.action}</span></div>
+            </div>`).join('') : `<div class="empty-state" style="width:100%;padding:20px;"><p>暂无真实决策记录，请从“记录决策”开始建立自己的样本。</p></div>`}
         </div>
       </div>
     </div>
