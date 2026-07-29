@@ -1,0 +1,78 @@
+/* ============================================
+   ROX投资助手 — Design Tokens
+   唯一的 CSS 变量定义源，所有样式文件引用此文件
+   ============================================ */
+
+:root {
+  /* 品牌色 */
+  --rox-primary: #38bdf8;
+  --rox-primary-hover: #0ea5e9;
+  --rox-secondary: #6366f1;
+  --rox-accent: #fbbf24;
+
+  /* 语义色 — A股惯例：涨红跌绿 */
+  --rox-up: #ef4444;
+  --rox-up-bg: rgba(239, 68, 68, 0.1);
+  --rox-down: #22c55e;
+  --rox-down-bg: rgba(34, 197, 94, 0.1);
+  --rox-success: #10b981;
+  --rox-warning: #f59e0b;
+  --rox-danger: #ef4444;
+
+  /* 背景色 — 暗色主题 */
+  --bg-page: #0b0f1a;
+  --bg-surface: #111827;
+  --bg-elevated: #1a2332;
+  --bg-input: #0d1421;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(56, 189, 248, 0.1);
+
+  /* 边框色 */
+  --border-default: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-active: rgba(56, 189, 248, 0.3);
+
+  /* 文字色 */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-muted: #475569;
+
+  /* 字体 */
+  --font-sans: -apple-system, 'SF Pro Display', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', 'Menlo', monospace;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* 侧边栏 */
+  --sidebar-width: 56px;
+  --sidebar-width-expanded: 200px;
+
+  /* 顶栏 */
+  --topbar-height: 48px;
+
+  /* 过渡 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.15);
+}

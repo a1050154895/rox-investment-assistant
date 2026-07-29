@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ROX投资助手</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2338bdf8'/><text x='50' y='68' font-size='56' font-weight='bold' text-anchor='middle' fill='white'>R</text></svg>">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+</head>
+<body>
+<div class="app-shell" id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">R</div>
+            <span class="logo-text">ROX投资助手</span>
+        </div>
+        <nav class="nav-items">
+            <div class="nav-item active" data-route="/">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </span>
+                <span class="nav-label">仪表盘</span>
+            </div>
+            <div class="nav-item" data-route="/stock">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+                </span>
+                <span class="nav-label">个股透视</span>
+            </div>
+            <div class="nav-item" data-route="/journal">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16"/><path d="M9 4v16"/></svg>
+                </span>
+                <span class="nav-label">决策日志</span>
+            </div>
+            <div class="nav-item" data-route="/framework">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+                </span>
+                <span class="nav-label">认知框架</span>
+            </div>
+        </nav>
+        <div class="sidebar-bottom">
+            <div class="nav-item" data-action="open-settings">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
+                </span>
+                <span class="nav-label">设置</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Mobile Nav -->
+    <aside class="sidebar mobile-nav" id="mobile-nav">
+        <!-- Filled by JS -->
+    </aside>
+
+    <!-- Main Area -->
+    <main class="main-area">
+        <header class="topbar">
+            <div class="topbar-left">
+                <span class="topbar-title" id="page-title">仪表盘</span>
+            </div>
+            <div class="topbar-right">
+                <div class="index-ticker" id="index-ticker"></div>
+                <div class="search-box" id="search-box" style="display:none;">
+                    <span class="search-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    </span>
+                    <input type="text" class="search-input" id="stock-search" placeholder="搜索股票代码/名称...">
+                    <div class="search-results" id="search-results"></div>
+                </div>
+            </div>
+        </header>
+        <div class="view-container" id="view-container">
+            <div class="loading"><div class="spinner"></div></div>
+        </div>
+    </main>
+</div>
+
+<!-- Settings Panel -->
+<div class="settings-overlay" id="settings-overlay" data-action="close-settings"></div>
+<div class="settings-panel" id="settings-panel">
+    <div class="settings-header">
+        <span style="font-size:15px;font-weight:600;">设置</span>
+        <div class="modal-close" data-action="close-settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </div>
+    </div>
+    <div class="settings-tabs">
+        <div class="settings-tab active" data-settings-tab="ai">AI模型</div>
+        <div class="settings-tab" data-settings-tab="interface">界面</div>
+        <div class="settings-tab" data-settings-tab="chart">图表</div>
+        <div class="settings-tab" data-settings-tab="account">账户</div>
+    </div>
+    <div class="settings-body" id="settings-body">
+        <!-- Filled by JS -->
+    </div>
+</div>
+
+<!-- Modal Container -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal-content">
+        <!-- Filled by JS -->
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="/static/js/app.js"></script>
+<script src="/static/js/views/dashboard.js"></script>
+<script src="/static/js/views/stock.js"></script>
+<script src="/static/js/views/journal.js"></script>
+<script src="/static/js/views/framework.js"></script>
+</body>
+</html>
