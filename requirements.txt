@@ -3,3 +3,4 @@ uvicorn[standard]==0.31.0
 pydantic==2.12.5
 python-multipart
 jinja2
+akshare

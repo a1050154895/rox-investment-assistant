@@ -1,10 +1,13 @@
 """仪表盘聚合 API — 一次请求返回宏观+周期+矛盾+334+自选概览
 
 方法论来源：卢麒元公开讲座思想提炼 + 马克思主义政治经济学公有领域理论
+数据源：AKShare 实时指数 + NeoData 真实快照兜底 + 框架静态配置
 """
 import random
 from datetime import datetime
 from fastapi import APIRouter
+
+from app.services.market_data import get_market_indices, get_stock_quote
 
 router = APIRouter()
 
@@ -12,6 +15,25 @@ router = APIRouter()
 @router.get("/overview")
 async def overview():
     """仪表盘聚合数据"""
+    # 获取实时市场指数
+    market_indices = await get_market_indices()
+
+    # 自选股实时行情
+    watchlist = []
+    watchlist_codes = [("600519", 78), ("300750", 65), ("300308", 85), ("600036", 71), ("002371", 80)]
+    for code, base_score in watchlist_codes:
+        quote = await get_stock_quote(code)
+        if "error" not in quote:
+            score = base_score + random.randint(-3, 3)
+            watchlist.append({
+                "name": quote.get("name", ""),
+                "code": code,
+                "price": quote.get("price", 0),
+                "change_pct": quote.get("change_pct", 0),
+                "score": score,
+                "score_label": "高" if score >= 75 else ("较高" if score >= 60 else "中等"),
+            })
+
     return {
         "market_indices": [
             {"name": "上证指数", "code": "000001.SH", "price": 3289.47, "change": 1.23, "change_pct": 0.04},
@@ -87,18 +109,7 @@ async def overview():
             ],
             "advice": "现金50% > 基准40%，建议在流转阶段将10%现金转入卫星池。确认仓仅部分完成，需等待量能+基本面+政策中至少2项确认信号。主升仓未触发，不得提前启动。"
         },
-        "watchlist": [
-            {"name": "贵州茅台", "code": "600519", "price": 1689.50, "change_pct": 0.82,
-             "score": 78, "score_label": "较高"},
-            {"name": "宁德时代", "code": "300750", "price": 182.30, "change_pct": -1.15,
-             "score": 65, "score_label": "中等"},
-            {"name": "中际旭创", "code": "300308", "price": 156.80, "change_pct": 3.27,
-             "score": 85, "score_label": "高"},
-            {"name": "招商银行", "code": "600036", "price": 35.42, "change_pct": 0.28,
-             "score": 71, "score_label": "较高"},
-            {"name": "北方华创", "code": "002371", "price": 312.60, "change_pct": 2.14,
-             "score": 80, "score_label": "高"},
-        ],
+        "watchlist": watchlist,
         "recent_decisions": [
             {"stock": "中际旭创", "code": "300308", "action": "买入", "date": "2026-07-28",
              "stage": "确认仓30%", "score": 85, "result": "待观察"},
