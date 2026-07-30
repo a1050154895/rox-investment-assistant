@@ -9,11 +9,11 @@ from fastapi.responses import HTMLResponse
 
 from app.core.config import settings
 from app.core.security import SecurityHeadersMiddleware
-from app.api import dashboard, stock, journal, framework, settings_api, intelligence
+from app.api import dashboard, stock, journal, framework, settings_api, intelligence, discipline, macro
 
 app = FastAPI(
     title="ROX投资助手",
-    version="3.1.1",
+    version="3.2.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
@@ -45,13 +45,15 @@ app.include_router(journal.router, prefix="/api/journal", tags=["journal"])
 app.include_router(framework.router, prefix="/api/framework", tags=["framework"])
 app.include_router(settings_api.router, prefix="/api/settings", tags=["settings"])
 app.include_router(intelligence.router, prefix="/api/intelligence", tags=["intelligence"])
+app.include_router(discipline.router, prefix="/api/discipline", tags=["discipline"])
+app.include_router(macro.router, prefix="/api/macro", tags=["macro"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.1.1", "name": "ROX投资助手"}
+    return {"status": "ok", "version": "3.2.0", "name": "ROX投资助手"}
 
 
 @app.get("/ready")

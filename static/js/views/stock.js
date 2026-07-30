@@ -4,6 +4,10 @@
 
 let _klineChart = null;
 let _flowChart = null;
+window.addEventListener('resize', () => {
+  _klineChart?.resize();
+  _flowChart?.resize();
+});
 
 ROX.register('/stock', async function(container, params) {
   const code = params.code || '600519';
@@ -24,31 +28,31 @@ ROX.register('/stock', async function(container, params) {
   ROX.state.currentStock = code;
 
   container.innerHTML = `
-    <div style="display:flex;gap:16px;height:calc(100vh - 96px);">
+    <div class="stock-detail-layout">
       <!-- Left: K-Line -->
-      <div style="flex:1;display:flex;flex-direction:column;gap:12px;min-width:0;">
+      <div class="stock-main-column">
         <!-- Stock header -->
-        <div class="card" style="padding:12px 16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:12px;">
+        <div class="card stock-hero">
+          <div class="stock-hero-row">
+            <div class="stock-identity">
               <h2 style="font-size:18px;font-weight:600;">${info.name}</h2>
               <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);">${info.code}</span>
               <span class="tag tag-gray">${info.industry}</span>
               <span class="tag ${info.stale ? 'tag-amber' : 'tag-green'}">${info.stale ? `历史快照 ${info.as_of || ''}` : '实时数据'}</span>
             </div>
-            <div style="display:flex;align-items:center;gap:16px;">
-              <div style="text-align:right;">
+            <div class="stock-hero-actions">
+              <div class="stock-live-price">
                 <span style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:${info.change_pct>=0?'var(--rox-up)':'var(--rox-down)'};">${ROX.fmt.num(info.price)}</span>
-                <span style="font-family:var(--font-mono);font-size:13px;margin-left:8px;color:${info.change_pct>=0?'var(--rox-up)':'var(--rox-down)'};">${ROX.fmt.pct(info.change_pct)}</span>
+                <span style="font-family:var(--font-mono);font-size:13px;color:${info.change_pct>=0?'var(--rox-up)':'var(--rox-down)'};">${ROX.fmt.pct(info.change_pct)}</span>
               </div>
-              <div style="display:flex;gap:4px;">
+              <div class="stock-period-actions">
                 <button class="btn btn-secondary btn-sm" data-period="daily" id="btn-daily">日线</button>
                 <button class="btn btn-secondary btn-sm" data-period="weekly" id="btn-weekly">周线</button>
               </div>
               <button class="btn btn-primary btn-sm" data-action="add-decision" data-code="${info.code}">记录决策</button>
             </div>
           </div>
-          <div style="display:flex;gap:20px;margin-top:8px;font-size:11px;color:var(--text-tertiary);">
+          <div class="stock-metrics">
             <span>PE <span style="color:var(--text-secondary);font-family:var(--font-mono);">${ROX.fmt.num(info.pe,1)}</span></span>
             <span>PB <span style="color:var(--text-secondary);font-family:var(--font-mono);">${ROX.fmt.num(info.pb)}</span></span>
             <span>ROE <span style="color:var(--text-secondary);font-family:var(--font-mono);">${ROX.fmt.num(info.roe,1)}%</span></span>
@@ -73,7 +77,7 @@ ROX.register('/stock', async function(container, params) {
       </div>
 
       <!-- Right: Framework Panel -->
-      <div style="width:340px;flex-shrink:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
+      <aside class="stock-framework-panel">
         ${analysis ? `
           <!-- Consistency Score -->
           <div class="card">
@@ -124,7 +128,7 @@ ROX.register('/stock', async function(container, params) {
           </div>
           ` : ''}
         ` : '<div class="card"><p style="color:var(--text-tertiary);font-size:12px;">分析数据加载中...</p></div>'}
-      </div>
+      </aside>
     </div>
   `;
 
@@ -201,7 +205,7 @@ function renderKline(candles, info) {
   };
 
   _klineChart.setOption(option);
-  window.addEventListener('resize', () => _klineChart && _klineChart.resize());
+  requestAnimationFrame(() => _klineChart && _klineChart.resize());
 }
 
 function renderFlowChart(trend) {
@@ -225,5 +229,5 @@ function renderFlowChart(trend) {
     }],
     tooltip: { trigger: 'axis', backgroundColor: 'rgba(34,29,24,0.97)', borderColor: 'rgba(200,180,160,0.18)', textStyle: { color: '#f5ede0', fontSize: 11 } }
   });
-  window.addEventListener('resize', () => _flowChart && _flowChart.resize());
+  requestAnimationFrame(() => _flowChart && _flowChart.resize());
 }

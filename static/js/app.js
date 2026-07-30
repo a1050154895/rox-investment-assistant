@@ -350,6 +350,9 @@ const ROX = {
           'cancel-decision': () => this.closeModal(),
           'generate-review': () => this.showReviewReport(),
           'search-stock': () => this.searchStock(),
+          'open-discipline': () => this.openDisciplineWorkspace(),
+          'save-discipline': () => this.saveDisciplineProfile(),
+          'ask-discipline-coach': () => this.askDisciplineCoach(),
           'refresh-intelligence': async () => {
             const button = actionEl;
             button.disabled = true;
@@ -455,6 +458,116 @@ const ROX = {
       this.state.settings = res.settings;
       this.showModal('<div class="modal-header"><span class="modal-title">提示</span></div><p>设置已保存</p><div style="margin-top:16px;text-align:right;"><button class="btn btn-primary" data-action="close-modal">确定</button></div>');
     }
+  },
+
+  // 334 risk-discipline workspace
+  async openDisciplineWorkspace() {
+    let profile = null;
+    try { profile = JSON.parse(localStorage.getItem('rox-discipline-profile')); } catch (_) {}
+    if (!profile) {
+      const defaults = await this.api.get('/api/discipline/defaults');
+      profile = defaults?.profile || {};
+    }
+    const field = (id, label, value, min = 0, max = 100, step = 1) => `
+      <div class="form-group">
+        <label class="form-label" for="${id}">${label}</label>
+        <input class="form-input" type="number" id="${id}" value="${value ?? 0}" min="${min}" max="${max}" step="${step}">
+      </div>`;
+    this.showModal(`
+      <div class="modal-header">
+        <div><div class="modal-title">334 纪律工作台</div><div class="card-subtitle">仓位由可承受风险反推，不由主观信心正推</div></div>
+        <button class="modal-close" data-action="close-modal" aria-label="关闭">×</button>
+      </div>
+      <div class="discipline-form">
+        <div class="discipline-form-section">
+          <h4>当前资产结构</h4>
+          <div class="grid-3">${field('dp-core','核心仓位 %',profile.core_pct)}${field('dp-satellite','卫星仓位 %',profile.satellite_pct)}${field('dp-cash','现金仓位 %',profile.cash_pct)}</div>
+        </div>
+        <div class="discipline-form-section">
+          <h4>风险预算</h4>
+          <div class="grid-3">
+            ${field('dp-max-total','总仓位上限 %',profile.max_total_position_pct)}
+            ${field('dp-risk','单笔风险预算 %',profile.single_trade_risk_pct,0.1,20,0.1)}
+            ${field('dp-stop','止损距离 %',profile.stop_loss_pct,0.1,100,0.1)}
+            ${field('dp-single-limit','单票上限 %',profile.single_position_limit_pct,0.1,100,0.1)}
+            ${field('dp-sector-limit','行业上限 %',profile.sector_limit_pct,0.1,100,0.1)}
+            ${field('dp-sector-current','当前行业暴露 %',profile.current_sector_exposure_pct)}
+          </div>
+        </div>
+        <div class="discipline-form-section">
+          <h4>本次操作</h4>
+          <div class="grid-3">
+            ${field('dp-planned','计划单票仓位 %',profile.planned_position_pct)}
+            ${field('dp-trades','本月已操作次数',profile.monthly_trades,0,1000,1)}
+            ${field('dp-trade-limit','月操作上限',profile.monthly_trade_limit,1,1000,1)}
+          </div>
+          <div class="form-group" style="margin-top:12px;">
+            <label class="form-label" for="dp-rules">我的操作纪律</label>
+            <textarea class="form-textarea" id="dp-rules" placeholder="例如：不补亏损仓；加仓必须有订单、业绩或量价中的两项新证据。">${this.escape(profile.operating_rules || '')}</textarea>
+          </div>
+        </div>
+        <div id="discipline-result" aria-live="polite"></div>
+        <div class="discipline-coach">
+          <div class="card-title">研究助手</div>
+          <div class="card-subtitle">助手只解释风险与纪律冲突，不替你预测涨跌或覆盖硬规则。</div>
+          <div class="coach-input-row">
+            <input class="form-input" id="discipline-question" placeholder="例如：为什么我的计划仓位超限？">
+            <button class="btn btn-secondary" data-action="ask-discipline-coach">提问</button>
+          </div>
+          <div id="discipline-coach-answer" class="coach-answer">先保存评估，再根据结果提问。</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-action="close-modal">关闭</button>
+          <button class="btn btn-primary" data-action="save-discipline">保存并评估</button>
+        </div>
+      </div>`);
+  },
+
+  disciplineProfileFromForm() {
+    const number = id => Number(document.getElementById(id)?.value || 0);
+    return {
+      core_pct: number('dp-core'), satellite_pct: number('dp-satellite'), cash_pct: number('dp-cash'),
+      max_total_position_pct: number('dp-max-total'), single_trade_risk_pct: number('dp-risk'),
+      stop_loss_pct: number('dp-stop'), single_position_limit_pct: number('dp-single-limit'),
+      sector_limit_pct: number('dp-sector-limit'), current_sector_exposure_pct: number('dp-sector-current'),
+      planned_position_pct: number('dp-planned'), monthly_trades: number('dp-trades'),
+      monthly_trade_limit: number('dp-trade-limit'), operating_rules: document.getElementById('dp-rules')?.value || ''
+    };
+  },
+
+  async saveDisciplineProfile() {
+    const profile = this.disciplineProfileFromForm();
+    const result = await this.api.post('/api/discipline/evaluate', profile);
+    const box = document.getElementById('discipline-result');
+    if (!result?.assessment) {
+      if (box) box.innerHTML = '<div class="discipline-alert danger">参数校验失败，请确认三类仓位不超过 100%，且风险参数大于 0。</div>';
+      return;
+    }
+    localStorage.setItem('rox-discipline-profile', JSON.stringify(profile));
+    this.state.disciplineAssessment = result.assessment;
+    if (box) box.innerHTML = this.renderDisciplineAssessment(result.assessment);
+    const coach = document.getElementById('discipline-coach-answer');
+    if (coach) coach.textContent = result.assessment.guidance;
+  },
+
+  renderDisciplineAssessment(assessment) {
+    return `<div class="discipline-assessment">
+      <div class="discipline-summary"><div><strong>${assessment.status_label}</strong><p>${assessment.guidance}</p></div><span class="tag ${assessment.status === 'blocked' ? 'tag-red' : 'tag-green'}">${assessment.status === 'blocked' ? '需修正' : '已检查'}</span></div>
+      <div class="discipline-limit">风险仓位上限 <strong>${assessment.limits.allowed_position_pct}%</strong><span>${assessment.method}</span></div>
+      <div class="discipline-checks">${assessment.checks.map(item => `<div class="discipline-check ${item.passed ? 'passed' : 'failed'}"><span>${item.passed ? '通过' : '冲突'}</span><div><strong>${item.title}</strong><p>${item.detail}</p></div></div>`).join('')}</div>
+    </div>`;
+  },
+
+  askDisciplineCoach() {
+    const question = document.getElementById('discipline-question')?.value.trim();
+    const answer = document.getElementById('discipline-coach-answer');
+    const assessment = this.state.disciplineAssessment;
+    if (!answer) return;
+    if (!assessment) { answer.textContent = '请先保存并评估风险参数。'; return; }
+    if (!question) { answer.textContent = assessment.coach_questions.join(' '); return; }
+    const failed = assessment.checks.filter(item => !item.passed);
+    const prefix = failed.length ? `当前首先要处理：${failed.map(item => item.title).join('、')}。` : '当前硬纪律检查已通过，但这不等于标的方向正确。';
+    answer.textContent = `${prefix} ${assessment.guidance} 继续自检：${assessment.coach_questions.slice(0, 2).join(' ')}`;
   },
 
   // Decision form

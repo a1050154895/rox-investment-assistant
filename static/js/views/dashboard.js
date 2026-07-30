@@ -16,7 +16,7 @@ ROX.register('/', async function(container) {
         <div class="card-header">
           <div>
             <div class="card-title">宏观指南针</div>
-            <div class="card-subtitle">主权信用 × 价值实现矩阵</div>
+            <div class="card-subtitle">${data.macro_compass.methodology || '财政信用条件 × 价值实现条件代理矩阵'}</div>
           </div>
           <span class="tag tag-amber">${data.macro_compass.sovereign_credit.status}</span>
         </div>
@@ -38,9 +38,17 @@ ROX.register('/', async function(container) {
             <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">${data.macro_compass.value_realization.detail}</div>
           </div>
         </div>
+        <div class="macro-evidence-grid">
+          ${[...(data.macro_compass.sovereign_credit.indicators || []), ...(data.macro_compass.value_realization.indicators || [])].map(item => `
+            <div class="macro-evidence ${item.status === 'available' ? 'available' : 'unavailable'}">
+              <div><strong>${item.label}</strong><span>${item.publisher || ''}</span></div>
+              <div class="macro-value">${item.status === 'available' ? `${item.value}${item.unit} · ${item.period}` : '暂不可用'}</div>
+            </div>`).join('')}
+        </div>
         <div style="margin-top:12px;padding:12px 14px;background:var(--ink-vermilion-glow);border-left:2px solid var(--ink-vermilion);font-size:12px;color:var(--ink-vermilion-soft);">
           ${data.macro_compass.framework_advice}
         </div>
+        <div class="macro-meta">覆盖 ${data.macro_compass.coverage?.available ?? 0}/${data.macro_compass.coverage?.total ?? 0} 项 · ${data.macro_compass.disclaimer || ''}</div>
       </div>
 
       <!-- 资本周期 + 矛盾追踪 -->
@@ -99,10 +107,8 @@ ROX.register('/', async function(container) {
         <!-- 334 -->
         <div class="card">
           <div class="card-header">
-            <div class="card-title">334 仓位纪律</div>
-            <span class="tag ${data.discipline_334.cash.actual > data.discipline_334.cash.target ? 'tag-amber' : 'tag-green'}">
-              ${data.discipline_334.cash.actual > data.discipline_334.cash.target ? '现金偏高' : '符合基准'}
-            </span>
+            <div><div class="card-title">334 仓位纪律</div><div class="card-subtitle">风险预算 → 仓位边界 → 操作触发</div></div>
+            <button class="btn btn-secondary btn-sm" data-action="open-discipline">录入我的数据</button>
           </div>
           <div class="discipline-bar" style="margin-bottom:12px;">
             <div class="discipline-segment discipline-core" style="width:${data.discipline_334.core.actual}%;">核心 ${data.discipline_334.core.actual}%</div>
@@ -119,6 +125,7 @@ ROX.register('/', async function(container) {
           <div style="margin-top:12px;padding:10px 12px;background:rgba(200,153,66,0.08);border-left:2px solid var(--ink-warn);font-size:11px;color:var(--ink-warn);">
             ${data.discipline_334.advice}
           </div>
+          <div style="margin-top:10px;font-size:10px;color:var(--text-muted);">个人参数只保存在当前浏览器；未登录状态下不会上传共享仓位数据。</div>
         </div>
 
         <!-- 自选股 -->

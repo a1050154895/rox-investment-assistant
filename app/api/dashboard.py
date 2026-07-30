@@ -3,11 +3,13 @@
 方法论来源：卢麒元公开讲座思想提炼 + 马克思主义政治经济学公有领域理论
 数据源：AKShare 实时指数 + NeoData 真实快照兜底 + 框架静态配置
 """
+import asyncio
 from datetime import datetime
 from fastapi import APIRouter
 
 from app.services.market_data import get_market_indices, get_stock_quote
 from app.services.intelligence_data import get_intelligence_brief
+from app.services.macro_data import get_macro_matrix
 
 router = APIRouter()
 
@@ -18,8 +20,10 @@ async def overview():
     # 获取实时市场指数
     market_indices = await get_market_indices()
 
-    # 资讯研判面板：超时或数据源异常时独立降级，不影响行情主看板
-    intelligence = await get_intelligence_brief()
+    # 资讯与宏观矩阵独立降级，任一外部数据源异常都不影响行情主看板
+    intelligence, macro_matrix = await asyncio.gather(
+        get_intelligence_brief(), get_macro_matrix()
+    )
 
     # 自选股实时行情
     watchlist = []
@@ -41,19 +45,7 @@ async def overview():
 
     return {
         "market_indices": market_indices,
-        "macro_compass": {
-            "sovereign_credit": {
-                "status": "未评估", "score": 0, "trend": "unknown",
-                "detail": "缺少经过授权和校验的财政、税收与信用数据"
-            },
-            "value_realization": {
-                "status": "未评估", "score": 0, "trend": "unknown",
-                "detail": "缺少经过授权和校验的消费、资本周转与分配数据"
-            },
-            "matrix_cell": "数据不足",
-            "matrix_action": "不输出仓位建议",
-            "framework_advice": "宏观矩阵尚未接入可靠数据源。本页面仅展示方法结构，不生成确定性仓位结论。"
-        },
+        "macro_compass": macro_matrix,
         "capital_cycle": {
             "stages": ["积累", "集中", "流转", "分配", "再生产"],
             "current_stage": None,
