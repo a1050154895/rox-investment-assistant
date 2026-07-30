@@ -13,7 +13,7 @@ from app.api import dashboard, stock, journal, framework, settings_api, intellig
 
 app = FastAPI(
     title="ROX投资助手",
-    version="3.0.0",
+    version="3.1.1",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
@@ -51,7 +51,7 @@ app.include_router(intelligence.router, prefix="/api/intelligence", tags=["intel
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.1.0", "name": "ROX投资助手"}
+    return {"status": "ok", "version": "3.1.1", "name": "ROX投资助手"}
 
 
 @app.get("/ready")
