@@ -450,11 +450,18 @@ ul { list-style: none; }
 .mobile-nav { display: none; }
 @media (max-width: 768px) {
   .mobile-nav {
-    display: flex; flex-direction: row; justify-content: space-around;
-    width: 100%; height: 100%; align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    height: 56px;
+    min-height: 56px;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .mobile-nav-item {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    min-width: 0; height: 100%;
     color: var(--text-tertiary); font-size: 10px; padding: var(--space-1);
   }
   .mobile-nav-item.active { color: var(--rox-primary); }
