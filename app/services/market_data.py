@@ -8,6 +8,8 @@ import logging
 import os
 from typing import Any
 
+from app.services.tencent_data import fetch_kline, fetch_quotes
+
 logger = logging.getLogger(__name__)
 
 # 清除沙箱代理（本地开发时需要）
@@ -119,10 +121,32 @@ def normalize_stock_code(code: str) -> str:
 
 
 async def get_stock_quote(code: str) -> dict[str, Any]:
-    """获取个股行情，并明确标注实时/快照状态。"""
+    """获取个股行情，并明确标注实时/快照状态。
+
+    数据源优先级：腾讯自选股公开接口（本地与 Render 均可用）→ AKShare → NeoData 快照。
+    """
     code = normalize_stock_code(code)
 
-    # 尝试 AKShare（带短超时，失败快速回退）
+    # 首选：腾讯自选股公开接口
+    try:
+        quotes = await fetch_quotes([code])
+        if code in quotes:
+            q = quotes[code]
+            return {
+                "code": code, "name": q["name"],
+                "industry": REAL_QUOTES.get(code, {}).get("industry", ""),
+                "price": q["price"], "change": q["change"], "change_pct": q["change_pct"],
+                "pe": q["pe"], "pb": q["pb"],
+                "market_cap": f"{q['market_cap']:.0f}亿" if q.get("market_cap") else "",
+                "turnover": q["turnover"], "open": q["open"], "high": q["high"], "low": q["low"],
+                "volume": q["volume"],
+                "data_status": "realtime", "data_source": "腾讯自选股公开接口",
+                "as_of": q["as_of"], "stale": False,
+            }
+    except Exception as e:
+        logger.warning(f"腾讯行情回退: {e}")
+
+    # 其次：AKShare（带短超时，失败快速回退）
     if AKSHARE_AVAILABLE:
         try:
             import akshare as ak
@@ -181,8 +205,26 @@ async def get_stock_quote(code: str) -> dict[str, Any]:
 
 
 async def get_kline(code: str, period: str = "daily", limit: int = 120) -> dict[str, Any]:
-    """获取K线数据；失败时不生成模拟行情。"""
+    """获取K线数据；失败时不生成模拟行情。
+
+    数据源优先级：腾讯自选股公开接口 → AKShare。
+    """
     code = normalize_stock_code(code)
+    tencent_period = "day" if period == "daily" else "week"
+
+    # 首选：腾讯自选股公开接口
+    try:
+        candles = await fetch_kline(code, tencent_period, limit)
+        if candles:
+            return {
+                "code": code, "name": REAL_QUOTES.get(code, {}).get("name", code),
+                "period": period, "candles": candles, "data_status": "realtime",
+                "data_source": "腾讯自选股公开接口", "stale": False,
+            }
+    except Exception as e:
+        logger.warning(f"腾讯K线回退: {e}")
+
+    # 其次：AKShare
     ak_period = "daily" if period == "daily" else "weekly"
 
     # 尝试 AKShare
@@ -299,11 +341,44 @@ _universe_cache: list[dict] | None = None
 _universe_loaded_at: float = 0.0
 
 
-def load_stock_universe(refresh: bool = False) -> list[dict]:
-    """沪深京全 A 股名录 [{code, name}]。优先内存 → 文件缓存 → AKShare 拉取。
+def _fetch_universe_eastmoney() -> list[dict]:
+    """东方财富全市场 A 股名录（沪深京，约 5500 只）。逐页容错，中断时保留已拉取部分。"""
+    import httpx as _httpx
+    base = "https://push2.eastmoney.com/api/qt/clist/get"
+    fs = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23"
+    stocks: list[dict] = []
+    pn, total = 1, 0
+    while True:
+        try:
+            params = {
+                "pn": pn, "pz": 500, "po": 1, "np": 1, "fltt": 2, "invt": 2,
+                "fid": "f12", "fs": fs, "fields": "f12,f14",
+            }
+            r = _httpx.get(base, params=params, timeout=12)
+            data = (r.json() or {}).get("data") or {}
+            diff = data.get("diff") or []
+            total = int(data.get("total", 0) or 0)
+        except Exception as e:
+            logger.warning(f"东方财富名录第 {pn} 页失败（保留已拉取 {len(stocks)} 条）: {e}")
+            break
+        if not diff:
+            break
+        for item in diff:
+            code = str(item.get("f12", "")).zfill(6)
+            name = str(item.get("f14", ""))
+            if code and name:
+                stocks.append({"code": code, "name": name})
+        if len(stocks) >= total or pn >= 20:
+            break
+        pn += 1
+    return stocks
 
-    - AKShare 可用：拉取 `stock_info_a_code_name()` 并写入 data/stock_universe.json
-    - AKShare 不可用：读取已有缓存文件（本地开发可预置）
+
+def load_stock_universe(refresh: bool = False) -> list[dict]:
+    """沪深京全 A 股名录 [{code, name}]。优先内存 → 文件缓存 → 东方财富 → AKShare。
+
+    - 东财 clist 接口在本地沙箱与 Render 均可用，作为名录主源
+    - AKShare 作为备用源
     - 均不可用：返回 []（搜索接口将降级到内置 REAL_QUOTES 池）
     """
     global _universe_cache, _universe_loaded_at
@@ -324,22 +399,26 @@ def load_stock_universe(refresh: bool = False) -> list[dict]:
         except Exception as e:
             logger.warning(f"股票名录缓存读取失败: {e}")
 
-    # 2) AKShare 拉取（Render 生产环境）
-    if AKSHARE_AVAILABLE:
+    # 2) 东方财富全市场接口（首选）
+    stocks = _fetch_universe_eastmoney()
+
+    # 3) AKShare 备用
+    if not stocks and AKSHARE_AVAILABLE:
         try:
             import akshare as ak
             df = ak.stock_info_a_code_name()
             stocks = [{"code": str(r["code"]).zfill(6), "name": str(r["name"])} for _, r in df.iterrows()]
-            try:
-                os.makedirs(_settings.DATA_DIR, exist_ok=True)
-                with open(UNIVERSE_CACHE_FILE, "w", encoding="utf-8") as f:
-                    _json.dump({"ts": now, "stocks": stocks}, f, ensure_ascii=False)
-            except Exception as e:
-                logger.warning(f"股票名录缓存写入失败: {e}")
-            _universe_cache = stocks
-            _universe_loaded_at = now
-            return stocks
         except Exception as e:
-            logger.warning(f"全市场股票名录获取失败: {e}")
+            logger.warning(f"AKShare 名录获取失败: {e}")
+
+    if stocks:
+        try:
+            os.makedirs(_settings.DATA_DIR, exist_ok=True)
+            with open(UNIVERSE_CACHE_FILE, "w", encoding="utf-8") as f:
+                _json.dump({"ts": now, "stocks": stocks}, f, ensure_ascii=False)
+        except Exception as e:
+            logger.warning(f"股票名录缓存写入失败: {e}")
+        _universe_cache = stocks
+        _universe_loaded_at = now
 
     return _universe_cache or []

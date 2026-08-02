@@ -1,63 +1,42 @@
 """个股透视 API — K线数据、框架分析、资金流向
 
-数据源：AKShare 实时数据（Render 部署时生效）+ NeoData 真实数据快照（本地兜底）
+数据源：腾讯自选股公开接口（行情/K线/搜索，本地与 Render 均可用）→ AKShare → NeoData 快照
 方法论：卢麒元五层逻辑链 + 框架一致性评分体系
 """
 from fastapi import APIRouter, Query
 
 from app.services.analysis_engine import build_analysis, calculate_indicators
 from app.services.market_data import (
-    get_stock_quote, get_kline, get_fund_flow, load_stock_universe, REAL_QUOTES,
+    get_stock_quote, get_kline, get_fund_flow, REAL_QUOTES,
 )
+from app.services.tencent_data import smartbox_search
 
 router = APIRouter()
 
 
 @router.get("/search")
 async def search_stocks(q: str = Query("", max_length=20, description="搜索关键词：代码或名称")):
-    """搜索股票 — 覆盖沪深京全市场 A 股（AKShare 名录 + 本地缓存）；数据源不可用时降级内置池。"""
-    query = q.strip().lower()
+    """搜索股票 — 腾讯自选股实时全市场搜索（A股，含代码/名称/拼音）；不可用时降级内置池。"""
+    query = q.strip()
     if not query:
-        return {"results": [], "coverage": "a-share", "message": "请输入代码或名称"}
+        return {"results": [], "coverage": "smartbox", "message": "请输入代码或名称"}
 
-    universe = load_stock_universe()
-    results: list[dict] = []
-    seen: set[str] = set()
+    results = await smartbox_search(query, limit=10)
+    # 兼容 sh600519 / sz000001 前缀写法：剥离前缀后重查
+    if not results and len(query) > 2 and query[:2].lower() in ("sh", "sz", "bj"):
+        results = await smartbox_search(query[2:], limit=10)
+    if results:
+        for r in results:
+            r["industry"] = REAL_QUOTES.get(r["code"], {}).get("industry", "")
+        return {"results": results, "coverage": "smartbox"}
 
-    # 兼容 sh600519 / sz000001 前缀写法
-    bare = query
-    for prefix in ("sh", "sz", "bj"):
-        if bare.startswith(prefix):
-            bare = bare[2:]
-            break
-
-    def _match(code: str, name: str) -> bool:
-        if bare and bare in code:
-            return True
-        if query and query in code:
-            return True
-        return bool(query and query in name.lower())
-
-    for item in universe:
-        code, name = item["code"], item["name"]
-        if not _match(code, name) or code in seen:
-            continue
-        seen.add(code)
-        results.append({"code": code, "name": name, "industry": REAL_QUOTES.get(code, {}).get("industry", "")})
-        if len(results) >= 10:
-            break
-
-    # 降级：名录不可用时回退内置池
-    if not results:
-        for code, info in REAL_QUOTES.items():
-            if query in code or query in info["name"].lower() or query in info.get("industry", "").lower():
-                results.append({"code": code, "name": info["name"], "industry": info.get("industry", "")})
-
-    return {
-        "results": results[:10],
-        "coverage": "a-share" if universe else "builtin",
-        "total_universe": len(universe),
-    }
+    # 降级：内置池
+    ql = query.lower()
+    fallback = []
+    for code, info in REAL_QUOTES.items():
+        if ql in code or ql in info["name"].lower() or ql in info.get("industry", "").lower():
+            fallback.append({"code": code, "name": info["name"], "industry": info.get("industry", "")})
+    return {"results": fallback[:10], "coverage": "builtin"}
 
 
 @router.get("/{code}")
