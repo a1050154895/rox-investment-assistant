@@ -8,6 +8,9 @@ services:
     envVars:
       - key: ENVIRONMENT
         value: production
+      # 注意：Render 手动创建的服务不会读取本文件的环境变量，
+      # 需在 Render 控制台 Environment 中手动添加 PYTHON_VERSION=3.11.9，
+      # 否则默认 Python 3.14 可能触发依赖兼容问题。
       - key: PYTHON_VERSION
         value: 3.11.9
       # 生产必须设置独立密钥（不设置则每次重启生成新密钥，旧登录全部失效）

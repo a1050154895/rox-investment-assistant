@@ -4,7 +4,7 @@ pydantic==2.12.5
 python-multipart
 jinja2
 akshare
-SQLAlchemy==2.0.36
+SQLAlchemy==2.0.43
 psycopg2-binary==2.9.10
 PyJWT==2.10.1
 httpx==0.28.1
