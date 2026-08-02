@@ -492,13 +492,13 @@ const ROX = {
     if (!data || !data.results) return;
     const results = document.getElementById('search-results');
     if (data.results.length === 0) {
-      results.innerHTML = '<div class="search-result-item" style="color:var(--text-tertiary);">无结果</div>';
+      results.innerHTML = '<div class="search-result-item" style="color:var(--text-tertiary);">无匹配结果（当前支持 A 股全市场）</div>';
     } else {
       results.innerHTML = data.results.map(s => `
         <div class="search-result-item" data-action="view-stock" data-code="${s.code}">
           <span style="font-weight:500;">${s.name}</span>
           <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);margin-left:8px;">${s.code}</span>
-          <span class="tag tag-gray" style="margin-left:4px;">${s.industry}</span>
+          ${s.industry ? `<span class="tag tag-gray" style="margin-left:4px;">${s.industry}</span>` : ''}
         </div>
       `).join('');
     }

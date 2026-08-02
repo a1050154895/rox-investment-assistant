@@ -6,19 +6,58 @@
 from fastapi import APIRouter, Query
 
 from app.services.analysis_engine import build_analysis, calculate_indicators
-from app.services.market_data import get_stock_quote, get_kline, get_fund_flow, REAL_QUOTES
+from app.services.market_data import (
+    get_stock_quote, get_kline, get_fund_flow, load_stock_universe, REAL_QUOTES,
+)
 
 router = APIRouter()
 
 
 @router.get("/search")
-async def search_stocks(q: str = Query("", description="搜索关键词")):
-    """搜索股票"""
-    results = []
-    for code, info in REAL_QUOTES.items():
-        if q in code or q in info["name"] or q in info.get("industry", ""):
-            results.append({"code": code, "name": info["name"], "industry": info.get("industry", "")})
-    return {"results": results[:10]}
+async def search_stocks(q: str = Query("", max_length=20, description="搜索关键词：代码或名称")):
+    """搜索股票 — 覆盖沪深京全市场 A 股（AKShare 名录 + 本地缓存）；数据源不可用时降级内置池。"""
+    query = q.strip().lower()
+    if not query:
+        return {"results": [], "coverage": "a-share", "message": "请输入代码或名称"}
+
+    universe = load_stock_universe()
+    results: list[dict] = []
+    seen: set[str] = set()
+
+    # 兼容 sh600519 / sz000001 前缀写法
+    bare = query
+    for prefix in ("sh", "sz", "bj"):
+        if bare.startswith(prefix):
+            bare = bare[2:]
+            break
+
+    def _match(code: str, name: str) -> bool:
+        if bare and bare in code:
+            return True
+        if query and query in code:
+            return True
+        return bool(query and query in name.lower())
+
+    for item in universe:
+        code, name = item["code"], item["name"]
+        if not _match(code, name) or code in seen:
+            continue
+        seen.add(code)
+        results.append({"code": code, "name": name, "industry": REAL_QUOTES.get(code, {}).get("industry", "")})
+        if len(results) >= 10:
+            break
+
+    # 降级：名录不可用时回退内置池
+    if not results:
+        for code, info in REAL_QUOTES.items():
+            if query in code or query in info["name"].lower() or query in info.get("industry", "").lower():
+                results.append({"code": code, "name": info["name"], "industry": info.get("industry", "")})
+
+    return {
+        "results": results[:10],
+        "coverage": "a-share" if universe else "builtin",
+        "total_universe": len(universe),
+    }
 
 
 @router.get("/{code}")

@@ -284,3 +284,62 @@ async def get_market_indices() -> list[dict]:
     return [{"code": idx["code"], "name": idx["name"], "price": idx["price"],
              "change": round(idx["price"] * idx["change_pct"] / 100, 2),
              "change_pct": idx["change_pct"]} for idx in REAL_INDICES]
+
+
+# ============ 全市场股票名录（搜索用） ============
+# AKShare 可用时拉取沪深京全 A 股（约 5000+），缓存 24 小时；不可用时降级内置池。
+import json as _json
+import time as _time
+
+from app.core.config import settings as _settings
+
+UNIVERSE_CACHE_FILE = os.path.join(_settings.DATA_DIR, "stock_universe.json")
+UNIVERSE_TTL_SECONDS = 24 * 3600
+_universe_cache: list[dict] | None = None
+_universe_loaded_at: float = 0.0
+
+
+def load_stock_universe(refresh: bool = False) -> list[dict]:
+    """沪深京全 A 股名录 [{code, name}]。优先内存 → 文件缓存 → AKShare 拉取。
+
+    - AKShare 可用：拉取 `stock_info_a_code_name()` 并写入 data/stock_universe.json
+    - AKShare 不可用：读取已有缓存文件（本地开发可预置）
+    - 均不可用：返回 []（搜索接口将降级到内置 REAL_QUOTES 池）
+    """
+    global _universe_cache, _universe_loaded_at
+    now = _time.time()
+    if not refresh and _universe_cache is not None and now - _universe_loaded_at < UNIVERSE_TTL_SECONDS:
+        return _universe_cache
+
+    # 1) 文件缓存
+    if not refresh and os.path.exists(UNIVERSE_CACHE_FILE):
+        try:
+            with open(UNIVERSE_CACHE_FILE, "r", encoding="utf-8") as f:
+                payload = _json.load(f)
+            if isinstance(payload, dict) and isinstance(payload.get("stocks"), list):
+                if now - float(payload.get("ts", 0)) < UNIVERSE_TTL_SECONDS:
+                    _universe_cache = payload["stocks"]
+                    _universe_loaded_at = now
+                    return _universe_cache
+        except Exception as e:
+            logger.warning(f"股票名录缓存读取失败: {e}")
+
+    # 2) AKShare 拉取（Render 生产环境）
+    if AKSHARE_AVAILABLE:
+        try:
+            import akshare as ak
+            df = ak.stock_info_a_code_name()
+            stocks = [{"code": str(r["code"]).zfill(6), "name": str(r["name"])} for _, r in df.iterrows()]
+            try:
+                os.makedirs(_settings.DATA_DIR, exist_ok=True)
+                with open(UNIVERSE_CACHE_FILE, "w", encoding="utf-8") as f:
+                    _json.dump({"ts": now, "stocks": stocks}, f, ensure_ascii=False)
+            except Exception as e:
+                logger.warning(f"股票名录缓存写入失败: {e}")
+            _universe_cache = stocks
+            _universe_loaded_at = now
+            return stocks
+        except Exception as e:
+            logger.warning(f"全市场股票名录获取失败: {e}")
+
+    return _universe_cache or []
