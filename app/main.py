@@ -9,13 +9,20 @@ from fastapi.responses import HTMLResponse
 
 from app.core.config import settings
 from app.core.security import SecurityHeadersMiddleware
-from app.api import dashboard, stock, journal, framework, settings_api, intelligence, discipline, macro
+from app.db import DB_BACKEND, check_database, init_db
+from app.api import (
+    dashboard, stock, journal, framework, settings_api, intelligence,
+    discipline, macro, auth, ai,
+)
 
 app = FastAPI(
     title="ROX投资助手",
-    version="3.2.0",
+    version="3.3.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
+
+# 启动时建表（幂等）
+init_db()
 
 # 安全响应头与统一错误响应
 app.add_middleware(SecurityHeadersMiddleware)
@@ -39,6 +46,7 @@ templates_path = os.path.join(settings.BASE_DIR, "templates")
 templates = Jinja2Templates(directory=templates_path) if os.path.exists(templates_path) else None
 
 # 注册 API 路由
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(stock.router, prefix="/api/stock", tags=["stock"])
 app.include_router(journal.router, prefix="/api/journal", tags=["journal"])
@@ -47,25 +55,34 @@ app.include_router(settings_api.router, prefix="/api/settings", tags=["settings"
 app.include_router(intelligence.router, prefix="/api/intelligence", tags=["intelligence"])
 app.include_router(discipline.router, prefix="/api/discipline", tags=["discipline"])
 app.include_router(macro.router, prefix="/api/macro", tags=["macro"])
+app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.2.0", "name": "ROX投资助手"}
+    return {"status": "ok", "version": "3.3.0", "name": "ROX投资助手"}
 
 
 @app.get("/ready")
 async def ready():
-    """就绪检查：当前阶段验证应用配置和关键服务可加载。"""
+    """就绪检查：数据库连接与关键服务状态。"""
     from app.services.market_data import REAL_QUOTES
+    db_ok = check_database()
     checks = {
         "configuration": {"status": "ok", "environment": settings.ENVIRONMENT},
+        "database": {
+            "status": "ok" if db_ok else "error",
+            "backend": DB_BACKEND,
+            "message": "PostgreSQL" if DB_BACKEND == "postgresql" else "SQLite（生产建议配置 DATABASE_URL 使用 PostgreSQL）",
+        },
         "market_snapshot": {"status": "ok" if REAL_QUOTES else "degraded", "symbols": len(REAL_QUOTES)},
-        "database": {"status": "not_configured", "message": "PostgreSQL 将在下一阶段接入"},
     }
-    return {"status": "degraded" if checks["database"]["status"] != "ok" else "ok", "checks": checks}
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "checks": checks,
+    }
 
 
 # ========== SPA 前端路由 ==========

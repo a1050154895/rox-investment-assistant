@@ -1,7 +1,13 @@
-"""用户 334 仓位纪律评估 API。"""
-from fastapi import APIRouter
-from pydantic import BaseModel, Field, model_validator
+"""用户 334 仓位纪律评估 API — 评估为纯函数（公开），档案按用户持久化。"""
+import json
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field, model_validator
+from sqlalchemy.orm import Session
+
+from app.core.auth import get_current_user
+from app.db import get_db
+from app.models import DisciplineProfile as DBDisciplineProfile, User
 from app.services.discipline_engine import evaluate_discipline
 
 router = APIRouter()
@@ -40,3 +46,37 @@ async def defaults():
 async def evaluate(profile: DisciplineProfile):
     data = profile.model_dump()
     return {"profile": data, "assessment": evaluate_discipline(data)}
+
+
+@router.get("/profile")
+async def get_profile(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """读取当前用户的 334 纪律档案（服务端持久化，跨设备同步）。"""
+    row = db.query(DBDisciplineProfile).filter(DBDisciplineProfile.user_id == user.id).first()
+    if not row:
+        return {"profile": None}
+    try:
+        profile = json.loads(row.profile_json)
+    except Exception:
+        profile = None
+    return {"profile": profile, "updated_at": row.updated_at.isoformat() if row.updated_at else None}
+
+
+@router.put("/profile")
+async def save_profile(
+    profile: DisciplineProfile,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """保存当前用户的 334 纪律档案到服务端。"""
+    row = db.query(DBDisciplineProfile).filter(DBDisciplineProfile.user_id == user.id).first()
+    payload = json.dumps(profile.model_dump(), ensure_ascii=False)
+    if row:
+        row.profile_json = payload
+    else:
+        row = DBDisciplineProfile(user_id=user.id, profile_json=payload)
+        db.add(row)
+    db.commit()
+    return {"success": True, "profile": profile.model_dump(), "assessment": evaluate_discipline(profile.model_dump())}

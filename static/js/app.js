@@ -10,58 +10,34 @@ const ROX = {
     currentStock: null,
     settings: null,
     membership: null,
+    user: null,
+    token: localStorage.getItem('rox-token') || null,
+    authMode: 'login',
   },
 
-  // API client
+  // API client（自动携带 JWT；非 2xx 返回含 error/status/detail，便于前端提示）
   api: {
-    async get(url) {
+    _headers(json = true) {
+      const headers = {};
+      if (json) headers['Content-Type'] = 'application/json';
+      if (ROX.state.token) headers['Authorization'] = `Bearer ${ROX.state.token}`;
+      return headers;
+    },
+    async _request(url, options) {
       try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
+        const res = await fetch(url, options);
+        const data = await res.json().catch(() => null);
+        if (!res.ok) return { status: res.status, error: true, ...(data || {}) };
+        return data;
       } catch (e) {
-        console.error('API GET error:', url, e);
+        console.error('API error:', url, e);
         return null;
       }
     },
-    async post(url, data) {
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-      } catch (e) {
-        console.error('API POST error:', url, e);
-        return null;
-      }
-    },
-    async put(url, data) {
-      try {
-        const res = await fetch(url, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-      } catch (e) {
-        console.error('API PUT error:', url, e);
-        return null;
-      }
-    },
-    async delete(url) {
-      try {
-        const res = await fetch(url, { method: 'DELETE' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-      } catch (e) {
-        console.error('API DELETE error:', url, e);
-        return null;
-      }
-    },
+    get(url) { return this._request(url, { headers: this._headers(false) }); },
+    post(url, data) { return this._request(url, { method: 'POST', headers: this._headers(), body: JSON.stringify(data) }); },
+    put(url, data) { return this._request(url, { method: 'PUT', headers: this._headers(), body: JSON.stringify(data) }); },
+    delete(url) { return this._request(url, { method: 'DELETE', headers: this._headers(false) }); },
   },
 
   // Utils
@@ -273,42 +249,33 @@ const ROX = {
         </div>`,
       account: `
         <div class="settings-section active">
-          <h4>会员信息</h4>
+          <h4>账户</h4>
           <div class="card" style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               <div>
-                <div style="font-size:16px;font-weight:600;color:var(--rox-accent);">${m.plan||'基础版'}</div>
-                <div style="font-size:12px;color:var(--text-tertiary);">${m.status==='active'?'已激活':'未激活'}</div>
+                <div style="font-size:16px;font-weight:600;">${ROX.escape(this.state.user?.username || '未登录')}</div>
+                <div style="font-size:12px;color:var(--text-tertiary);">${ROX.escape(m.plan||'基础版')} · ${m.status==='active'?'已激活':'免费版'}</div>
               </div>
-              <span class="tag tag-amber">${m.days_left||0} 天剩余</span>
+              <button class="btn btn-secondary btn-sm" data-action="logout">退出登录</button>
             </div>
-            <div style="display:flex;flex-direction:column;gap:12px;">
-              <div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-tertiary);margin-bottom:4px;">
-                  <span>API 调用量</span><span>${m.api_used||0} / ${m.api_limit||100}</span>
-                </div>
-                <div class="progress"><div class="progress-fill blue" style="width:${Math.round((m.api_used||0)/(m.api_limit||100)*100)}%"></div></div>
-              </div>
-              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-tertiary);">
-                <span>已解锁功能</span><span>${m.features_unlocked||0} / ${m.features_total||0} 项</span>
-              </div>
-            </div>
+            ${m.note ? `<div style="font-size:12px;color:var(--text-tertiary);line-height:1.7;">${ROX.escape(m.note)}</div>` : ''}
           </div>
           <h4>套餐选择</h4>
           ${(m.plans||[]).map(p => `
             <div class="card" style="margin-bottom:12px;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <div>
-                  <div style="font-weight:600;font-size:14px;">${p.name}</div>
-                  <div style="font-size:11px;color:var(--text-tertiary);">${p.features.join(' · ')}</div>
+                  <div style="font-weight:600;font-size:14px;">${ROX.escape(p.name)}</div>
+                  <div style="font-size:11px;color:var(--text-tertiary);">${ROX.escape(p.features.join(' · '))}</div>
                 </div>
                 <div style="text-align:right;">
                   <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;">¥${p.price}</div>
-                  <div style="font-size:11px;color:var(--text-tertiary);">/${p.period}</div>
+                  <div style="font-size:11px;color:var(--text-tertiary);">/${ROX.escape(p.period)}</div>
                 </div>
               </div>
             </div>
           `).join('')}
+          <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;">付费套餐接入中，当前为基础版；后续版本开放支付与权益激活。</div>
         </div>`,
     };
 
@@ -322,6 +289,93 @@ const ROX = {
   },
   closeModal() {
     document.getElementById('modal-overlay').classList.remove('open');
+  },
+
+  // ============ Auth ============
+  async authCheck() {
+    const gate = document.getElementById('auth-gate');
+    if (!this.state.token) { this.showAuthGate(); return; }
+    const res = await this.api.get('/api/auth/me');
+    if (res && res.user) {
+      this.state.user = res.user;
+      if (gate) gate.style.display = 'none';
+      this.updateUserChip();
+    } else {
+      this.state.token = null;
+      this.state.user = null;
+      localStorage.removeItem('rox-token');
+      this.showAuthGate();
+    }
+  },
+
+  showAuthGate() {
+    const gate = document.getElementById('auth-gate');
+    if (gate) gate.style.display = 'flex';
+    this.state.authMode = 'login';
+    this.setAuthMode('login');
+  },
+
+  setAuthMode(mode) {
+    this.state.authMode = mode;
+    document.querySelectorAll('[data-auth-tab]').forEach(t =>
+      t.classList.toggle('active', t.dataset.authTab === mode));
+    const submit = document.getElementById('auth-submit');
+    if (submit) submit.textContent = mode === 'login' ? '登录' : '注册并进入';
+    this.hideAuthError();
+  },
+
+  showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+  },
+  hideAuthError() {
+    const el = document.getElementById('auth-error');
+    if (el) el.style.display = 'none';
+  },
+
+  async submitAuth() {
+    const username = document.getElementById('auth-username')?.value.trim() || '';
+    const password = document.getElementById('auth-password')?.value || '';
+    if (!username || !password) { this.showAuthError('请输入用户名和密码'); return; }
+    if (this.state.authMode === 'register' && password.length < 6) { this.showAuthError('密码至少 6 位'); return; }
+    const url = this.state.authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+    const res = await this.api.post(url, { username, password });
+    if (res && res.token) {
+      this.state.token = res.token;
+      this.state.user = res.user;
+      localStorage.setItem('rox-token', res.token);
+      this.hideAuthError();
+      const gate = document.getElementById('auth-gate');
+      if (gate) gate.style.display = 'none';
+      this.updateUserChip();
+      this.loadIndexTicker();
+      this.render(location.pathname);
+    } else {
+      const detail = res?.detail;
+      const msg = typeof detail === 'string' ? detail : (this.state.authMode === 'login' ? '登录失败，请检查用户名或密码' : '注册失败，用户名可能已存在');
+      this.showAuthError(msg);
+    }
+  },
+
+  logout() {
+    this.state.token = null;
+    this.state.user = null;
+    this.state.settings = null;
+    this.state.membership = null;
+    localStorage.removeItem('rox-token');
+    localStorage.removeItem('rox-discipline-profile');
+    this.showAuthGate();
+  },
+
+  updateUserChip() {
+    const chip = document.getElementById('user-chip');
+    const name = document.getElementById('user-chip-name');
+    if (this.state.user) {
+      if (chip) chip.style.display = 'inline-flex';
+      if (name) name.textContent = this.state.user.username;
+    } else if (chip) {
+      chip.style.display = 'none';
+    }
   },
 
   // Init
@@ -364,6 +418,8 @@ const ROX = {
             const code = actionEl.dataset.code;
             if (code) this.navigate(`/stock/${code}`);
           },
+          'auth-submit': () => this.submitAuth(),
+          'logout': () => this.logout(),
         };
         actions[action]?.();
         return;
@@ -373,6 +429,13 @@ const ROX = {
       const settingsTab = e.target.closest('[data-settings-tab]');
       if (settingsTab) {
         this.renderSettings(settingsTab.dataset.settingsTab);
+        return;
+      }
+
+      // Auth tab (login / register)
+      const authTab = e.target.closest('[data-auth-tab]');
+      if (authTab) {
+        this.setAuthMode(authTab.dataset.authTab);
         return;
       }
 
@@ -395,10 +458,15 @@ const ROX = {
     // Browser back/forward
     window.addEventListener('popstate', () => this.render(location.pathname));
 
-    // Load index ticker
-    this.loadIndexTicker();
+    // Boot：先登录检查，通过后再加载数据与渲染
+    this.boot();
+  },
 
-    // Initial render
+  async boot() {
+    await this.authCheck();
+    if (!this.state.user) return; // 未登录：登录门禁已显示
+    this.updateUserChip();
+    this.loadIndexTicker();
     this.render(location.pathname);
   },
 
@@ -456,14 +524,25 @@ const ROX = {
     const res = await this.api.put('/api/settings/', data);
     if (res && res.success) {
       this.state.settings = res.settings;
-      this.showModal('<div class="modal-header"><span class="modal-title">提示</span></div><p>设置已保存</p><div style="margin-top:16px;text-align:right;"><button class="btn btn-primary" data-action="close-modal">确定</button></div>');
+      const keySaved = data.ai_api_key ? '；AI Key 已安全保存（不回显）' : '';
+      this.showModal(`<div class="modal-header"><span class="modal-title">提示</span></div><p>设置已保存${keySaved}。</p><div style="margin-top:16px;text-align:right;"><button class="btn btn-primary" data-action="close-modal">确定</button></div>`);
+    } else {
+      const detail = res?.detail;
+      this.showModal(`<div class="modal-header"><span class="modal-title">保存失败</span></div><p>${ROX.escape(typeof detail === 'string' ? detail : '设置保存失败，请重试')}</p><div style="margin-top:16px;text-align:right;"><button class="btn btn-primary" data-action="close-modal">确定</button></div>`);
     }
   },
 
   // 334 risk-discipline workspace
   async openDisciplineWorkspace() {
     let profile = null;
-    try { profile = JSON.parse(localStorage.getItem('rox-discipline-profile')); } catch (_) {}
+    // 优先读取服务端档案（跨设备），其次 localStorage，最后默认值
+    try {
+      const server = await this.api.get('/api/discipline/profile');
+      if (server && server.profile) profile = server.profile;
+    } catch (_) { /* 忽略 */ }
+    if (!profile) {
+      try { profile = JSON.parse(localStorage.getItem('rox-discipline-profile')); } catch (_) {}
+    }
     if (!profile) {
       const defaults = await this.api.get('/api/discipline/defaults');
       profile = defaults?.profile || {};
@@ -544,6 +623,8 @@ const ROX = {
       return;
     }
     localStorage.setItem('rox-discipline-profile', JSON.stringify(profile));
+    // 同步到服务端（账号级持久化，跨设备可用）；失败不阻断本地评估展示
+    try { await this.api.put('/api/discipline/profile', profile); } catch (_) { /* 忽略 */ }
     this.state.disciplineAssessment = result.assessment;
     if (box) box.innerHTML = this.renderDisciplineAssessment(result.assessment);
     const coach = document.getElementById('discipline-coach-answer');
@@ -558,16 +639,29 @@ const ROX = {
     </div>`;
   },
 
-  askDisciplineCoach() {
+  async askDisciplineCoach() {
     const question = document.getElementById('discipline-question')?.value.trim();
     const answer = document.getElementById('discipline-coach-answer');
-    const assessment = this.state.disciplineAssessment;
     if (!answer) return;
-    if (!assessment) { answer.textContent = '请先保存并评估风险参数。'; return; }
-    if (!question) { answer.textContent = assessment.coach_questions.join(' '); return; }
-    const failed = assessment.checks.filter(item => !item.passed);
-    const prefix = failed.length ? `当前首先要处理：${failed.map(item => item.title).join('、')}。` : '当前硬纪律检查已通过，但这不等于标的方向正确。';
-    answer.textContent = `${prefix} ${assessment.guidance} 继续自检：${assessment.coach_questions.slice(0, 2).join(' ')}`;
+    if (!question) { answer.textContent = '请输入你要咨询的问题，例如：为什么我的计划仓位超限？'; return; }
+    const assessment = this.state.disciplineAssessment;
+    // 把确定性评估结果作为上下文交给 AI（AI 只解释纪律与风险，不覆盖硬规则）
+    const context = assessment ? JSON.stringify({
+      status: assessment.status,
+      checks: (assessment.checks || []).map(c => ({ title: c.title, passed: c.passed, detail: c.detail })),
+      limits: assessment.limits,
+      guidance: assessment.guidance,
+    }) : null;
+    answer.textContent = '正在思考…';
+    const res = await this.api.post('/api/ai/chat', { question, context });
+    if (!res) { answer.textContent = '网络异常，请稍后重试。'; return; }
+    if (res.error) {
+      const detail = res.detail;
+      const msg = typeof detail === 'string' ? detail : (detail?.message || 'AI 服务调用失败。');
+      answer.textContent = msg;
+      return;
+    }
+    answer.textContent = res.answer;
   },
 
   // Decision form

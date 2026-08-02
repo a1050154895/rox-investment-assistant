@@ -1,0 +1,51 @@
+"""ROX 数据库引擎与会话管理。
+
+生产环境使用 PostgreSQL：设置环境变量 DATABASE_URL（如
+postgresql://user:pass@host:5432/roxdb）。
+本地开发未配置 DATABASE_URL 时自动降级为 SQLite 文件（data/rox.db）。
+"""
+import os
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+from app.core.config import settings
+
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+if DATABASE_URL:
+    _engine_options = {"pool_pre_ping": True}
+    engine = create_engine(DATABASE_URL, **_engine_options)
+    DB_BACKEND = "postgresql"
+else:
+    db_path = os.path.join(settings.DATA_DIR, "rox.db")
+    engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    DB_BACKEND = "sqlite"
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+Base = declarative_base()
+
+
+def get_db():
+    """FastAPI 依赖：每个请求一个会话。"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def init_db() -> None:
+    """启动时建表（幂等）。"""
+    from app import models  # noqa: F401  确保模型已注册
+    Base.metadata.create_all(bind=engine)
+
+
+def check_database() -> bool:
+    """就绪检查：能否建立连接并执行查询。"""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROX 投资助手 · 生产化规划（技能 × 专家协同）</title>
+<style>
+  :root{
+    --ink:#1f1b16; --ink-soft:#4a4339; --paper:#f6f3ec; --paper-2:#efe9dd;
+    --card:#fffdf8; --line:#ddd3c2; --cinnabar:#b03a2e; --cinnabar-soft:#c9584b;
+    --jade:#3f6f5e; --gold:#9a7b34; --shadow:0 6px 24px rgba(40,30,15,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.7}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 22px 64px}
+  header{border-bottom:3px double var(--cinnabar);padding-bottom:18px;margin-bottom:8px}
+  h1{font-family:"Songti SC","STSong",serif;font-size:30px;margin:0 0 6px;letter-spacing:1px}
+  .sub{color:var(--ink-soft);font-size:14px}
+  h2{font-family:"Songti SC","STSong",serif;font-size:22px;margin:42px 0 14px;
+    padding-left:12px;border-left:5px solid var(--cinnabar)}
+  h3{font-size:16px;margin:20px 0 8px;color:var(--cinnabar)}
+  p{margin:8px 0}
+  .lede{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;box-shadow:var(--shadow);font-size:15px}
+  .lede b{color:var(--cinnabar)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;box-shadow:var(--shadow)}
+  .box.ok{border-top:4px solid var(--jade)}
+  .box.gap{border-top:4px solid var(--cinnabar)}
+  .box h3{margin-top:0}
+  .box ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+  .box li{margin:4px 0}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;
+    background:var(--card);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--paper-2);font-weight:600}
+  tr:nth-child(even) td{background:#fbf8f1}
+  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:20px;
+    background:var(--paper-2);color:var(--ink-soft);border:1px solid var(--line);margin:1px 2px}
+  .tag.s{background:#f3e6df;color:var(--cinnabar);border-color:#e6cabf}
+  .tag.e{background:#e4ede8;color:var(--jade);border-color:#c7ddd1}
+  .phase{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px}
+  @media(max-width:860px){.phase{grid-template-columns:1fr}}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    overflow:hidden;box-shadow:var(--shadow)}
+  .pcard .top{padding:14px 16px;color:#fff}
+  .p0 .top{background:linear-gradient(135deg,#b03a2e,#8e2c22)}
+  .p1 .top{background:linear-gradient(135deg,#9a7b34,#7a5f24)}
+  .p2 .top{background:linear-gradient(135deg,#3f6f5e,#2e5346)}
+  .pcard .top h3{color:#fff;margin:0;font-size:17px}
+  .pcard .top small{opacity:.85}
+  .pcard .body{padding:14px 16px;font-size:13.5px}
+  .pcard .body ul{margin:6px 0;padding-left:16px}
+  .pcard .body li{margin:5px 0}
+  .expert{display:flex;gap:12px;align-items:flex-start;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:12px;
+    box-shadow:var(--shadow)}
+  .expert .av{flex:0 0 46px;height:46px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;color:#fff;font-weight:700;font-size:18px}
+  .expert.a{background:#e4ede8}.expert.a .av{background:var(--jade)}
+  .expert.b{background:#f3e6df}.expert.b .av{background:var(--cinnabar)}
+  .expert.c{background:#f0ecdd}.expert.c .av{background:var(--gold)}
+  .expert.d{background:#e8edf3}.expert.d .av{background:#3a5a8c}
+  .expert .role{font-weight:600;margin:0 0 2px}
+  .expert .desc{font-size:13px;color:var(--ink-soft);margin:0}
+  .timeline{margin-top:14px;border-left:3px solid var(--line);padding-left:20px}
+  .tl-item{position:relative;margin:0 0 18px}
+  .tl-item::before{content:"";position:absolute;left:-29px;top:4px;width:14px;height:14px;
+    border-radius:50%;background:var(--cinnabar);border:3px solid var(--paper)}
+  .tl-item .when{font-size:12px;color:var(--cinnabar);font-weight:600}
+  .note{background:#fbf6ec;border:1px dashed var(--gold);border-radius:10px;
+    padding:14px 16px;font-size:13.5px;margin-top:18px}
+  footer{margin-top:40px;border-top:1px solid var(--line);padding-top:16px;
+    font-size:12px;color:var(--ink-soft);text-align:center}
+  code{background:var(--paper-2);padding:1px 6px;border-radius:5px;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>ROX 投资助手 · 生产化规划</h1>
+  <div class="sub">技能 × 专家协同路线图 ｜ 现状 v3.2.0 ｜ 编制于 2026-08-02 ｜ 定位：投资认知系统（决策日志本，非信号生成器）</div>
+</header>
+
+<div class="lede">
+  <b>结论先行：</b>ROX 已是"可信数据 + 安全基线 + 宏观矩阵 + 334 纪律"的可演示 MVP，但 <b>AI 助手、数据库、多用户、回测、会员</b> 五项仍为空壳或缺失，不具备公开提供真实研判或收费的资格。下一步应以 <b>PostgreSQL 持久化 + 多用户认证 + AI 后端</b> 为 P0 地基，再调用 <b>westock-data / westock-tool / news-search / wb-finance-skill</b> 四大技能与 <b>策略回测 / 量化研判 / 数据</b> 三类专家，分阶段补完数据、研判、验证与风控能力。
+</div>
+
+<h2>一、现状评估（v3.2.0）</h2>
+<div class="grid2">
+  <div class="box ok">
+    <h3>✓ 已落地（真实可用）</h3>
+    <ul>
+      <li>战略文房 UI（桌面 + 移动端单列自适应）</li>
+      <li>可信宏观矩阵：AKShare 6 指标 + 覆盖率门槛 + 确定性公式</li>
+      <li>334 仓位纪律工作台：确定性规则引擎 + 前端 localStorage 配置</li>
+      <li>宏观资讯 / 政策研判层（intelligence，AKShare 抓取 + 降级）</li>
+      <li>决策日志 CRUD（内存态，未持久化）</li>
+      <li>个股透视：K 线 / 资金流 / 框架一致性评分（AKShare + NeoData 快照）</li>
+      <li>认知框架 L1–L5（卢麒元方法论结构化）</li>
+      <li>安全基线：CSP / 请求 ID / 生产 CORS / <code>/ready</code></li>
+    </ul>
+  </div>
+  <div class="box gap">
+    <h3>✗ 空壳 / 缺失</h3>
+    <ul>
+      <li><b>AI 助手</b>：纯前端输入框，后端 <code>ai_api_key</code> 被跳过，无模型接入</li>
+      <li><b>数据库</b>：PostgreSQL 未接入，<code>/ready → database: not_configured</code>，日志/设置仅内存</li>
+      <li><b>多用户</b>：无认证与账号隔离，localStorage 无法跨设备</li>
+      <li><b>回测 / 框架验证</b>：无引擎，无法验证方法论历史表现</li>
+      <li><b>会员体系</b>：硬编码假数据，无真实付费/权益</li>
+      <li><b>实时行情稳定性</b>：AKShare 冷启动慢、沙箱受限，依赖 NeoData 快照兜底</li>
+      <li><b>选股 / 筛选</b>：尚无论证层，仅静态自选股池</li>
+    </ul>
+  </div>
+</div>
+
+<h2>二、技能 × 模块映射矩阵</h2>
+<p style="font-size:14px;color:var(--ink-soft)">下列技能已在本次规划中调用并校准能力边界；<span class="tag s">技能</span> 标注数据源/方法，<span class="tag e">专家</span> 标注负责人。</p>
+<table>
+  <tr><th style="width:18%">功能模块</th><th style="width:24%">当前实现</th><th>应调用的技能 / 数据源</th><th style="width:20%">负责专家</th></tr>
+  <tr>
+    <td>行情数据</td><td>AKShare + NeoData 快照</td>
+    <td><span class="tag s">westock-data</span> <span class="tag s">neodata-financial-search</span> 实时结构化行情 / K 线 / 资金流，替代不稳定 AKShare 直连</td>
+    <td><span class="tag e">数据专家</span></td>
+  </tr>
+  <tr>
+    <td>宏观矩阵</td><td>AKShare 6 指标</td>
+    <td><span class="tag s">wb-finance-skill</span> · macro-transmission（财政信用 × 价值实现传导）、AKShare <code>macro</code></td>
+    <td><span class="tag e">量化研判专家</span></td>
+  </tr>
+  <tr>
+    <td>选股 / 筛选</td><td>无</td>
+    <td><span class="tag s">westock-tool</span> · filter / strategy / label / event / ranking（注意 <code>intersect()</code> 语法与跨市场字段名）</td>
+    <td><span class="tag e">量化研判专家</span></td>
+  </tr>
+  <tr>
+    <td>资讯研判</td><td>AKShare 抓取 + 降级</td>
+    <td><span class="tag s">news-search</span>（平安证券资讯库，忠实原文、标来源与日期、不输出买卖建议）</td>
+    <td><span class="tag e">量化研判专家</span></td>
+  </tr>
+  <tr>
+    <td>334 纪律</td><td>确定性引擎 + localStorage</td>
+    <td>维持确定性规则引擎，<b>持久化到 PostgreSQL</b>（账号级隔离）</td>
+    <td><span class="tag e">高级开发工程师</span></td>
+  </tr>
+  <tr>
+    <td>回测 / 框架验证</td><td>无</td>
+    <td><span class="tag s">wb-finance-skill</span> · systematic-strategies / quant-factor-research；<b>作为"框架验证 / 经验沉淀"，非信号生成器</b></td>
+    <td><span class="tag e">策略回测专家</span></td>
+  </tr>
+  <tr>
+    <td>风控压力测试</td><td>无</td>
+    <td><span class="tag s">wb-finance-skill</span> · risk-stress（VaR / CVaR / 蒙特卡洛）</td>
+    <td><span class="tag e">量化研判专家</span></td>
+  </tr>
+  <tr>
+    <td>组合优化</td><td>无</td>
+    <td><span class="tag s">wb-finance-skill</span> · portfolio-optimization（资产配置与再平衡）</td>
+    <td><span class="tag e">量化研判专家</span></td>
+  </tr>
+  <tr>
+    <td>AI 助手</td><td>空壳</td>
+    <td>接入 LLM API 作为"解释 / 复盘 / 追问"层，<b>不修改风控边界</b></td>
+    <td><span class="tag e">高级开发工程师</span></td>
+  </tr>
+  <tr>
+    <td>会员 / 付费</td><td>硬编码假数据</td>
+    <td>真实权益模型 + 支付集成（替换假数据），合规留痕</td>
+    <td><span class="tag e">高级开发工程师</span></td>
+  </tr>
+</table>
+
+<h2>三、专家协作架构（Team 型）</h2>
+<p style="font-size:14px;color:var(--ink-soft)">ROX 横跨 <b>金融投资（08）/ 技术工程（02）/ 数据智能（04）</b> 三领域，建议组建跨专家协作团队推进。主理人统筹，专项专家按模块交付。</p>
+
+<div class="expert a">
+  <div class="av">吴</div>
+  <div><p class="role">主理人 · 高级开发工程师（SeniorDeveloper）</p>
+    <p class="desc">全栈工程、战略文房 UI、部署（Render）、安全基线、AI 后端与会员体系落地。已注入当前会话，负责 P0 地基与跨模块集成。</p></div>
+</div>
+<div class="expert b">
+  <div class="av">回</div>
+  <div><p class="role">策略回测专家</p>
+    <p class="desc">回测引擎、因子研究、卢麒元框架历史一致性验证。关键约束：回测仅用于"经验沉淀 / 框架校准"，不输出买卖信号（贴合认知系统定位）。</p></div>
+</div>
+<div class="expert c">
+  <div class="av">量</div>
+  <div><p class="role">量化研判专家</p>
+    <p class="desc">宏观矩阵增强、334 纪律方法论、选股 / 资讯研判层、风控压力测试与组合优化。调用 wb-finance-skill 全部 references 方法论。</p></div>
+</div>
+<div class="expert d">
+  <div class="av">数</div>
+  <div><p class="role">数据专家</p>
+    <p class="desc">westock-data / neodata 实时结构化数据接入、质量监控、降级策略、AKShare 商业许可确认与多源交叉验证。</p></div>
+</div>
+
+<h2>四、三阶段路线图</h2>
+<div class="phase">
+  <div class="pcard p0">
+    <div class="top"><h3>P0 · 生产化地基</h3><small>可信 + 安全 + 可规模化</small></div>
+    <div class="body">
+      <ul>
+        <li>PostgreSQL 持久化（决策日志 / 334 配置 / 用户）</li>
+        <li>多用户认证（JWT，账号级隔离）</li>
+        <li>AI 助手后端（LLM 接入：解释 / 复盘 / 追问）</li>
+        <li>安全合规基线（合规材料、数据许可确认）</li>
+      </ul>
+      <p><b>技能/专家：</b><span class="tag e">高级开发工程师</span> 全栈；<span class="tag s">LLM API</span></p>
+      <p><b>验收：</b><code>/ready → database: configured</code>；多用户隔离通过；AI 可对话且只读风控。</p>
+      <p><b>风险：</b>AKShare 商业许可；LLM 调用成本与延迟。</p>
+    </div>
+  </div>
+  <div class="pcard p1">
+    <div class="top"><h3>P1 · 核心能力补完</h3><small>数据 × 研判 × 验证</small></div>
+    <div class="body">
+      <ul>
+        <li>实时行情升级：<span class="tag s">westock-data</span> + <span class="tag s">neodata</span> 替代 / 补充 AKShare</li>
+        <li>选股模块：<span class="tag s">westock-tool</span>（filter/strategy/label/event/ranking）</li>
+        <li>资讯研判：<span class="tag s">news-search</span> 接入真实资讯库</li>
+        <li>宏观矩阵增强：<span class="tag s">macro-transmission</span> 方法论</li>
+        <li>回测 / 框架验证：<span class="tag e">策略回测专家</span> + systematic-strategies</li>
+      </ul>
+      <p><b>验收：</b>选股页可用；资讯页真实数据；回测页输出历史框架一致性。</p>
+      <p><b>风险：</b>数据源稳定性；回测不代表未来收益。</p>
+    </div>
+  </div>
+  <div class="pcard p2">
+    <div class="top"><h3>P2 · 上市级打磨</h3><small>风控 × 会员 × 体验</small></div>
+    <div class="body">
+      <ul>
+        <li>风控压力测试：<span class="tag s">risk-stress</span>（VaR / CVaR / 蒙特卡洛）</li>
+        <li>组合优化：<span class="tag s">portfolio-optimization</span></li>
+        <li>会员 / 付费：真实权益（替换假数据）+ 支付</li>
+        <li>移动端 PWA + 离线 + 推送告警</li>
+        <li>结构化监控告警 + WCAG 2.1 AA</li>
+      </ul>
+      <p><b>验收：</b>压力测试页；会员真实；PWA 可安装；监控告警可用。</p>
+      <p><b>风险：</b>金融合规审查；性能与冷启动。</p>
+    </div>
+  </div>
+</div>
+
+<h2>五、执行时间线（建议节奏）</h2>
+<div class="timeline">
+  <div class="tl-item"><div class="when">第 1–2 周 · P0</div>
+    <p>数据库 schema + 认证 + AI 后端骨架；<code>/ready</code> 转为 ok。主理人主导。</p></div>
+  <div class="tl-item"><div class="when">第 3–5 周 · P1</div>
+    <p>数据专家接入 westock-data/neodata；量化专家落地选股/资讯/宏观增强；策略回测专家交付框架验证页。</p></div>
+  <div class="tl-item"><div class="when">第 6–8 周 · P2</div>
+    <p>风控压测 + 组合优化 + 真实会员 + PWA；邀请内测 → 正式发布。</p></div>
+</div>
+
+<div class="note">
+  <b>产品定位重申（来自 2026-07-29 重定位分析）：</b>ROX 是"投资认知系统 / 决策日志本"，不是量化交易信号生成器。删掉"95% 准确率"目标；技术分析权重降至 5%；回测与 AI 仅用于记录认知过程、校准框架、沉淀经验，<b>不直接给买卖信号</b>。所有对外数据须标注来源 + 时点，资讯忠实原文，研判须 ≥2 项交叉验证。
+</div>
+
+<footer>
+  ROX 投资助手生产化规划 · 技能（wb-finance-skill / westock-data / westock-tool / news-search）× 专家（高级开发 / 策略回测 / 量化研判 / 数据）<br>
+  本规划为内部工程文档，不构成投资建议。数据与研判均须遵循"可信数据原则"与合规要求。
+</footer>
+
+</div>
+</body>
+</html>

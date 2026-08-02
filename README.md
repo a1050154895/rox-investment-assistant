@@ -75,7 +75,7 @@ ROX 不试图用单一指标预测涨跌，而是把投资研究拆成五类可�
 - 补充结果与事后复盘
 - 汇总样本、胜率和错误模式
 
-> 当前日志存储在服务内存中，实例重启后可能丢失；多用户数据库将在后续阶段接入。
+> 决策日志已持久化到数据库（生产 PostgreSQL / 本地 SQLite），并按用户账号隔离，实例重启不丢失。
 
 ### 认知框架
 
@@ -243,8 +243,9 @@ uvicorn app.main:app --host 0.0.0.0 --port 8008 --reload
 | `ENVIRONMENT` | `development` | 运行环境；Render 设置为 `production` |
 | `ALLOWED_ORIGINS` | 本地两个来源 | 逗号分隔的 CORS 允许来源 |
 | `PORT` | `8008` | 本地运行端口；Render 使用平台 `$PORT` |
-| `DATABASE_URL` | 未启用 | PostgreSQL 预留配置，当前版本尚未接入 |
-| `SESSION_SECRET` | 未启用 | 服务端会话预留配置，当前版本尚未接入 |
+| `DATABASE_URL` | 未设置（自动 SQLite） | 生产建议配置 PostgreSQL 连接串；未设置时本地使用 `data/rox.db` |
+| `SECRET_KEY` | 自动生成 | JWT 签名密钥；生产必须显式设置，否则重启后登录全部失效 |
+| `AI_API_KEY` | 未设置 | 可选全局 AI 服务密钥；用户也可登录后在「设置 → AI模型」中自行填写 |
 
 生产环境默认只允许：
 
@@ -310,7 +311,7 @@ FastAPI 自动提供 `/docs` 和 `/openapi.json`。主要接口如下：
 | GET | `/api/framework/strategies` | 策略库 |
 | GET | `/api/framework/knowledge` | 知识库 |
 | GET/PUT | `/api/settings/` | 当前运行期设置 |
-| GET | `/api/settings/membership` | 演示会员信息 |
+| GET | `/api/settings/membership` | 会员信息（基于用户真实 plan，无假数据） |
 
 ## 测试与质量检查
 
@@ -402,7 +403,7 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 预期：
 
 - `/health` 返回 `status: ok` 和当前版本。
-- `/ready` 返回 JSON；数据库未接入时总体状态为 `degraded`，这是当前阶段的预期行为。
+- `/ready` 返回 JSON；数据库已接入时总体状态为 `ok`（本地 SQLite 或生产 PostgreSQL）。
 - 情报接口返回 `news`、`global_risk`、`policy_tracker` 和 `sector_flow`。
 
 > Render 免费实例会在闲置后休眠，首次访问可能需要等待冷启动。正式运营应使用不休眠实例，并配置监控、备份和回滚。
@@ -422,7 +423,7 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 - 关键日志字段前端转义
 - Git 仓库不保存真实环境变量和访问令牌
 
-但当前 API 尚无登录鉴权、用户权限和请求限流，因此不应存储敏感个人数据，也不应直接作为公开收费服务使用。
+当前 API 已具备多用户 JWT 鉴权与账号级数据隔离；请求限流、找回密码与 RBAC 仍在路线图中，正式收费服务前需补齐并完成合规审核。
 
 ### 密钥安全
 
@@ -438,8 +439,9 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 | 数据授权 | AKShare 用于研发验证；商业展示和再分发前需确认供应商许可 |
 | 行情时效 | 部分股票使用内置快照，不保证实时 |
 | 新闻版权 | 仅应使用允许抓取、摘要和展示的公开来源 |
-| 数据库 | 尚未接入 PostgreSQL；日志和设置是内存数据 |
-| 用户体系 | 暂无注册、登录、找回密码、RBAC 和多用户隔离 |
+| 数据库 | 已接入（生产 PostgreSQL / 本地 SQLite 自动降级），日志、设置、纪律档案按用户持久化 |
+| 用户体系 | 已支持注册、登录（JWT + PBKDF2 哈希）与账号级数据隔离；找回密码、RBAC 待实现 |
+| AI 服务 | 已接入真实后端（OpenAI 兼容），需配置 API Key；AI 仅做解释/复盘，不覆盖硬性风控规则 |
 | 缓存 | 仅有进程内短时缓存，实例重启后失效 |
 | 任务系统 | 暂无独立采集 Worker、消息队列和定时任务 |
 | 可观测性 | 有请求 ID，但尚无集中日志、错误追踪和告警 |
@@ -449,14 +451,14 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 
 ## 后续路线图
 
-### 阶段 2：账户与持久化
+### 阶段 2：账户与持久化（✅ 已基本完成，v3.3.0）
 
-- PostgreSQL 数据库
-- SQLAlchemy 与 Alembic 迁移
-- 用户、自选股、决策日志、设置和审计日志表
-- 注册、登录、邮箱验证和密码重置
-- 服务端安全会话与 HttpOnly Cookie
-- 用户数据隔离和管理员权限
+- ✅ PostgreSQL 数据库（生产）/ SQLite 自动降级（本地）
+- ✅ SQLAlchemy 模型：用户、决策日志、纪律档案、设置
+- ✅ 注册、登录（JWT + PBKDF2 密码哈希）、账号级数据隔离
+- ⏳ 邮箱验证和密码重置
+- ⏳ 服务端安全会话与 HttpOnly Cookie（当前为 Bearer Token）
+- ⏳ 管理员权限与审计日志
 
 ### 阶段 3：生产质量
 

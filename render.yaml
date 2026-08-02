@@ -10,3 +10,13 @@ services:
         value: production
       - key: PYTHON_VERSION
         value: 3.11.9
+      # 生产必须设置独立密钥（不设置则每次重启生成新密钥，旧登录全部失效）
+      - key: SECRET_KEY
+        sync: false
+      # 生产建议连接 PostgreSQL：在 Render 新建 PostgreSQL 实例，把其 Internal Database URL 填入此项。
+      # 不设置时自动降级为 SQLite（Render 免费实例重启后文件会丢失，正式数据务必用 PostgreSQL）
+      - key: DATABASE_URL
+        sync: false
+      # 可选：全局 AI 服务配置（也可由用户登录后在「设置 → AI模型」中自行填写）
+      - key: AI_API_KEY
+        sync: false

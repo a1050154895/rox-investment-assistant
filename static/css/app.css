@@ -537,3 +537,61 @@ ul { list-style: none; }
   .mobile-nav-item.active { color: var(--rox-primary); }
   .mobile-nav-item svg { width: 22px; height: 22px; }
 }
+
+/* ============ Auth Gate ============ */
+.auth-gate {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ink-bg-deep, #16130f);
+  padding: 20px;
+}
+.auth-card {
+  width: 100%; max-width: 380px;
+  background: var(--ink-card, #221d17);
+  border: 1px solid var(--border-default, rgba(255,255,255,.08));
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.5);
+  text-align: center;
+}
+.auth-logo {
+  width: 56px; height: 56px; margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--rox-primary, #e0483e); color: #fff;
+  font-size: 26px; font-weight: 800; border-radius: 14px;
+}
+.auth-title { font-family: var(--font-serif, "Songti SC", serif); font-size: 24px; margin: 0 0 6px; }
+.auth-sub { font-size: 12px; color: var(--text-tertiary, #8a8276); margin: 0 0 22px; }
+.auth-tabs {
+  display: flex; gap: 0; margin-bottom: 20px;
+  border: 1px solid var(--border-default, rgba(255,255,255,.08));
+  border-radius: 10px; overflow: hidden;
+}
+.auth-tab {
+  flex: 1; padding: 9px 0; font-size: 14px; cursor: pointer;
+  color: var(--text-tertiary, #8a8276); background: transparent;
+  transition: all .2s;
+}
+.auth-tab.active { background: var(--rox-primary, #e0483e); color: #fff; font-weight: 600; }
+.auth-form { display: flex; flex-direction: column; gap: 14px; text-align: left; }
+.auth-error {
+  font-size: 12px; color: #ff6b60; background: rgba(224,72,62,.12);
+  border: 1px solid rgba(224,72,62,.35); border-radius: 8px; padding: 8px 10px;
+}
+.auth-submit { width: 100%; }
+.auth-foot { font-size: 11px; color: var(--text-tertiary, #8a8276); margin: 18px 0 0; line-height: 1.6; }
+
+/* ============ User chip ============ */
+.user-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; font-size: 12px; font-weight: 600;
+  color: var(--rox-primary, #e0483e);
+  background: rgba(224,72,62,.1);
+  border: 1px solid rgba(224,72,62,.3);
+  border-radius: 20px; cursor: pointer; white-space: nowrap;
+  margin-right: 8px;
+  transition: all .2s;
+}
+.user-chip:hover { background: rgba(224,72,62,.18); }
+.user-chip::before { content: "●"; font-size: 8px; }
+@media (max-width: 768px) { .user-chip { display: none !important; } }

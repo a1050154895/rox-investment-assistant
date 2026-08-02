@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ROX投资助手</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2338bdf8'/><text x='50' y='68' font-size='56' font-weight='bold' text-anchor='middle' fill='white'>R</text></svg>">
-    <link rel="stylesheet" href="/static/css/app.css?v=3.2.0">
+    <link rel="stylesheet" href="/static/css/app.css?v=3.3.0">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 </head>
 <body>
@@ -71,6 +71,9 @@
             </div>
             <div class="topbar-right">
                 <div class="index-ticker" id="index-ticker"></div>
+                <div class="user-chip" id="user-chip" style="display:none;" data-action="open-settings" title="账户设置">
+                    <span id="user-chip-name"></span>
+                </div>
                 <div class="search-box" id="search-box" style="display:none;">
                     <span class="search-icon">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -113,12 +116,38 @@
     </div>
 </div>
 
+<!-- Auth Gate -->
+<div class="auth-gate" id="auth-gate" style="display:none;">
+    <div class="auth-card">
+        <div class="auth-logo">R</div>
+        <h1 class="auth-title">ROX投资助手</h1>
+        <p class="auth-sub">投资认知系统 · 决策日志本 · 宏观定调 · 334纪律</p>
+        <div class="auth-tabs">
+            <div class="auth-tab active" data-auth-tab="login">登录</div>
+            <div class="auth-tab" data-auth-tab="register">注册</div>
+        </div>
+        <div class="auth-form">
+            <div class="form-group">
+                <label class="form-label" for="auth-username">用户名</label>
+                <input class="form-input" id="auth-username" placeholder="3-30 字符" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="auth-password">密码</label>
+                <input class="form-input" type="password" id="auth-password" placeholder="至少 6 位" autocomplete="current-password">
+            </div>
+            <div id="auth-error" class="auth-error" style="display:none;"></div>
+            <button class="btn btn-primary auth-submit" id="auth-submit">登录</button>
+        </div>
+        <p class="auth-foot">数据按账号隔离 · 密码经 PBKDF2 加盐哈希存储 · 决策日志跨设备持久化</p>
+    </div>
+</div>
+
 <!-- Scripts -->
-<script src="/static/js/app.js?v=3.2.0"></script>
-<script src="/static/js/views/dashboard.js?v=3.2.0"></script>
-<script src="/static/js/views/stock.js?v=3.2.0"></script>
-<script src="/static/js/views/journal.js?v=3.2.0"></script>
-<script src="/static/js/views/framework.js?v=3.2.0"></script>
-<script src="/static/js/views/intelligence.js?v=3.2.0"></script>
+<script src="/static/js/app.js?v=3.3.0"></script>
+<script src="/static/js/views/dashboard.js?v=3.3.0"></script>
+<script src="/static/js/views/stock.js?v=3.3.0"></script>
+<script src="/static/js/views/journal.js?v=3.3.0"></script>
+<script src="/static/js/views/framework.js?v=3.3.0"></script>
+<script src="/static/js/views/intelligence.js?v=3.3.0"></script>
 </body>
 </html>
