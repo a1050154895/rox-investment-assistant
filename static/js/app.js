@@ -455,6 +455,14 @@ const ROX = {
       }
     });
 
+    // Auth form: Enter key submits
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.target.id === 'auth-username' || e.target.id === 'auth-password')) {
+        e.preventDefault();
+        this.submitAuth();
+      }
+    });
+
     // Browser back/forward
     window.addEventListener('popstate', () => this.render(location.pathname));
 
