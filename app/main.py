@@ -17,7 +17,7 @@ from app.api import (
 
 app = FastAPI(
     title="ROX投资助手",
-    version="3.5.0",
+    version="3.5.1",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
@@ -64,7 +64,7 @@ app.include_router(backtest.router, prefix="/api/backtest", tags=["backtest"])
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.5.0", "name": "ROX投资助手"}
+    return {"status": "ok", "version": "3.5.1", "name": "ROX投资助手"}
 
 
 @app.get("/ready")

@@ -66,6 +66,20 @@ def _social_finance_score(value: float) -> float:
     return _clamp(50 + (value - 10) * 3)
 
 
+# 降级快照：当 AKShare 不可用时（Render 网络限制等）使用最近已知值。
+# 数据来源：westock-data 技能 core_indicators_cur（腾讯自选股宏观接口）。
+FALLBACK_SNAPSHOT: dict[str, dict[str, Any]] = {
+    "fiscal_revenue_yoy": {"value": 8.65, "period": "2026年06月", "publisher": "中华人民共和国财政部"},
+    "tax_revenue_yoy": {"value": 3.6, "period": "2026年06月", "publisher": "国家税务总局"},
+    "m2_yoy": {"value": 8.0, "period": "2026年06月", "publisher": "中国人民银行"},
+    "retail_sales_yoy": {"value": 1.0, "period": "2026年06月", "publisher": "中华人民共和国国家统计局"},
+    "cpi_yoy": {"value": 0.1, "period": "2026年06月", "publisher": "中华人民共和国国家统计局"},
+    "pmi": {"value": 49.2, "period": "2026年07月", "publisher": "中华人民共和国国家统计局"},
+    "ppi_yoy": {"value": 4.1, "period": "2026年06月", "publisher": "中华人民共和国国家统计局"},
+    "social_finance": {"value": 7.4, "period": "2026年06月", "publisher": "中国人民银行"},
+}
+
+
 SPECS = (
     IndicatorSpec(
         key="fiscal_revenue_yoy", label="全国财政收入同比", function_name="macro_china_czsr",
@@ -75,12 +89,14 @@ SPECS = (
     ),
     IndicatorSpec(
         key="tax_revenue_yoy", label="全国税收收入同比", function_name="macro_china_national_tax_receipts",
-        value_columns=("同比增长", "同比增速", "增长率"), date_columns=("季度", "月份", "日期"),
-        publisher="国家税务总局", group="fiscal_credit", scorer=_growth_score,
+        value_columns=("较上年同期", "同比增长", "同比增速", "增长率", "税收收入同比"),
+        date_columns=("季度", "月份", "日期", "时间"), publisher="国家税务总局",
+        group="fiscal_credit", scorer=_growth_score,
     ),
     IndicatorSpec(
         key="m2_yoy", label="广义货币 M2 同比", function_name="macro_china_money_supply",
-        value_columns=("货币和准货币（广义货币M2）同比增长", "货币和准货币(广义货币M2)同比增长", "M2同比增长", "同比增长"),
+        value_columns=("货币和准货币（广义货币M2）同比增长", "货币和准货币(广义货币M2)同比增长",
+                       "M2同比增长", "M2-同比增长", "同比增长"),
         date_columns=("月份", "日期", "时间"), publisher="中国人民银行",
         group="fiscal_credit", scorer=_liquidity_score,
     ),
@@ -98,8 +114,8 @@ SPECS = (
     ),
     IndicatorSpec(
         key="pmi", label="制造业 PMI", function_name="macro_china_pmi",
-        value_columns=("今值", "最新值", "数值", "value"),
-        date_columns=("日期", "时间", "月份", "date"), publisher="中华人民共和国国家统计局",
+        value_columns=("制造业-指数", "制造业指数", "今值", "最新值", "数值", "value", "指数"),
+        date_columns=("月份", "日期", "时间", "date"), publisher="中华人民共和国国家统计局",
         group="fiscal_credit", scorer=_pmi_score,
     ),
     IndicatorSpec(
@@ -110,7 +126,7 @@ SPECS = (
     ),
     IndicatorSpec(
         key="social_finance", label="社会融资规模存量同比", function_name="macro_china_shrzgm",
-        value_columns=("同比增长", "同比增速", "增长率", "数值"),
+        value_columns=("同比增长", "同比增速", "增长率", "存量同比"),
         date_columns=("月份", "日期", "时间", "date"), publisher="中国人民银行",
         group="fiscal_credit", scorer=_social_finance_score,
     ),
@@ -153,18 +169,29 @@ def parse_indicator_frame(frame: Any, spec: IndicatorSpec) -> dict[str, Any]:
     if value_column is None:
         raise ValueError(f"未识别数值列，返回列: {columns}")
 
-    for _, row in frame.iloc[::-1].iterrows():
+    # 日期过滤：只看最近3年数据，避免拾取远古行
+    cutoff_year = datetime.now().year - 3
+    rows = list(frame.iloc[::-1].iterrows())
+    for _, row in rows:
         value = _to_number(row.get(value_column))
         if value is None:
             continue
         period = str(row.get(date_column, "未知日期")) if date_column else "未知日期"
+        # 过滤掉5年前的数据
+        period_year = None
+        for part in period.replace("年", " ").replace("-", " ").split():
+            if part.isdigit() and len(part) == 4:
+                period_year = int(part)
+                break
+        if period_year and period_year < cutoff_year:
+            continue
         score = round(spec.scorer(value), 1)
         return {
             "key": spec.key, "label": spec.label, "value": round(value, 2), "unit": spec.unit,
             "period": period, "score": score, "status": "available", "publisher": spec.publisher,
             "data_source": f"AKShare / {spec.publisher}公开数据", "value_column": value_column,
         }
-    raise ValueError("数值列中没有有效数据")
+    raise ValueError("数值列中没有有效数据（近5年）")
 
 
 async def _fetch_indicator(spec: IndicatorSpec) -> dict[str, Any]:
@@ -175,6 +202,18 @@ async def _fetch_indicator(spec: IndicatorSpec) -> dict[str, Any]:
         return parse_indicator_frame(frame, spec)
     except Exception as exc:
         logger.warning("macro_indicator_unavailable key=%s error=%s", spec.key, exc)
+        # 降级：使用最近已知快照值
+        snapshot = FALLBACK_SNAPSHOT.get(spec.key)
+        if snapshot:
+            value = snapshot["value"]
+            score = round(spec.scorer(value), 1)
+            return {
+                "key": spec.key, "label": spec.label, "value": round(value, 2),
+                "unit": spec.unit, "period": snapshot["period"], "score": score,
+                "status": "snapshot", "publisher": spec.publisher,
+                "data_source": f"公开数据快照 / {spec.publisher}",
+                "message": f"AKShare 不可用，使用最近已知值（{snapshot['period']}）",
+            }
         return {
             "key": spec.key, "label": spec.label, "status": "unavailable", "publisher": spec.publisher,
             "data_source": f"AKShare / {spec.publisher}公开数据", "message": str(exc)[:180],
@@ -184,7 +223,7 @@ async def _fetch_indicator(spec: IndicatorSpec) -> dict[str, Any]:
 def _group_result(indicators: list[dict[str, Any]], group: str, label: str) -> dict[str, Any]:
     group_specs = [spec for spec in SPECS if spec.group == group]
     keys = {spec.key for spec in group_specs}
-    available = [item for item in indicators if item["key"] in keys and item.get("status") == "available"]
+    available = [item for item in indicators if item["key"] in keys and item.get("status") in ("available", "snapshot")]
     minimum = 2
     if len(available) < minimum:
         return {
@@ -224,7 +263,7 @@ async def get_macro_matrix(force: bool = False) -> dict[str, Any]:
     fiscal = _group_result(indicators, "fiscal_credit", "财政信用条件")
     value = _group_result(indicators, "value_realization", "价值实现条件")
     cell, action, advice = _matrix_conclusion(fiscal, value)
-    available_count = sum(item.get("status") == "available" for item in indicators)
+    available_count = sum(item.get("status") in ("available", "snapshot") for item in indicators)
     result = {
         "methodology": "财政信用条件 × 价值实现条件代理矩阵（不是主权信用评级）",
         "sovereign_credit": fiscal,

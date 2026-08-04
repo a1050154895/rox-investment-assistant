@@ -86,8 +86,7 @@ async def fetch_quotes(codes: list[str]) -> dict[str, dict]:
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(QUOTE_URL.format(symbols=",".join(symbols)))
-            resp.encoding = "gbk"
-            text = resp.text
+            text = resp.content.decode("gbk", errors="replace")
     except Exception as e:
         logger.warning("腾讯行情获取失败: %s", e)
         return {}
@@ -149,8 +148,7 @@ async def smartbox_search(query: str, limit: int = 10) -> list[dict]:
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             resp = await client.get(SMARTBOX_URL, params={"v": "2", "q": query, "t": "all"})
-            resp.encoding = "gbk"
-            text = resp.text
+            text = resp.content.decode("gbk", errors="replace")
     except Exception as e:
         logger.warning("腾讯搜索失败: %s", e)
         return []

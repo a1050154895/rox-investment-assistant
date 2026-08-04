@@ -40,9 +40,9 @@ ROX.register('/', async function(container) {
         </div>
         <div class="macro-evidence-grid">
           ${[...(data.macro_compass.sovereign_credit.indicators || []), ...(data.macro_compass.value_realization.indicators || [])].map(item => `
-            <div class="macro-evidence ${item.status === 'available' ? 'available' : 'unavailable'}">
+            <div class="macro-evidence ${item.status === 'available' || item.status === 'snapshot' ? 'available' : 'unavailable'}">
               <div><strong>${item.label}</strong><span>${item.publisher || ''}</span></div>
-              <div class="macro-value">${item.status === 'available' ? `${item.value}${item.unit} · ${item.period}` : '暂不可用'}</div>
+              <div class="macro-value">${item.status === 'available' || item.status === 'snapshot' ? `${item.value}${item.unit} · ${item.period}` : '暂不可用'}</div>
             </div>`).join('')}
         </div>
         <div style="margin-top:12px;padding:12px 14px;background:var(--ink-vermilion-glow);border-left:2px solid var(--ink-vermilion);font-size:12px;color:var(--ink-vermilion-soft);">
