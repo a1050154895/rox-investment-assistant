@@ -59,6 +59,31 @@ def _normalize_news(frame: Any, limit: int) -> list[dict[str, Any]]:
     return items
 
 
+async def _fetch_news_akshare() -> tuple[list[dict[str, Any]], str]:
+    """尝试多个 AKShare 资讯接口，返回 (news, source_status)。"""
+    sources = [
+        ("stock_info_global_cls", "财经", "AKShare / 财联社公开资讯"),
+        ("stock_info_global_em", None, "AKShare / 东方财富公开资讯"),
+        ("stock_info_global_sina", None, "AKShare / 新浪财经公开资讯"),
+    ]
+    for func_name, arg, label in sources:
+        try:
+            import akshare as ak
+            func = getattr(ak, func_name, None)
+            if func is None:
+                continue
+            if arg:
+                frame = await asyncio.wait_for(asyncio.to_thread(func, arg), timeout=8)
+            else:
+                frame = await asyncio.wait_for(asyncio.to_thread(func), timeout=8)
+            if frame is not None and not frame.empty:
+                return _normalize_news(frame, 10), label
+        except Exception as exc:
+            logger.info("资讯源 %s 不可用: %s", func_name, exc)
+            continue
+    return [], ""
+
+
 async def get_intelligence_brief(force: bool = False) -> dict[str, Any]:
     """返回资讯、政策、全球风险和行业资金研判面板。"""
     cache_key = "brief"
@@ -66,20 +91,39 @@ async def get_intelligence_brief(force: bool = False) -> dict[str, Any]:
     if cached and not force and time.time() - cached[0] < _CACHE_TTL:
         return cached[1]
 
-    news = FALLBACK_NEWS
-    source_status = "公开信息结构化快照"
+    news, source_status = await _fetch_news_akshare()
+    if not news:
+        news = FALLBACK_NEWS
+        source_status = "公开信息结构化快照（AKShare 资讯源暂不可用）"
+
+    # 尝试获取实时行业资金流
+    sector_flow = SECTOR_FLOW
+    flow_status = "结构化快照"
     try:
         import akshare as ak
-        frame = await asyncio.wait_for(asyncio.to_thread(ak.stock_info_global_cls, "财经"), timeout=6)
-        if frame is not None and not frame.empty:
-            news = _normalize_news(frame, 8)
-            source_status = "AKShare 公开财经资讯"
+        flow_frame = await asyncio.wait_for(
+            asyncio.to_thread(ak.stock_sector_fund_flow_rank, "5", "行业"),
+            timeout=8
+        )
+        if flow_frame is not None and not flow_frame.empty:
+            live_flow = []
+            for _, row in flow_frame.head(8).iterrows():
+                live_flow.append({
+                    "sector": str(row.get("名称", "")),
+                    "flow": float(row.get("主力净流入-净额", 0) or 0) / 1e8,
+                    "trend": "inflow" if float(row.get("主力净流入-净额", 0) or 0) > 0 else "outflow",
+                    "driver": str(row.get("主力净流入-净占比", "")) + "% | 5日累计",
+                })
+            if live_flow:
+                sector_flow = live_flow
+                flow_status = "AKShare / 东方财富行业资金流（5日）"
     except Exception as exc:
-        logger.info("资讯源不可用，使用结构化快照: %s", exc)
+        logger.info("行业资金流源不可用: %s", exc)
 
     result = {
         "disclaimer": "本页聚合公开资讯与结构化研判，非投资建议。研判须与行情、财务和仓位纪律交叉验证。",
         "source_status": source_status,
+        "flow_status": flow_status,
         "news": news,
         "global_risk": GLOBAL_RISK,
         "policy_tracker": POLICY_TRACKER,

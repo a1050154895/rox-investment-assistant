@@ -51,6 +51,21 @@ def _cpi_score(value: float) -> float:
     return _clamp(78 - abs(value - 2) * 14)
 
 
+def _pmi_score(value: float) -> float:
+    """PMI代理：50为荣枯线，每偏离1个百分点加减4分。"""
+    return _clamp(50 + (value - 50) * 4)
+
+
+def _ppi_score(value: float) -> float:
+    """PPI同比代理：正增长有利于工业利润，负值为通缩压力。"""
+    return _clamp(50 + value * 3)
+
+
+def _social_finance_score(value: float) -> float:
+    """社融同比代理：10%附近中性，反映信用扩张力度。"""
+    return _clamp(50 + (value - 10) * 3)
+
+
 SPECS = (
     IndicatorSpec(
         key="fiscal_revenue_yoy", label="全国财政收入同比", function_name="macro_china_czsr",
@@ -80,6 +95,24 @@ SPECS = (
         value_columns=("今值", "最新值", "同比增长", "数值", "value"),
         date_columns=("日期", "时间", "月份", "date"), publisher="中华人民共和国国家统计局",
         group="value_realization", scorer=_cpi_score,
+    ),
+    IndicatorSpec(
+        key="pmi", label="制造业 PMI", function_name="macro_china_pmi",
+        value_columns=("今值", "最新值", "数值", "value"),
+        date_columns=("日期", "时间", "月份", "date"), publisher="中华人民共和国国家统计局",
+        group="fiscal_credit", scorer=_pmi_score,
+    ),
+    IndicatorSpec(
+        key="ppi_yoy", label="工业品出厂价格 PPI 同比", function_name="macro_china_ppi_yearly",
+        value_columns=("今值", "最新值", "同比增长", "数值", "value"),
+        date_columns=("日期", "时间", "月份", "date"), publisher="中华人民共和国国家统计局",
+        group="value_realization", scorer=_ppi_score,
+    ),
+    IndicatorSpec(
+        key="social_finance", label="社会融资规模存量同比", function_name="macro_china_shrzgm",
+        value_columns=("同比增长", "同比增速", "增长率", "数值"),
+        date_columns=("月份", "日期", "时间", "date"), publisher="中国人民银行",
+        group="fiscal_credit", scorer=_social_finance_score,
     ),
 )
 

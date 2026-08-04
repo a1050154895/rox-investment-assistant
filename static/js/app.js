@@ -92,6 +92,10 @@ const ROX = {
       handler = this.routes['/framework'];
     } else if (path.startsWith('/intelligence')) {
       handler = this.routes['/intelligence'];
+    } else if (path.startsWith('/screener')) {
+      handler = this.routes['/screener'];
+    } else if (path.startsWith('/backtest')) {
+      handler = this.routes['/backtest'];
     }
 
     // Update nav active state
@@ -137,6 +141,8 @@ const ROX = {
       { route: '/journal', label: '日志', icon: '<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>' },
       { route: '/framework', label: '框架', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>' },
       { route: '/intelligence', label: '情报', icon: '<path d="M4 5h16v14H4z"/><path d="M7 9h10M7 13h7"/>' },
+      { route: '/screener', label: '选股', icon: '<path d="M3 6h18M6 12h12M10 18h4"/>' },
+      { route: '/backtest', label: '回测', icon: '<path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-7"/>' },
     ];
     nav.innerHTML = items.map(item => {
       const active = (item.route === '/' && (path === '/' || path === '')) || (item.route !== '/' && path.startsWith(item.route));
