@@ -96,6 +96,8 @@ const ROX = {
       handler = this.routes['/screener'];
     } else if (path.startsWith('/backtest')) {
       handler = this.routes['/backtest'];
+    } else if (path.startsWith('/review')) {
+      handler = this.routes['/review'];
     }
 
     // Update nav active state
@@ -108,12 +110,15 @@ const ROX = {
     });
 
     // Update page title and search visibility
-    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架', '/intelligence': '宏观情报' };
+    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架', '/intelligence': '宏观情报', '/screener': '选股筛选', '/backtest': '策略回测', '/review': '每日复盘' };
     let titleKey = '/';
     if (path.startsWith('/stock')) titleKey = '/stock';
     else if (path.startsWith('/journal')) titleKey = '/journal';
     else if (path.startsWith('/framework')) titleKey = '/framework';
     else if (path.startsWith('/intelligence')) titleKey = '/intelligence';
+    else if (path.startsWith('/screener')) titleKey = '/screener';
+    else if (path.startsWith('/backtest')) titleKey = '/backtest';
+    else if (path.startsWith('/review')) titleKey = '/review';
     document.getElementById('page-title').textContent = titles[titleKey] || 'ROX投资助手';
     document.getElementById('search-box').style.display = titleKey === '/stock' ? 'block' : 'none';
 
@@ -143,6 +148,7 @@ const ROX = {
       { route: '/intelligence', label: '情报', icon: '<path d="M4 5h16v14H4z"/><path d="M7 9h10M7 13h7"/>' },
       { route: '/screener', label: '选股', icon: '<path d="M3 6h18M6 12h12M10 18h4"/>' },
       { route: '/backtest', label: '回测', icon: '<path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-7"/>' },
+      { route: '/review', label: '复盘', icon: '<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/><circle cx="19" cy="19" r="2"/>' },
     ];
     nav.innerHTML = items.map(item => {
       const active = (item.route === '/' && (path === '/' || path === '')) || (item.route !== '/' && path.startsWith(item.route));
@@ -319,6 +325,18 @@ const ROX = {
     if (gate) gate.style.display = 'flex';
     this.state.authMode = 'login';
     this.setAuthMode('login');
+    // 检查数据库持久化状态，非持久化时显示警告
+    this.checkDbStatus();
+  },
+
+  async checkDbStatus() {
+    try {
+      const res = await this.api.get('/health');
+      if (res && res.db_persistent === false) {
+        const warn = document.getElementById('db-warning');
+        if (warn) warn.style.display = 'block';
+      }
+    } catch (e) { /* 静默 */ }
   },
 
   setAuthMode(mode) {
@@ -423,6 +441,13 @@ const ROX = {
           'view-stock': () => {
             const code = actionEl.dataset.code;
             if (code) this.navigate(`/stock/${code}`);
+          },
+          'refresh-review': async () => {
+            const button = actionEl;
+            button.disabled = true;
+            button.textContent = '刷新中…';
+            await this.api.get('/api/review/daily?force=true');
+            this.render('/review');
           },
           'auth-submit': () => this.submitAuth(),
           'logout': () => this.logout(),

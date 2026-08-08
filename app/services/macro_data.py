@@ -169,15 +169,19 @@ def parse_indicator_frame(frame: Any, spec: IndicatorSpec) -> dict[str, Any]:
     if value_column is None:
         raise ValueError(f"未识别数值列，返回列: {columns}")
 
-    # 日期过滤：只看最近3年数据，避免拾取远古行
-    cutoff_year = datetime.now().year - 3
+    # 日期过滤：只看最近1年半的数据，更旧的数据由快照降级处理
+    cutoff_year = datetime.now().year - 1
+    if datetime.now().month <= 6:
+        cutoff_year = datetime.now().year - 1  # 上半年允许去年数据
+    else:
+        cutoff_year = datetime.now().year  # 下半年只要今年数据
     rows = list(frame.iloc[::-1].iterrows())
     for _, row in rows:
         value = _to_number(row.get(value_column))
         if value is None:
             continue
         period = str(row.get(date_column, "未知日期")) if date_column else "未知日期"
-        # 过滤掉5年前的数据
+        # 过滤掉cutoff_year之前的数据
         period_year = None
         for part in period.replace("年", " ").replace("-", " ").split():
             if part.isdigit() and len(part) == 4:
@@ -191,7 +195,7 @@ def parse_indicator_frame(frame: Any, spec: IndicatorSpec) -> dict[str, Any]:
             "period": period, "score": score, "status": "available", "publisher": spec.publisher,
             "data_source": f"AKShare / {spec.publisher}公开数据", "value_column": value_column,
         }
-    raise ValueError("数值列中没有有效数据（近5年）")
+    raise ValueError(f"近{cutoff_year}年后无有效数据")
 
 
 async def _fetch_indicator(spec: IndicatorSpec) -> dict[str, Any]:

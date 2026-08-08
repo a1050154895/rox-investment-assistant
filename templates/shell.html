@@ -59,6 +59,12 @@
                 </span>
                 <span class="nav-label">回测</span>
             </div>
+            <div class="nav-item" data-route="/review">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/><circle cx="19" cy="19" r="2"/></svg>
+                </span>
+                <span class="nav-label">复盘</span>
+            </div>
         </nav>
         <div class="sidebar-bottom">
             <div class="nav-item" data-action="open-settings">
@@ -151,17 +157,21 @@
             <button class="btn btn-primary auth-submit" id="auth-submit" data-action="auth-submit">登录</button>
         </div>
         <p class="auth-foot">数据按账号隔离 · 密码经 PBKDF2 加盐哈希存储 · 决策日志跨设备持久化</p>
+        <div id="db-warning" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;font-size:12px;color:#f59e0b;line-height:1.6;">
+            <strong>注意：</strong>当前使用临时数据库，服务重启后账号数据将丢失。请在 Render 控制台配置 <code>DATABASE_URL</code> 环境变量（PostgreSQL）以持久化数据。
+        </div>
     </div>
 </div>
 
 <!-- Scripts -->
-<script src="/static/js/app.js?v=3.5.1"></script>
-<script src="/static/js/views/dashboard.js?v=3.5.1"></script>
-<script src="/static/js/views/stock.js?v=3.5.1"></script>
-<script src="/static/js/views/journal.js?v=3.5.1"></script>
-<script src="/static/js/views/framework.js?v=3.5.1"></script>
-<script src="/static/js/views/intelligence.js?v=3.5.1"></script>
-<script src="/static/js/views/screener.js?v=3.5.1"></script>
-<script src="/static/js/views/backtest.js?v=3.5.1"></script>
+<script src="/static/js/app.js?v=3.6.0"></script>
+<script src="/static/js/views/dashboard.js?v=3.6.0"></script>
+<script src="/static/js/views/stock.js?v=3.6.0"></script>
+<script src="/static/js/views/journal.js?v=3.6.0"></script>
+<script src="/static/js/views/framework.js?v=3.6.0"></script>
+<script src="/static/js/views/intelligence.js?v=3.6.0"></script>
+<script src="/static/js/views/screener.js?v=3.6.0"></script>
+<script src="/static/js/views/backtest.js?v=3.6.0"></script>
+<script src="/static/js/views/review.js?v=3.6.0"></script>
 </body>
 </html>

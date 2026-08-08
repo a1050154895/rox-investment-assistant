@@ -8,19 +8,35 @@
 3 最新价 | 4 昨收 | 5 今开 | 6 成交量(手) | 30 时间 | 31 涨跌额 | 32 涨跌幅
 33 最高 | 34 最低 | 38 换手率 | 39 市盈率TTM | 45 总市值(亿) | 46 市净率
 """
+import codecs
 import logging
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
+
+def _decode_unicode_escapes(s: str) -> str:
+    """腾讯 smartbox 返回的中文名是 \\u8d35\\u5dde 格式的 unicode 转义字符串，
+    需要解码为实际中文字符。"""
+    if "\\u" not in s:
+        return s
+    try:
+        return codecs.decode(s, "unicode_escape")
+    except Exception:
+        return s
+
 QUOTE_URL = "https://qt.gtimg.cn/q={symbols}"
 KLINE_URL = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
 TIMEOUT = 10.0
 
 
-def to_tencent_symbol(code: str) -> str:
-    """6 位 A 股代码 -> 腾讯符号（sh/sz/bj）。"""
+def to_tencent_symbol(code: str, is_index: bool = False) -> str:
+    """6 位代码 -> 腾讯符号（sh/sz/bj）。
+
+    is_index=True 时按指数规则映射：399xxx -> sz，其余（000xxx/880xxx
+    等上证与中证系列）-> sh。避免 000001 被误判为深圳个股「平安银行」。
+    """
     code = (code or "").strip().lower()
     for prefix in ("sh", "sz", "bj"):
         if code.startswith(prefix):
@@ -29,6 +45,8 @@ def to_tencent_symbol(code: str) -> str:
     code = code.split(".")[0]
     if not code.isdigit() or len(code) != 6:
         return ""
+    if is_index:
+        return f"sz{code}" if code.startswith("399") else f"sh{code}"
     if code.startswith(("6", "9")):
         return f"sh{code}"
     if code.startswith(("0", "3")):
@@ -73,11 +91,14 @@ def parse_quote_line(line: str) -> dict | None:
         return None
 
 
-async def fetch_quotes(codes: list[str]) -> dict[str, dict]:
-    """批量获取行情快照，返回 {6位代码: {...}}；失败或无法识别时返回 {}。"""
+async def fetch_quotes(codes: list[str], is_index: bool = False) -> dict[str, dict]:
+    """批量获取行情快照，返回 {6位代码: {...}}；失败或无法识别时返回 {}。
+
+    is_index=True 时按指数代码映射市场前缀（用于上证/深证/中证系列指数）。
+    """
     symbols, mapping = [], {}
     for code in codes:
-        symbol = to_tencent_symbol(code)
+        symbol = to_tencent_symbol(code, is_index=is_index)
         if symbol:
             symbols.append(symbol)
             mapping[symbol] = code
@@ -102,9 +123,12 @@ async def fetch_quotes(codes: list[str]) -> dict[str, dict]:
     return result
 
 
-async def fetch_kline(code: str, period: str = "day", limit: int = 120) -> list[dict]:
-    """获取前复权 K 线。period: day/week。返回 [{date,open,close,high,low,volume}]。"""
-    symbol = to_tencent_symbol(code)
+async def fetch_kline(code: str, period: str = "day", limit: int = 120, is_index: bool = False) -> list[dict]:
+    """获取前复权 K 线。period: day/week。返回 [{date,open,close,high,low,volume}]。
+
+    is_index=True 时按指数代码映射市场前缀（用于指数 K 线）。
+    """
+    symbol = to_tencent_symbol(code, is_index=is_index)
     if not symbol:
         return []
     params = {"param": f"{symbol},{period},,,{limit},qfq"}
@@ -171,6 +195,7 @@ async def smartbox_search(query: str, limit: int = 10) -> list[dict]:
         # A 股类型：GP-A（主板/创业板）、GP-A-KCB（科创板）等均以 GP-A 开头
         if market not in _A_SHARE_MARKETS or not item_type.startswith("GP-A"):
             continue
+        name = _decode_unicode_escapes(name)
         results.append({"code": code, "name": name, "symbol": f"{market}{code}"})
         if len(results) >= limit:
             break

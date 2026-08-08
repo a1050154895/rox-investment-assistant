@@ -47,12 +47,40 @@ SECTOR_FLOW = [
 
 def _normalize_news(frame: Any, limit: int) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
+    columns = [str(c) for c in frame.columns]
     for index, (_, row) in enumerate(frame.head(limit).iterrows()):
-        title = str(row.get("新闻标题") or row.get("标题") or "市场资讯")
+        title = str(row.get("标题") or row.get("新闻标题") or "").strip()
+        # 财联社空标题：从"内容"或"摘要"提取前30字作为标题
+        if not title or title == "nan":
+            content = str(row.get("内容") or row.get("摘要") or "").strip()
+            if content and content != "nan":
+                # 去掉"财联社X月X日电，"前缀
+                for prefix_len in range(15, 5, -1):
+                    if content.startswith("财联社") and "电" in content[:prefix_len]:
+                        content = content[content.index("电") + 1:].strip()
+                        break
+                title = content[:40] + ("..." if len(content) > 40 else "")
+            else:
+                title = "市场资讯"
+        # 简单分类
+        category = "市场资讯"
+        for kw, cat in [("降息", "货币政策"), ("利率", "货币政策"), ("PMI", "宏观"), ("CPI", "宏观"),
+                         ("GDP", "宏观"), ("财政", "财政"), ("税", "财政"), ("政策", "政策"),
+                         ("芯片", "科技"), ("半导体", "科技"), ("AI", "科技"), ("人工智能", "科技"),
+                         ("新能源", "新能源"), ("锂", "新能源"), ("光伏", "新能源"),
+                         ("消费", "消费"), ("白酒", "消费"), ("食品", "消费")]:
+            if kw in title:
+                category = cat
+                break
+        source = str(row.get("文章来源") or row.get("来源") or "公开资讯")
+        if source == "nan":
+            source = "公开资讯"
+        pub_date = str(row.get("发布日期") or row.get("发布时间") or "")
+        if pub_date == "nan":
+            pub_date = datetime.now().strftime("%Y-%m-%d %H:%M")
         items.append({
-            "id": f"live-{index}", "category": "市场资讯", "title": title,
-            "source": str(row.get("文章来源") or row.get("来源") or "AKShare 公开资讯"),
-            "published_at": str(row.get("发布时间") or datetime.now().isoformat()),
+            "id": f"live-{index}", "category": category, "title": title,
+            "source": source, "published_at": pub_date,
             "impact": "待研判", "direction": "neutral", "channels": ["需人工归类"],
             "evidence": "原始资讯仅提供事实线索，需结合数据验证", "fact_or_view": "事实线索",
         })
@@ -62,8 +90,8 @@ def _normalize_news(frame: Any, limit: int) -> list[dict[str, Any]]:
 async def _fetch_news_akshare() -> tuple[list[dict[str, Any]], str]:
     """尝试多个 AKShare 资讯接口，返回 (news, source_status)。"""
     sources = [
-        ("stock_info_global_cls", "财经", "AKShare / 财联社公开资讯"),
         ("stock_info_global_em", None, "AKShare / 东方财富公开资讯"),
+        ("stock_info_global_cls", "财经", "AKShare / 财联社公开资讯"),
         ("stock_info_global_sina", None, "AKShare / 新浪财经公开资讯"),
     ]
     for func_name, arg, label in sources:
@@ -127,7 +155,7 @@ async def get_intelligence_brief(force: bool = False) -> dict[str, Any]:
         "news": news,
         "global_risk": GLOBAL_RISK,
         "policy_tracker": POLICY_TRACKER,
-        "sector_flow": SECTOR_FLOW,
+        "sector_flow": sector_flow,
         "method": [
             "先区分事实线索与观点，不把标题当结论。",
             "用政策细则、宏观数据、行业订单与资金流至少两项交叉验证。",

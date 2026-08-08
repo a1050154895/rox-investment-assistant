@@ -1,3 +1,13 @@
+# Render Blueprint —— 一键部署（含持久化 PostgreSQL）。
+# 部署方式：Render 控制台 → New → Blueprint → 选仓库 → Apply。
+# 会自动创建一个免费 PostgreSQL 实例并把其连接串写入 DATABASE_URL，
+# 从而彻底解决「免费实例重启后 SQLite 被清空导致注册账号丢失」的问题。
+databases:
+  - name: rox-db
+    databaseName: rox
+    plan: free
+    # 出于安全，仅允许同账号下服务访问（留空即默认行为）
+
 services:
   - type: web
     name: rox-investment-assistant
@@ -5,21 +15,22 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: ENVIRONMENT
         value: production
-      # 注意：Render 手动创建的服务不会读取本文件的环境变量，
-      # 需在 Render 控制台 Environment 中手动添加 PYTHON_VERSION=3.11.9，
-      # 否则默认 Python 3.14 可能触发依赖兼容问题。
+      # Render 默认 Python 版本可能过新导致依赖兼容问题，固定为 3.11.9
       - key: PYTHON_VERSION
         value: 3.11.9
-      # 生产必须设置独立密钥（不设置则每次重启生成新密钥，旧登录全部失效）
+      # 会话/令牌签名密钥，自动生成后持久保存，避免重启使旧登录令牌失效
       - key: SECRET_KEY
-        sync: false
-      # 生产建议连接 PostgreSQL：在 Render 新建 PostgreSQL 实例，把其 Internal Database URL 填入此项。
-      # 不设置时自动降级为 SQLite（Render 免费实例重启后文件会丢失，正式数据务必用 PostgreSQL）
+        generateValue: true
+      # 自动注入上面声明的 PostgreSQL 连接串，使账号数据跨重启持久化
       - key: DATABASE_URL
-        sync: false
-      # 可选：全局 AI 服务配置（也可由用户登录后在「设置 → AI模型」中自行填写）
+        fromDatabase:
+          name: rox-db
+          property: connectionString
+      # 可选：全局 AI 服务密钥（也可登录后在「设置 → AI模型」中单独填写）
       - key: AI_API_KEY
         sync: false
