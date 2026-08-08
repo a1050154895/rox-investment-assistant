@@ -12,12 +12,12 @@ from app.core.security import SecurityHeadersMiddleware
 from app.db import DB_BACKEND, check_database, init_db
 from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
-    discipline, macro, auth, ai, screener, backtest, review,
+    discipline, macro, auth, ai, screener, backtest, review, fundamentals,
 )
 
 app = FastAPI(
     title="ROX投资助手",
-    version="3.6.0",
+    version="3.7.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
@@ -59,13 +59,14 @@ app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 app.include_router(screener.router, prefix="/api/screener", tags=["screener"])
 app.include_router(backtest.router, prefix="/api/backtest", tags=["backtest"])
 app.include_router(review.router, prefix="/api/review", tags=["review"])
+app.include_router(fundamentals.router, prefix="/api/fundamentals", tags=["fundamentals"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.6.0", "name": "ROX投资助手", "db_persistent": DB_BACKEND == "postgresql"}
+    return {"status": "ok", "version": "3.7.0", "name": "ROX投资助手", "db_persistent": DB_BACKEND == "postgresql"}
 
 
 @app.get("/ready")

@@ -177,6 +177,34 @@ ROX.views.review = {
       </div>
     `;
 
+    // 海外参照系
+    const globalIdx = data.global_indices || [];
+    if (globalIdx.length > 0) {
+      html += `
+        <div class="card" style="padding:20px;margin-bottom:20px;">
+          <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">外部参照系</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">
+            ${globalIdx.map(g => {
+              const gColor = g.change_pct > 0 ? 'var(--color-up)' : g.change_pct < 0 ? 'var(--color-down)' : 'var(--text-secondary)';
+              return `
+                <div style="padding:10px 12px;background:var(--bg-secondary);border-radius:8px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <span style="font-size:12px;color:var(--text-secondary);">${esc(g.name)}</span>
+                    <span style="font-size:10px;color:var(--text-tertiary);">${esc(g.region)}</span>
+                  </div>
+                  <div style="font-size:16px;font-weight:600;color:${gColor};">${fmt.num(g.price)}</div>
+                  <div style="font-size:12px;color:${gColor};">${fmt.pct(g.change_pct)}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-color);font-size:11px;color:var(--text-tertiary);line-height:1.5;">
+            外部市场流向是 A 股主矛盾的外生变量——若海外风险资产共振下跌而 A 股抗跌，说明内生结构性因素在主导。
+          </div>
+        </div>
+      `;
+    }
+
     // 历史复盘
     html += `<div id="review-history" style="margin-bottom:20px;"></div>`;
 

@@ -13,11 +13,12 @@ ROX.register('/stock', async function(container, params) {
   const code = params.code || '600519';
 
   // Load data in parallel
-  const [info, analysis, kline, indicators] = await Promise.all([
+  const [info, analysis, kline, indicators, fundamentals] = await Promise.all([
     ROX.api.get(`/api/stock/${code}`),
     ROX.api.get(`/api/stock/${code}/analysis`),
     ROX.api.get(`/api/stock/${code}/kline`),
     ROX.api.get(`/api/stock/${code}/indicators`),
+    ROX.api.get(`/api/fundamentals/${code}`),
   ]);
 
   if (!info || info.error) {
@@ -127,6 +128,42 @@ ROX.register('/stock', async function(container, params) {
             </div>
           </div>
           ` : ''}
+
+          <!--   Fundamentals  -->
+          ${fundamentals && fundamentals.summary && fundamentals.summary.length ? `
+          <div class="card">
+            <div class="card-header"><div class="card-title">基本面</div></div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;line-height:1.6;">${ROX.escape(fundamentals.notes || '')}</div>
+            <div class="grid-2" style="gap:8px;margin-bottom:10px;">
+              ${fundamentals.valuation?.pe_ttm != null ? `<div><div style="font-size:10px;color:var(--text-tertiary);">PE(TTM)</div><div style="font-family:var(--font-mono);font-size:13px;">${ROX.fmt.num(fundamentals.valuation.pe_ttm,1)}</div></div>` : ''}
+              ${fundamentals.valuation?.pb != null ? `<div><div style="font-size:10px;color:var(--text-tertiary);">PB</div><div style="font-family:var(--font-mono);font-size:13px;">${ROX.fmt.num(fundamentals.valuation.pb,2)}</div></div>` : ''}
+              ${fundamentals.valuation?.market_cap != null ? `<div><div style="font-size:10px;color:var(--text-tertiary);">市值(亿)</div><div style="font-family:var(--font-mono);font-size:13px;">${ROX.fmt.num(fundamentals.valuation.market_cap)}</div></div>` : ''}
+              ${fundamentals.quality?.score != null ? `<div><div style="font-size:10px;color:var(--text-tertiary);">财务质量</div><div style="font-family:var(--font-mono);font-size:13px;color:${fundamentals.quality.score>=65?'var(--rox-up)':fundamentals.quality.score>=45?'var(--text-secondary)':'var(--rox-down)'};">${fundamentals.quality.score}分 ${ROX.escape(fundamentals.quality.label)}</div></div>` : ''}
+            </div>
+            ${fundamentals.summary ? `
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:10px;">
+                <thead><tr style="border-bottom:1px solid var(--border-color);">
+                  <th style="text-align:left;padding:2px 4px;color:var(--text-tertiary);">报告期</th>
+                  <th style="text-align:right;padding:2px 4px;color:var(--text-tertiary);">营收(亿)</th>
+                  <th style="text-align:right;padding:2px 4px;color:var(--text-tertiary);">净利(亿)</th>
+                  <th style="text-align:right;padding:2px 4px;color:var(--text-tertiary);">ROE%</th>
+                </tr></thead>
+                <tbody>
+                  ${fundamentals.summary.slice(-5).map(r => `
+                    <tr style="border-bottom:1px solid var(--border-color-light);">
+                      <td style="padding:2px 4px;">${(r.period||'').slice(0,4)}</td>
+                      <td style="text-align:right;padding:2px 4px;font-family:var(--font-mono);">${r.revenue!=null?(r.revenue/1e8).toFixed(1):'--'}</td>
+                      <td style="text-align:right;padding:2px 4px;font-family:var(--font-mono);">${r.net_profit!=null?(r.net_profit/1e8).toFixed(1):'--'}</td>
+                      <td style="text-align:right;padding:2px 4px;font-family:var(--font-mono);">${r.roe!=null?r.roe.toFixed(1):'--'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            ` : ''}
+          </div>
+          ` : fundamentals?.summary && fundamentals.summary.length === 0 ? `<div class="card"><p style="color:var(--text-tertiary);font-size:12px;">基本面数据暂不可用</p></div>` : ''}
         ` : '<div class="card"><p style="color:var(--text-tertiary);font-size:12px;">分析数据加载中...</p></div>'}
       </aside>
     </div>

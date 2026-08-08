@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Any
 
-from app.services.tencent_data import fetch_quotes, fetch_kline
+from app.services.tencent_data import fetch_global_indices, fetch_kline, fetch_quotes
 from app.services.market_data import REAL_QUOTES, REAL_INDICES
 
 logger = logging.getLogger(__name__)
@@ -227,14 +227,15 @@ async def get_daily_review(force: bool = False) -> dict[str, Any]:
         return cached[1]
 
     try:
-        indices, breadth, sectors = await asyncio.gather(
+        indices, breadth, sectors, global_idx = await asyncio.gather(
             _fetch_index_data(),
             _fetch_market_breadth(),
             _fetch_sector_performance(),
+            fetch_global_indices(),
         )
     except Exception as exc:
         logger.error("复盘数据获取失败: %s", exc)
-        indices, breadth, sectors = [], {"total_stocks": 0, "up_count": 0, "down_count": 0}, []
+        indices, breadth, sectors, global_idx = [], {"total_stocks": 0, "up_count": 0, "down_count": 0}, [], []
 
     sentiment = _calc_sentiment(indices, breadth)
     summary = _generate_review_summary(indices, breadth, sentiment, sectors)
@@ -245,6 +246,7 @@ async def get_daily_review(force: bool = False) -> dict[str, Any]:
         "indices": indices,
         "breadth": breadth,
         "sectors": sectors,
+        "global_indices": global_idx,
         "sentiment": sentiment,
         "summary": summary,
         "data_source": "腾讯公开行情 + AKShare 板块资金流",
