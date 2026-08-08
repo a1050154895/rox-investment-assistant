@@ -1,152 +1,239 @@
 /* ============================================
-   ROX投资助手 — Design Tokens v2
-   「战略文房」— 墨砚朱砂色系 · 宋体+等宽数字
+   ROX投资助手 — Design Tokens v3 · Apple Dark
+   设计语言：iOS HIG dark mode · SF字体系统
+   毛玻璃面板 · 大圆角 · 冷调暗色 · 克制动效
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 :root {
-  /* ========== 品牌色 — 墨砚朱砂 ========== */
-  --ink-vermilion: #c8412c;
-  --ink-vermilion-soft: #d96a52;
-  --ink-vermilion-deep: #9e2e1e;
-  --ink-vermilion-glow: rgba(200, 65, 44, 0.12);
-  --ink-indigo: #4a6fa5;
-  --ink-indigo-soft: #6b8cb8;
+  /* ========== 品牌色 — Apple Blue ========== */
+  --brand-blue: #0a84ff;
+  --brand-blue-hover: #409cff;
+  --brand-blue-active: #0066cc;
+  --brand-blue-glow: rgba(10, 132, 255, 0.15);
+  --brand-blue-subtle: rgba(10, 132, 255, 0.08);
 
-  /* 兼容旧变量名 */
-  --rox-primary: var(--ink-vermilion);
-  --rox-primary-hover: var(--ink-vermilion-soft);
-  --rox-secondary: var(--ink-indigo);
-  --rox-accent: #c89942;
+  --rox-primary: var(--brand-blue);
+  --rox-primary-hover: var(--brand-blue-hover);
+  --rox-secondary: #5e5ce6;
+  --rox-accent: #bf5af2;
+
+  /* 旧版兼容 */
+  --ink-vermilion: var(--brand-blue);
+  --ink-vermilion-soft: var(--brand-blue-hover);
+  --ink-vermilion-deep: var(--brand-blue-active);
+  --ink-vermilion-glow: var(--brand-blue-glow);
+  --ink-indigo: #5e5ce6;
+  --ink-indigo-soft: #7d7bf0;
 
   /* ========== 语义色 ========== */
-  --ink-up: #d4574a;
-  --ink-up-bg: rgba(212, 87, 74, 0.08);
-  --ink-down: #7a9e6e;
-  --ink-down-bg: rgba(122, 158, 110, 0.08);
-  --ink-warn: #c89942;
-  --ink-info: var(--ink-indigo);
-  --ink-success: #7a9e6e;
-  --ink-danger: var(--ink-vermilion);
+  --color-up: #ff453a;
+  --color-up-bg: rgba(255, 69, 58, 0.08);
+  --color-down: #30d158;
+  --color-down-bg: rgba(48, 209, 88, 0.08);
+  --color-warn: #ff9f0a;
+  --color-info: var(--brand-blue);
+  --color-success: #30d158;
+  --color-danger: #ff453a;
 
-  --rox-up: var(--ink-up);
-  --rox-up-bg: var(--ink-up-bg);
-  --rox-down: var(--ink-down);
-  --rox-down-bg: var(--ink-down-bg);
-  --rox-success: var(--ink-success);
-  --rox-warning: var(--ink-warn);
-  --rox-danger: var(--ink-danger);
+  --rox-up: var(--color-up);
+  --rox-up-bg: var(--color-up-bg);
+  --rox-down: var(--color-down);
+  --rox-down-bg: var(--color-down-bg);
+  --rox-success: var(--color-success);
+  --rox-warning: var(--color-warn);
+  --rox-danger: var(--color-danger);
 
-  /* ========== 背景 — 暖墨色暗主题 ========== */
-  --ink-bg-void: #1a1612;
-  --ink-bg-deep: #221d18;
-  --ink-bg-surface: #2a241e;
-  --ink-bg-raised: #332c25;
-  --ink-bg-hover: rgba(200, 65, 44, 0.04);
-  --ink-bg-active: rgba(200, 65, 44, 0.08);
+  /* 旧版兼容 */
+  --ink-up: var(--color-up);
+  --ink-up-bg: var(--color-up-bg);
+  --ink-down: var(--color-down);
+  --ink-down-bg: var(--color-down-bg);
+  --ink-warn: var(--color-warn);
+  --ink-info: var(--color-info);
+  --ink-success: var(--color-success);
+  --ink-danger: var(--color-danger);
 
-  --bg-page: var(--ink-bg-void);
-  --bg-surface: var(--ink-bg-deep);
-  --bg-elevated: var(--ink-bg-surface);
-  --bg-input: var(--ink-bg-raised);
-  --bg-hover: var(--ink-bg-hover);
-  --bg-active: var(--ink-bg-active);
+  /* ========== 背景 — Apple Dark 冷调 ========== */
+  --bg-page: #000000;
+  --bg-surface: #1c1c1e;
+  --bg-elevated: #2c2c2e;
+  --bg-raised: #3a3a3c;
+  --bg-input: #1c1c1e;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(10, 132, 255, 0.08);
+  --bg-secondary: #1c1c1e;
+  --bg-glass: rgba(28, 28, 30, 0.72);
+  --bg-glass-raised: rgba(44, 44, 46, 0.72);
 
-  /* ========== 边框 — 暖灰 ========== */
-  --ink-border-faint: rgba(200, 180, 160, 0.06);
-  --ink-border: rgba(200, 180, 160, 0.10);
-  --ink-border-strong: rgba(200, 180, 160, 0.18);
-  --ink-border-accent: rgba(200, 65, 44, 0.25);
+  /* 旧版兼容 */
+  --ink-bg-void: var(--bg-page);
+  --ink-bg-deep: var(--bg-surface);
+  --ink-bg-surface: var(--bg-elevated);
+  --ink-bg-raised: var(--bg-raised);
+  --ink-bg-hover: var(--bg-hover);
+  --ink-bg-active: var(--bg-active);
 
-  --border-default: var(--ink-border-faint);
-  --border-hover: var(--ink-border);
-  --border-active: var(--ink-border-accent);
+  /* ========== 边框 — 极薄 ========== */
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-color-light: rgba(255, 255, 255, 0.04);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-active: rgba(10, 132, 255, 0.35);
+  --border-accent: rgba(10, 132, 255, 0.25);
 
-  /* ========== 文字 — 暖白系 ========== */
-  --ink-text-bright: #f5ede0;
-  --ink-text: #d4c9b8;
-  --ink-text-muted: #8a7f70;
-  --ink-text-faint: #5a5048;
+  --border-default: var(--border-color-light);
+  --ink-border-faint: var(--border-color-light);
+  --ink-border: var(--border-color);
+  --ink-border-strong: var(--border-hover);
+  --ink-border-accent: var(--border-accent);
 
-  --text-primary: var(--ink-text-bright);
-  --text-secondary: var(--ink-text);
-  --text-tertiary: var(--ink-text-muted);
-  --text-muted: var(--ink-text-faint);
+  /* ========== 文字 — iOS 层级 ========== */
+  --text-primary: rgba(255, 255, 255, 0.92);
+  --text-secondary: rgba(255, 255, 255, 0.60);
+  --text-tertiary: rgba(255, 255, 255, 0.38);
+  --text-muted: rgba(255, 255, 255, 0.18);
+  --text-inverse: #000000;
 
-  /* ========== 字体 ========== */
-  --font-display: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
-  --font-body: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', 'Menlo', monospace;
+  --ink-text-bright: var(--text-primary);
+  --ink-text: var(--text-secondary);
+  --ink-text-muted: var(--text-tertiary);
+  --ink-text-faint: var(--text-muted);
+
+  /* ========== 字体 — SF System Stack ========== */
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+    'Helvetica Neue', 'PingFang SC', sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+    'Helvetica Neue', 'PingFang SC', sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', 'Menlo', 'Roboto Mono', monospace;
 
   --font-sans: var(--font-body);
   --rox-font-sans: var(--font-body);
   --rox-font-mono: var(--font-mono);
 
-  /* ========== 模数比 — 纯四度 1.333 ========== */
-  --scale-xs: 0.694rem;
-  --scale-sm: 0.851rem;
-  --scale-base: 1rem;
-  --scale-lg: 1.333rem;
-  --scale-xl: 1.777rem;
-  --scale-2xl: 2.369rem;
+  /* ========== 字号 — 黄金比 1.618 ========== */
+  --text-xs: 0.69rem;
+  --text-sm: 0.81rem;
+  --text-base: 0.94rem;
+  --text-lg: 1.13rem;
+  --text-xl: 1.40rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
 
-  /* ========== 间距 — 4pt 基数 ========== */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-base: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
-  --space-3xl: 72px;
+  --scale-xs: var(--text-xs);
+  --scale-sm: var(--text-sm);
+  --scale-base: var(--text-base);
+  --scale-lg: var(--text-lg);
+  --scale-xl: var(--text-xl);
+  --scale-2xl: var(--text-2xl);
+  --scale-3xl: var(--text-3xl);
 
-  --space-1: var(--space-xs);
-  --space-2: var(--space-sm);
-  --space-3: var(--space-md);
-  --space-4: var(--space-base);
+  /* ========== 间距 — 8pt 基数 ========== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
   --space-5: 20px;
-  --space-6: var(--space-lg);
-  --space-8: var(--space-xl);
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
 
-  /* ========== 圆角 — 克制 ========== */
+  --space-xs: var(--space-1);
+  --space-sm: var(--space-2);
+  --space-md: var(--space-3);
+  --space-base: var(--space-4);
+  --space-lg: var(--space-6);
+  --space-xl: var(--space-8);
+  --space-2xl: var(--space-12);
+  --space-3xl: var(--space-16);
+
+  /* ========== 圆角 — 连续曲线 (Apple Style) ========== */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
   --radius-none: 0;
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
-  --radius-xl: 8px;
-  --radius-full: 999px;
 
   --rox-radius-sm: var(--radius-sm);
   --rox-radius-md: var(--radius-md);
   --rox-radius-lg: var(--radius-lg);
   --rox-radius-full: var(--radius-full);
 
+  /* ========== 阴影 — 细腻层次 ========== */
+  --shadow-xs: 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  --shadow-glow: 0 0 20px rgba(10, 132, 255, 0.15);
+  --shadow-vermilion: 0 0 20px rgba(10, 132, 255, 0.15);
+
   /* ========== 侧边栏/顶栏 ========== */
-  --sidebar-width: 64px;
-  --sidebar-width-expanded: 220px;
-  --topbar-height: 52px;
+  --sidebar-width: 68px;
+  --sidebar-width-expanded: 240px;
+  --topbar-height: 56px;
 
   --rox-sidebar-width: var(--sidebar-width);
   --rox-sidebar-width-expanded: var(--sidebar-width-expanded);
   --rox-topbar-height: var(--topbar-height);
 
-  /* ========== 动效 ========== */
-  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  /* ========== 动效 — Spring 曲线 ========== */
+  --ease-spring: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-instant: 100ms;
-  --dur-fast: 200ms;
-  --dur-normal: 350ms;
-  --dur-slow: 500ms;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-apple: cubic-bezier(0.4, 0, 0.2, 1);
 
-  --transition-fast: var(--dur-instant) var(--ease-out-quart);
-  --transition-normal: var(--dur-fast) var(--ease-out-quart);
-  --transition-slow: var(--dur-normal) var(--ease-out-quart);
+  --dur-fast: 150ms;
+  --dur-normal: 250ms;
+  --dur-slow: 400ms;
+  --dur-instant: 80ms;
 
-  /* ========== 阴影 — 暖色系 ========== */
-  --shadow-sm: 0 1px 2px rgba(20, 10, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(20, 10, 0, 0.35);
-  --shadow-lg: 0 12px 40px rgba(20, 10, 0, 0.45);
-  --shadow-vermilion: 0 0 24px rgba(200, 65, 44, 0.08);
-  --shadow-glow: var(--shadow-vermilion);
+  --transition-fast: var(--dur-fast) var(--ease-apple);
+  --transition-normal: var(--dur-normal) var(--ease-apple);
+  --transition-slow: var(--dur-slow) var(--ease-apple);
+
+  /* ========== 毛玻璃 ========== */
+  --glass-blur: saturate(180%) blur(20px);
+  --glass-blur-heavy: saturate(180%) blur(40px);
+}
+
+/* 全局基础样式 */
+html {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(10, 132, 255, 0.35);
+  color: #fff;
+}
+
+/* 滚动条 — Apple 极简 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
