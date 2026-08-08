@@ -163,6 +163,7 @@ ROX.register('/stock', async function(container, params) {
             </div>
             ` : ''}
           </div>
+          <div id="valuation-panel" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border-color);font-size:12px;color:var(--text-tertiary);">估值加载中...</div>
           ` : fundamentals?.summary && fundamentals.summary.length === 0 ? `<div class="card"><p style="color:var(--text-tertiary);font-size:12px;">基本面数据暂不可用</p></div>` : ''}
         ` : '<div class="card"><p style="color:var(--text-tertiary);font-size:12px;">分析数据加载中...</p></div>'}
       </aside>
@@ -191,6 +192,9 @@ ROX.register('/stock', async function(container, params) {
     const flowEl = document.getElementById('flow-chart');
     if (flowEl) flowEl.innerHTML = '<div class="empty-state" style="padding:16px;"><p>资金趋势数据暂不可用</p></div>';
   }
+
+  // Async load valuation (DCF + Comps)
+  ROX.views.stock.loadValuation(code);
 });
 
 function renderKline(candles, info) {
@@ -268,3 +272,65 @@ function renderFlowChart(trend) {
   });
   requestAnimationFrame(() => _flowChart && _flowChart.resize());
 }
+
+ROX.views.stock = ROX.views.stock || {};
+ROX.views.stock.loadValuation = async function(code) {
+  const panel = document.getElementById('valuation-panel');
+  if (!panel) return;
+
+  try {
+    const [dcf, comps] = await Promise.all([
+      ROX.api.get(`/api/fundamentals/${code}/dcf`),
+      ROX.api.get(`/api/fundamentals/${code}/comps`),
+    ]);
+
+    let html = '';
+
+    // DCF section
+    if (dcf && dcf.status === 'available' && dcf.fair_price != null) {
+      const upColor = dcf.upside_pct > 0 ? 'var(--rox-up)' : dcf.upside_pct < 0 ? 'var(--rox-down)' : 'var(--text-secondary)';
+      html += `
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-weight:500;">DCF 估值</span>
+            <span style="font-family:var(--font-mono);color:${upColor};font-weight:500;">${ROX.escape(dcf.verdict)} ${dcf.upside_pct > 0 ? '+' : ''}${ROX.fmt.num(dcf.upside_pct)}%</span>
+          </div>
+          <div class="grid-2" style="gap:6px;margin-bottom:6px;">
+            <div><span style="font-size:10px;color:var(--text-tertiary);">目标价</span><span style="font-family:var(--font-mono);font-size:12px;margin-left:4px;">${ROX.fmt.num(dcf.fair_price)}</span></div>
+            <div><span style="font-size:10px;color:var(--text-tertiary);">当前</span><span style="font-family:var(--font-mono);font-size:12px;margin-left:4px;">${ROX.fmt.num(dcf.current_price)}</span></div>
+            <div><span style="font-size:10px;color:var(--text-tertiary);">WACC</span><span style="font-family:var(--font-mono);font-size:12px;margin-left:4px;">${dcf.assumptions.wacc_pct}%</span></div>
+            <div><span style="font-size:10px;color:var(--text-tertiary);">增长率</span><span style="font-family:var(--font-mono);font-size:12px;margin-left:4px;">${dcf.assumptions.revenue_growth_pct}%</span></div>
+          </div>
+          <div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px;">${ROX.escape(dcf.assumptions.source || '')}</div>
+        </div>
+      `;
+    } else {
+      html += '<div style="margin-bottom:8px;font-size:11px;color:var(--text-tertiary);">DCF 数据不足，无法建模</div>';
+    }
+
+    // Comps section
+    if (comps && comps.status === 'available' && comps.peer_median) {
+      const peDev = comps.deviation.pe_dev_pct;
+      const peColor = peDev != null ? (peDev < 0 ? 'var(--rox-up)' : peDev > 10 ? 'var(--rox-down)' : 'var(--text-secondary)') : 'var(--text-tertiary)';
+      html += `
+        <div style="padding-top:8px;border-top:1px solid var(--border-color-light);margin-bottom:6px;">
+          <div style="font-weight:500;margin-bottom:4px;">可比估值 (${ROX.escape(comps.industry||'')} ${comps.peer_count}家)</div>
+          <div class="grid-2" style="gap:6px;">
+            <div><span style="font-size:10px;color:var(--text-tertiary);">PE 偏离</span><span style="font-family:var(--font-mono);font-size:12px;color:${peColor};margin-left:4px;">${peDev != null ? (peDev>0?'+':'')+peDev+'%' : '--'}</span></div>
+            <div><span style="font-size:10px;color:var(--text-tertiary);">判断</span><span style="font-size:12px;color:${peColor};margin-left:4px;">${ROX.escape(comps.verdict)}</span></div>
+            <div><span style="font-size:10px;color:var(--text-tertiary);">PE</span><span style="font-family:var(--font-mono);font-size:11px;margin-left:4px;">${ROX.fmt.num(comps.target.pe)} / 同业${ROX.fmt.num(comps.peer_median.pe)}</span></div>
+            <div><span style="font-size:10px;color:var(--text-tertiary);">PB</span><span style="font-family:var(--font-mono);font-size:11px;margin-left:4px;">${ROX.fmt.num(comps.target.pb)} / 同业${ROX.fmt.num(comps.peer_median.pb)}</span></div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (!html) {
+      panel.innerHTML = '<div style="font-size:11px;color:var(--text-tertiary);">估值模型数据暂不可用</div>';
+    } else {
+      panel.innerHTML = html;
+    }
+  } catch (e) {
+    panel.innerHTML = '<div style="font-size:11px;color:var(--text-tertiary);">估值模型加载失败</div>';
+  }
+};
