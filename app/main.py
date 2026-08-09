@@ -15,7 +15,7 @@ from app.core.security import SecurityHeadersMiddleware
 from app.db import DB_BACKEND, check_database, init_db
 from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
-    discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio,
+    discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio, export_api,
 )
 
 app = FastAPI(
@@ -68,6 +68,7 @@ app.include_router(backtest.router, prefix="/api/backtest", tags=["backtest"])
 app.include_router(review.router, prefix="/api/review", tags=["review"])
 app.include_router(fundamentals.router, prefix="/api/fundamentals", tags=["fundamentals"])
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
+app.include_router(export_api.router, prefix="/api/export", tags=["export"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========

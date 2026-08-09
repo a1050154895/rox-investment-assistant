@@ -29,7 +29,10 @@ ROX.views.portfolio = {
           <h1 style="font-size:24px;font-weight:590;margin:0;">持仓组合</h1>
           <p style="color:var(--text-secondary);font-size:13px;margin:4px 0 0;">实时盈亏 · 仓位分布</p>
         </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a href="/api/export/portfolio" class="btn btn-secondary btn-sm">导出CSV</a>
         <button class="btn btn-primary" data-action="add-position">添加持仓</button>
+      </div>
       </div>
 
       <div class="card" style="padding:20px;margin-bottom:20px;">

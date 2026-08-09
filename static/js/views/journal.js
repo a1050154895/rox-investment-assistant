@@ -71,6 +71,7 @@ ROX.register('/journal', async function(container) {
           <div class="tab" data-journal-filter="减仓" id="filter-reduce">减仓</div>
         </div>
         <div style="display:flex;gap:8px;">
+          <a href="/api/export/journal" class="btn btn-secondary btn-sm" style="text-decoration:none;">导出CSV</a>
           <button class="btn btn-secondary btn-sm" data-action="generate-review">生成复盘报告</button>
           <button class="btn btn-primary btn-sm" data-action="add-decision">+ 记录决策</button>
         </div>
