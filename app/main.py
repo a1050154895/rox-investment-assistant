@@ -1,5 +1,7 @@
 """ROX投资助手 — FastAPI 应用入口"""
+import logging
 import os
+import time
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +15,14 @@ from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.security import SecurityHeadersMiddleware
 from app.db import DB_BACKEND, check_database, init_db
+
+# 结构化日志
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-5s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("rox")
 from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
     discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio, export_api,
@@ -23,6 +33,17 @@ app = FastAPI(
     version="3.7.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """请求耗时日志（跳过静态文件）。"""
+    start = time.time()
+    response = await call_next(request)
+    elapsed = (time.time() - start) * 1000
+    if not request.url.path.startswith("/static"):
+        logger.info("%s %s → %d (%.0fms)", request.method, request.url.path, response.status_code, elapsed)
+    return response
+
 
 # 启动时建表（幂等）
 init_db()
