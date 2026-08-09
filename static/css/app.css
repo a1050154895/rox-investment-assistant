@@ -533,6 +533,17 @@ ul { list-style: none; }
   .discipline-segment { min-width: 0; padding: 4px 2px; font-size: 9px; }
   .coach-input-row { grid-template-columns: 1fr; }
   .modal-actions { position: sticky; bottom: -16px; padding: 12px 0 4px; background: var(--ink-bg-deep); }
+
+  /* Review page mobile */
+  .review-header-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+  .review-header-row .grid-2 { grid-template-columns: 1fr !important; }
+  .review-block-row { flex-direction: column !important; }
+  .review-block-row > div[style*="flex:1"] { width: 100% !important; }
+  .review-table-wrap { -webkit-overflow-scrolling: touch; }
+  .review-table-wrap::after { content: "← 滑动查看 →"; display: block; text-align: center; font-size: 10px; color: var(--text-muted); padding: 4px 0; }
+  .review-stats-row { flex-direction: column !important; gap: 8px !important; }
+  .review-stats-row > div { width: 100% !important; }
+  #review-indices-grid { grid-template-columns: 1fr !important; }
 }
 
 /* Mobile nav (bottom tab bar) */

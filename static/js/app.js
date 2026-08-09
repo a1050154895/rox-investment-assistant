@@ -695,16 +695,37 @@ const ROX = {
       limits: assessment.limits,
       guidance: assessment.guidance,
     }) : null;
-    answer.textContent = '正在思考…';
-    const res = await this.api.post('/api/ai/chat', { question, context });
-    if (!res) { answer.textContent = '网络异常，请稍后重试。'; return; }
-    if (res.error) {
-      const detail = res.detail;
-      const msg = typeof detail === 'string' ? detail : (detail?.message || 'AI 服务调用失败。');
-      answer.textContent = msg;
-      return;
+    answer.textContent = '';
+
+    const token = ROX.state.token;
+    if (!token) { answer.textContent = '请先登录以使用 AI 助手。'; return; }
+
+    try {
+      const resp = await fetch('/api/ai/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ question, context }),
+      });
+      if (!resp.ok) {
+        answer.textContent = resp.status === 503 ? 'AI 服务未配置，请在设置中填写 API Key。' : 'AI 服务调用失败。';
+        return;
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value, { stream: true });
+        for (const line of text.split('\n')) {
+          const content = line.startsWith('data: ') ? line.slice(6) : '';
+          if (content && content !== '[DONE]' && !content.startsWith('{')) {
+            answer.textContent += content;
+          }
+        }
+      }
+    } catch (e) {
+      answer.textContent = '网络异常，请稍后重试。';
     }
-    answer.textContent = res.answer;
   },
 
   // Decision form

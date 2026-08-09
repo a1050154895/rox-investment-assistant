@@ -3,7 +3,7 @@
    ============================================ */
 ROX.register('/review', async function() {
   const html = `
-    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <div class="page-header review-header-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
       <div>
         <h1 style="font-size:24px;font-weight:700;margin:0;">每日复盘</h1>
         <p style="color:var(--text-secondary);font-size:13px;margin:4px 0 0;">市场全景 · 涨跌统计 · 板块资金 · 情绪评分</p>
@@ -142,7 +142,7 @@ ROX.views.review = {
     html += `
       <div class="card" style="padding:20px;margin-bottom:20px;">
         <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">板块资金流向（近5日）</h3>
-        <div style="overflow-x:auto;">
+        <div style="overflow-x:auto;" class="review-table-wrap">
           <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
               <tr style="border-bottom:1px solid var(--border-color);">

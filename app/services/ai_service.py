@@ -43,3 +43,34 @@ async def chat(system: str, messages: list[dict[str, str]], cfg: dict[str, str])
             return data["choices"][0]["message"]["content"].strip()
         except (KeyError, IndexError, AttributeError):
             raise RuntimeError("AI 服务返回格式异常")
+
+
+async def chat_stream(system: str, messages: list[dict[str, str]], cfg: dict[str, str]):
+    """流式调用 OpenAI 兼容接口，逐 chunk yield delta 文本。"""
+    url = f"{cfg['base']}/chat/completions"
+    headers = {"Authorization": f"Bearer {cfg['key']}", "Content-Type": "application/json"}
+    payload = {
+        "model": cfg["model"],
+        "messages": [{"role": "system", "content": system}, *messages],
+        "temperature": 0.4,
+        "max_tokens": 1200,
+        "stream": True,
+    }
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        async with client.stream("POST", url, json=payload, headers=headers) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                line = line.strip()
+                if not line or not line.startswith("data: "):
+                    continue
+                if line == "data: [DONE]":
+                    break
+                try:
+                    import json as _json
+                    chunk = _json.loads(line[6:])
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    content = delta.get("content", "")
+                    if content:
+                        yield content
+                except Exception:
+                    continue

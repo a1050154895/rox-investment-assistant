@@ -1,14 +1,15 @@
-"""AI 助手 API — 状态查询 + 对话（真实调用 OpenAI 兼容接口）。"""
+"""AI 助手 API — 状态查询 + 对话（真实调用 OpenAI 兼容接口）+ SSE 流式。"""
 import os
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_db
 from app.models import Setting, User
-from app.services.ai_service import chat, is_configured, resolve_ai_config
+from app.services.ai_service import chat, chat_stream, is_configured, resolve_ai_config
 
 router = APIRouter()
 
@@ -75,3 +76,29 @@ async def chat_endpoint(
             detail={"code": "AI_CALL_FAILED", "message": "AI 服务调用失败，请检查 API 地址、Key 与模型名称是否正确，或稍后重试。"},
         ) from exc
     return {"answer": answer}
+
+
+@router.post("/chat/stream")
+async def chat_stream_endpoint(
+    body: ChatIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """AI 流式对话 — SSE 逐 token 推送。"""
+    cfg = resolve_ai_config(_load_user_settings(db, user.id))
+    if not is_configured(cfg):
+        raise HTTPException(status_code=503, detail=AI_UNCONFIGURED)
+
+    user_content = body.question
+    if body.context:
+        user_content = f"[上下文]\n{body.context}\n\n[问题]\n{body.question}"
+
+    async def _stream():
+        try:
+            async for token in chat_stream(SYSTEM_PROMPT, [{"role": "user", "content": user_content}], cfg):
+                yield f"data: {token}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception:
+            yield 'data: {"error":"AI流式调用失败"}\n\n'
+
+    return StreamingResponse(_stream(), media_type="text/event-stream")
