@@ -304,6 +304,22 @@ ROX.views.stock.loadValuation = async function(code) {
           <div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px;">${ROX.escape(dcf.assumptions.source || '')}</div>
         </div>
       `;
+
+      // 可调参数面板
+      html += `
+        <div style="margin-bottom:10px;">
+          <button class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 8px;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">调参</button>
+          <div id="dcf-params" style="display:none;padding:8px;margin-top:6px;background:var(--bg-secondary);border-radius:var(--radius-md);">
+            <div class="grid-2" style="gap:8px;">
+              <div><span style="font-size:10px;color:var(--text-tertiary);">WACC %</span><input type="number" id="dcf-wacc" value="${(dcf.assumptions.wacc_pct||9).toFixed(1)}" step="0.1" min="3" max="25" style="width:100%;background:var(--bg-input);border:0.5px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:12px;padding:4px 6px;"></div>
+              <div><span style="font-size:10px;color:var(--text-tertiary);">增长率 %</span><input type="number" id="dcf-growth" value="${(dcf.assumptions.revenue_growth_pct||0).toFixed(1)}" step="0.5" min="-10" max="30" style="width:100%;background:var(--bg-input);border:0.5px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:12px;padding:4px 6px;"></div>
+              <div><span style="font-size:10px;color:var(--text-tertiary);">永续 %</span><input type="number" id="dcf-termg" value="${(dcf.assumptions.terminal_growth_pct||2.5).toFixed(1)}" step="0.1" min="0.5" max="5" style="width:100%;background:var(--bg-input);border:0.5px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:12px;padding:4px 6px;"></div>
+              <div><span style="font-size:10px;color:var(--text-tertiary);">FCF率 %</span><input type="number" id="dcf-fcfr" value="${(parseFloat(dcf.assumptions.fcf_ratio||0)*100).toFixed(0)}" step="1" min="10" max="80" style="width:100%;background:var(--bg-input);border:0.5px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:12px;padding:4px 6px;"></div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="dcf-recalc" style="margin-top:8px;width:100%;">重新计算</button>
+          </div>
+        </div>
+      `;
     } else {
       html += '<div style="margin-bottom:8px;font-size:11px;color:var(--text-tertiary);">DCF 数据不足，无法建模</div>';
     }
@@ -329,6 +345,31 @@ ROX.views.stock.loadValuation = async function(code) {
       panel.innerHTML = '<div style="font-size:11px;color:var(--text-tertiary);">估值模型数据暂不可用</div>';
     } else {
       panel.innerHTML = html;
+
+      // DCF 参数重算
+      const recalc = document.getElementById('dcf-recalc');
+      if (recalc) {
+        recalc.addEventListener('click', async () => {
+          const w = document.getElementById('dcf-wacc')?.value;
+          const g = document.getElementById('dcf-growth')?.value;
+          const t = document.getElementById('dcf-termg')?.value;
+          const f = document.getElementById('dcf-fcfr')?.value;
+          const params = [];
+          if (w) params.push(`wacc=${w / 100}`);
+          if (g) params.push(`growth=${g}`);
+          if (t) params.push(`terminal_g=${t}`);
+          if (f) params.push(`fcf_ratio=${f / 100}`);
+          const url = `/api/fundamentals/${code}/dcf?force=true&${params.join('&')}`;
+          const newDcf = await ROX.api.get(url);
+          if (newDcf?.status === 'available') {
+            const c = newDcf.upside_pct > 0 ? 'var(--rox-up)' : newDcf.upside_pct < 0 ? 'var(--rox-down)' : 'var(--text-secondary)';
+            recalc.textContent = `目标价 ${ROX.fmt.num(newDcf.fair_price)} (${ROX.fmt.pct(newDcf.upside_pct)}) ${newDcf.verdict}`;
+            recalc.style.color = c;
+            recalc.classList.remove('btn-primary');
+            recalc.style.background = 'transparent';
+          }
+        });
+      }
     }
   } catch (e) {
     panel.innerHTML = '<div style="font-size:11px;color:var(--text-tertiary);">估值模型加载失败</div>';

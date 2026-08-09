@@ -49,6 +49,18 @@ ROX.register('/journal', async function(container) {
       </div>
       ` : ''}
 
+      <!-- Search Bar -->
+      <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;">
+        <input type="text" class="form-input" id="journal-search" placeholder="搜索股票名/代码..." style="max-width:240px;flex:1;border-radius:var(--radius-full);padding:8px 14px;font-size:13px;">
+        <select class="form-select" id="journal-stage" style="border-radius:var(--radius-full);padding:8px 12px;font-size:13px;background:var(--bg-input);border:0.5px solid var(--border-color);color:var(--text-secondary);">
+          <option value="">全部阶段</option><option value="试仓30%">试仓30%</option><option value="确认30%">确认30%</option><option value="主力40%">主力40%</option>
+        </select>
+        <input type="date" class="form-input" id="journal-date-from" style="border-radius:var(--radius-full);padding:8px 12px;font-size:12px;max-width:140px;">
+        <span style="color:var(--text-tertiary);font-size:12px;">至</span>
+        <input type="date" class="form-input" id="journal-date-to" style="border-radius:var(--radius-full);padding:8px 12px;font-size:12px;max-width:140px;">
+        <button class="btn btn-secondary btn-sm" id="journal-search-btn">搜索</button>
+      </div>
+
       <!-- Action Bar -->
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div class="tabs" style="border:none;margin:0;">
@@ -164,6 +176,30 @@ ROX.register('/journal', async function(container) {
       `).join('');
     });
   });
+
+  // Search handler
+  const searchBtn = document.getElementById('journal-search-btn');
+  if (searchBtn) {
+    searchBtn.addEventListener('click', async () => {
+      const q = document.getElementById('journal-search')?.value || '';
+      const stage = document.getElementById('journal-stage')?.value || '';
+      const df = document.getElementById('journal-date-from')?.value || '';
+      const dt = document.getElementById('journal-date-to')?.value || '';
+      const params = ['limit=50'];
+      if (q) params.push(`q=${encodeURIComponent(q)}`);
+      if (stage) params.push(`stage=${encodeURIComponent(stage)}`);
+      if (df) params.push(`date_from=${df}`);
+      if (dt) params.push(`date_to=${dt}`);
+      const data = await ROX.api.get(`/api/journal/?${params.join('&')}`);
+      if (!data) return;
+      const timeline = document.getElementById('journal-timeline');
+      if (!data.decisions || data.decisions.length === 0) {
+        timeline.innerHTML = '<div class="empty-state"><p>无匹配记录</p></div>';
+        return;
+      }
+      timeline.innerHTML = data.decisions.map(d => `<div class="timeline-item"><div class="decision-card" style="min-width:0;"><div class="decision-header"><div><div class="decision-stock" data-action="view-stock" data-code="${d.code}">${d.stock}</div><div class="decision-meta">${d.code} · ${d.date}</div></div><span class="tag ${ROX.fmt.actionTag(d.action)}">${d.action}</span></div><div style="font-size:12px;color:var(--text-secondary);">${d.reason || ''}</div></div></div>`).join('');
+    });
+  }
 
   // Edit decision handler
   container.querySelectorAll('[data-action="edit-decision"]').forEach(btn => {

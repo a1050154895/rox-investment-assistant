@@ -37,15 +37,28 @@ def _entry_to_dict(e: JournalEntry) -> dict:
 @router.get("/")
 async def list_decisions(
     action: str = Query("", description="筛选操作类型"),
+    q: str = Query("", description="搜索股票名称或代码"),
+    stage: str = Query("", description="筛选阶段"),
+    date_from: str = Query("", description="起始日期 YYYY-MM-DD"),
+    date_to: str = Query("", description="截止日期 YYYY-MM-DD"),
     limit: int = Query(50, ge=1, le=200),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """查询当前用户的决策列表（按日期倒序）。"""
-    q = db.query(JournalEntry).filter(JournalEntry.user_id == user.id)
+    qs = db.query(JournalEntry).filter(JournalEntry.user_id == user.id)
     if action:
-        q = q.filter(JournalEntry.action == action)
-    rows = q.order_by(JournalEntry.date.desc(), JournalEntry.id.desc()).limit(limit).all()
+        qs = qs.filter(JournalEntry.action == action)
+    if stage:
+        qs = qs.filter(JournalEntry.stage == stage)
+    if q:
+        like = f"%{q.strip()}%"
+        qs = qs.filter((JournalEntry.stock.ilike(like)) | (JournalEntry.code.ilike(like)))
+    if date_from:
+        qs = qs.filter(JournalEntry.date >= date_from.strip())
+    if date_to:
+        qs = qs.filter(JournalEntry.date <= date_to.strip())
+    rows = qs.order_by(JournalEntry.date.desc(), JournalEntry.id.desc()).limit(limit).all()
     return {"total": len(rows), "decisions": [_entry_to_dict(r) for r in rows]}
 
 

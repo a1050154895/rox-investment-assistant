@@ -333,7 +333,7 @@ def _estimate_wacc(debt_ratio: float | None) -> float:
     return round(max(0.06, min(cost_equity, 0.15)), 4)
 
 
-async def get_dcf_valuation(code: str, force: bool = False) -> dict[str, Any]:
+async def get_dcf_valuation(code: str, force: bool = False, overrides: dict[str, float] | None = None) -> dict[str, Any]:
     """DCF 现金流折现估值。
 
     关键假设 [MODEL ASSUMPTION]：
@@ -341,12 +341,17 @@ async def get_dcf_valuation(code: str, force: bool = False) -> dict[str, Any]:
     - FCF 率 = 净利润率 × 70%（简化工序：假定资本开支占净利30%）
     - WACC 由资产负债率粗估（rf=3%, erp=6%, beta 随杠杆调整）
     - 5 年显式预测 + 永续增长 g=2.5%
-    - 折现率逐年衰减至 WACC
+
+    overrides 可覆盖: wacc(小数), revenue_growth(%), terminal_growth(%), fcf_ratio(小数)
     """
+    overrides = overrides or {}
+    # 有手动参数时不使用缓存
+    has_overrides = bool(overrides)
     cache_key = f"dcf_{code}"
-    cached = _CACHE.get(cache_key)
-    if cached and not force and time.time() - cached[0] < _CACHE_TTL:
-        return cached[1]
+    if not has_overrides:
+        cached = _CACHE.get(cache_key)
+        if cached and not force and time.time() - cached[0] < _CACHE_TTL:
+            return cached[1]
 
     # 获取财务摘要（复用缓存）
     base = await get_fundamentals(code, force=force)
@@ -354,27 +359,22 @@ async def get_dcf_valuation(code: str, force: bool = False) -> dict[str, Any]:
     valuation = base.get("valuation", {})
 
     if len(summary) < 1:
-        result = {"status": "unavailable", "message": "财务数据不足，无法建模"}
-        _CACHE[cache_key] = (time.time(), result)
-        return result
+        return {"status": "unavailable", "message": "财务数据不足，无法建模"}
 
     latest = summary[-1]
 
-    # 参数估计
-    rev_growth = _calc_revenue_cagr(summary)
+    # 参数估计（可被 overrides 覆盖）
+    rev_growth = overrides.get("revenue_growth", _calc_revenue_cagr(summary))
     latest_rev = latest.get("revenue")
-    net_margin = latest.get("net_margin")
+    net_margin = latest.get("net_margin") or 10.0
     if latest_rev is None:
-        result = {"status": "unavailable", "message": "营收数据缺失"}
-        _CACHE[cache_key] = (time.time(), result)
-        return result
-    if net_margin is None:
-        net_margin = 10.0  # [ASSUMPTION]
+        return {"status": "unavailable", "message": "营收数据缺失"}
 
-    fcf_ratio = (net_margin / 100) * 0.70  # [ASSUMPTION] 资本开支 = 净利30%
-    wacc = _estimate_wacc(latest.get("debt_ratio"))
-    terminal_g = 0.025  # [ASSUMPTION] 永续增长率 2.5%
-    shares = None
+    fcf_ratio = overrides.get("fcf_ratio", (net_margin / 100) * 0.70)
+    wacc = overrides.get("wacc", _estimate_wacc(latest.get("debt_ratio")))
+    terminal_g = overrides.get("terminal_growth", 0.025)
+    if terminal_g > 1:
+        terminal_g = terminal_g / 100  # API 传 %，转为小数
 
     # 尝试从腾讯行情获取总股本（用市值/股价）
     price = valuation.get("price")

@@ -13,9 +13,25 @@ async def fundamentals(code: str, force: bool = Query(False, description="强制
 
 
 @router.get("/{code}/dcf")
-async def dcf_valuation(code: str, force: bool = Query(False, description="强制刷新")):
-    """DCF 现金流折现估值：目标价、隐含涨跌幅、模型假设。"""
-    return await get_dcf_valuation(code, force=force)
+async def dcf_valuation(
+    code: str,
+    force: bool = Query(False, description="强制刷新"),
+    wacc: float | None = Query(None, description="手动指定 WACC (小数，如 0.09 = 9%)"),
+    growth: float | None = Query(None, description="手动指定营收增速 (% 如 5 = 5%)"),
+    terminal_g: float | None = Query(None, description="手动指定永续增长率 (% 如 2.5)"),
+    fcf_ratio: float | None = Query(None, description="手动指定 FCF 率 (小数，如 0.35)"),
+):
+    """DCF 现金流折现估值：目标价、隐含涨跌幅、模型假设。可选覆盖默认参数。"""
+    overrides = {}
+    if wacc is not None:
+        overrides["wacc"] = wacc
+    if growth is not None:
+        overrides["revenue_growth"] = growth
+    if terminal_g is not None:
+        overrides["terminal_growth"] = terminal_g
+    if fcf_ratio is not None:
+        overrides["fcf_ratio"] = fcf_ratio
+    return await get_dcf_valuation(code, force=force, overrides=overrides if overrides else None)
 
 
 @router.get("/{code}/comps")
