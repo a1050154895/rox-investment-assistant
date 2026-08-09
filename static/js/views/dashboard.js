@@ -200,6 +200,7 @@ ROX.register('/', async function(container) {
 
   // Async: 持仓概览卡片
   loadPortfolioCard();
+  loadAlertsCard();
 });
 
 async function loadPortfolioCard() {
@@ -254,4 +255,39 @@ async function loadPortfolioCard() {
   card.querySelectorAll('[data-route]').forEach(btn => {
     btn.addEventListener('click', () => ROX.navigate(btn.dataset.route));
   });
+}
+
+async function loadAlertsCard() {
+  const data = await ROX.api.get('/api/alerts/');
+  if (!data || !data.alerts || data.alerts.length === 0) return;
+
+  const compass = document.querySelector('.card:has([data-route="/portfolio"])');
+  if (!compass) return;
+
+  const triggered = data.alerts.filter(a => a.triggered);
+  const active = data.alerts.filter(a => a.active && !a.triggered);
+
+  const card = document.createElement('div');
+  card.className = 'card full-width';
+  card.style.cssText = 'margin-top:16px;';
+
+  let html = '<div class="card-header"><div class="card-title">价格预警</div></div>';
+
+  if (triggered.length) {
+    html += `<div style="margin-bottom:10px;">${triggered.map(a => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,69,58,0.1);border-radius:8px;margin-bottom:4px;border-left:3px solid var(--color-up);cursor:pointer;" data-action="view-stock" data-code="${ROX.escape(a.code)}">
+        <span style="font-size:12px;font-weight:500;">${ROX.escape(a.price_name||a.name)} <span style="color:var(--color-up);">触发!</span></span>
+        <span style="font-size:11px;font-family:var(--font-mono);">${a.direction==='above'?'↑≥':'↓≤'}${ROX.fmt.num(a.target_price)} 现价${ROX.fmt.num(a.current_price)}</span>
+      </div>`).join('')}</div>`;
+  }
+  if (active.length) {
+    html += `<div>${active.map(a => `
+      <div style="display:flex;justify-content:space-between;padding:4px 8px;font-size:11px;color:var(--text-secondary);">
+        <span>${ROX.escape(a.price_name||a.name)} ${a.direction==='above'?'↑≥':'↓≤'}${ROX.fmt.num(a.target_price)}</span>
+        <span style="font-family:var(--font-mono);">现价 ${a.current_price != null ? ROX.fmt.num(a.current_price) : '--'}</span>
+      </div>`).join('')}</div>`;
+  }
+
+  card.innerHTML = html;
+  compass.after(card);
 }

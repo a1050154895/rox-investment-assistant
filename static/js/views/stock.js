@@ -51,6 +51,7 @@ ROX.register('/stock', async function(container, params) {
                 <button class="btn btn-secondary btn-sm" data-period="weekly" id="btn-weekly">周线</button>
               </div>
               <button class="btn btn-primary btn-sm" data-action="add-decision" data-code="${info.code}">记录决策</button>
+              <button class="btn btn-secondary btn-sm" id="btn-add-alert" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 预警</button>
             </div>
           </div>
           <div class="stock-metrics">
@@ -183,6 +184,19 @@ ROX.register('/stock', async function(container, params) {
   document.getElementById('btn-weekly')?.addEventListener('click', async () => {
     const data = await ROX.api.get(`/api/stock/${code}/kline?period=weekly`);
     if (data?.candles?.length) renderKline(data.candles, info);
+  });
+
+  // Price alert
+  document.getElementById('btn-add-alert')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-add-alert');
+    const code = btn.dataset.code;
+    const name = decodeURIComponent(btn.dataset.name || code);
+    const price = parseFloat(prompt(`${name} 当前价 ${ROX.fmt.num(info.price)}，设定预警价：`));
+    if (!price || price <= 0) return;
+    const dir = confirm('点击"确定"=向上突破预警, "取消"=向下突破预警') ? 'above' : 'below';
+    const res = await ROX.api.post('/api/alerts/', { code, name, target_price: price, direction: dir });
+    if (res?.success) { alert(`已为 ${name} 设置 ${dir==='above'?'≥':'≤'}${price} 预警`); }
+    else { alert('设置失败'); }
   });
 
   // Fund flow mini chart

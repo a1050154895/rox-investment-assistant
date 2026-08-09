@@ -6,7 +6,7 @@
 """
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import mapped_column
 
 from app.db import Base
@@ -112,4 +112,31 @@ class Position(Base):
             "cost_price": self.cost_price,
             "date": self.date,
             "notes": self.notes,
+        }
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    code = mapped_column(String(10))
+    name = mapped_column(String(30))
+    target_price = mapped_column(Float)
+    direction = mapped_column(String(10), default="above")  # above / below
+    active = mapped_column(Boolean, default=True)
+    triggered = mapped_column(Boolean, default=False)
+    triggered_at = mapped_column(DateTime, nullable=True)
+    created_at = mapped_column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "code": self.code,
+            "name": self.name,
+            "target_price": self.target_price,
+            "direction": self.direction,
+            "active": self.active,
+            "triggered": self.triggered,
+            "triggered_at": self.triggered_at.isoformat() if self.triggered_at else None,
         }
