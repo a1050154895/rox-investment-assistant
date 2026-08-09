@@ -172,7 +172,7 @@ async def fetch_global_indices() -> list[dict]:
     """获取海外主要指数实时行情。
 
     返回 [{name, region, price, change_pct, change, as_of}]。
-    腾讯不提供日经225/DAX/CAC，可通过 AKShare index_global_spot_em() 补位。
+    腾讯覆盖美股+恒生+富时，日经/DAX/CAC 由 AKShare 兜底。
     """
     symbols = ",".join(_GLOBAL_INDEX_SYMBOLS.keys())
     try:
@@ -203,7 +203,59 @@ async def fetch_global_indices() -> list[dict]:
             "change": round(quote["change"], 2),
             "as_of": quote.get("as_of", ""),
         })
+    # 补位：腾讯不支持的日经/DAX/CAC
+    try:
+        extra = await _fetch_indices_fallback()
+        indices.extend(extra)
+    except Exception:
+        pass
     return indices
+
+
+_NEED_AKSHARE_INDICES = {
+    "N225": {"name": "日经225", "region": "日本"},
+    "GDAXI": {"name": "德国DAX", "region": "欧洲"},
+    "FCHI": {"name": "法国CAC40", "region": "欧洲"},
+}
+
+
+async def _fetch_indices_fallback() -> list[dict]:
+    """AKShare 兜底：补全日经225/DAX/CAC40（腾讯不支持）。"""
+    try:
+        import akshare as ak
+        df = ak.index_global_spot_em()
+        if df is None or df.empty:
+            return []
+        results = []
+        code_col = df.columns[0]
+        for ak_code, meta in _NEED_AKSHARE_INDICES.items():
+            row = df[df[code_col].astype(str).str.upper() == ak_code.upper()]
+            if row.empty:
+                continue
+            r = row.iloc[0]
+            try:
+                row_dict = r.to_dict()
+                price = float(row_dict.get("最新价", 0) or 0)
+                change = float(row_dict.get("涨跌额", 0) or 0)
+                change_pct = float(row_dict.get("涨跌幅", 0) or 0)
+            except Exception:
+                continue
+            if price <= 0:
+                continue
+            results.append({
+                "name": meta["name"],
+                "region": meta["region"],
+                "price": round(price, 2),
+                "change_pct": round(change_pct, 2),
+                "change": round(change, 2),
+                "as_of": "",
+            })
+        if results:
+            logger.info("AKShare 补位海外指数: %d 个", len(results))
+        return results
+    except Exception as e:
+        logger.info("AKShare 海外指数兜底失败: %s", e)
+        return []
 
 
 SMARTBOX_URL = "https://smartbox.gtimg.cn/s3/"
