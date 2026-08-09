@@ -1,5 +1,5 @@
 """认证 API — 注册 / 登录 / 当前用户。"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -39,7 +39,7 @@ async def register(data: RegisterIn, db: Session = Depends(get_db)):
 
 @router.post("/login")
 @limiter.limit("5/minute")
-async def login(data: LoginIn, db: Session = Depends(get_db)):
+async def login(request: Request, data: LoginIn, db: Session = Depends(get_db)):
     """登录，返回 JWT token。"""
     user = db.query(User).filter(User.username == data.username.strip()).first()
     if not user or not verify_password(data.password, user.password_hash):
