@@ -6,13 +6,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.core.security import SecurityHeadersMiddleware
 from app.db import DB_BACKEND, check_database, init_db
 from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
-    discipline, macro, auth, ai, screener, backtest, review, fundamentals,
+    discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio,
 )
 
 app = FastAPI(
@@ -23,6 +26,10 @@ app = FastAPI(
 
 # 启动时建表（幂等）
 init_db()
+
+# Rate limiting — 全局 200/min，登录 5/min
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 安全响应头与统一错误响应
 app.add_middleware(SecurityHeadersMiddleware)
@@ -60,6 +67,7 @@ app.include_router(screener.router, prefix="/api/screener", tags=["screener"])
 app.include_router(backtest.router, prefix="/api/backtest", tags=["backtest"])
 app.include_router(review.router, prefix="/api/review", tags=["review"])
 app.include_router(fundamentals.router, prefix="/api/fundamentals", tags=["fundamentals"])
+app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========

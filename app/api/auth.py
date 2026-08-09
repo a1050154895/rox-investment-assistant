@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.auth import create_token, get_current_user, hash_password, verify_password
+from app.core.limiter import limiter
 from app.db import get_db
 from app.models import User
 
@@ -37,6 +38,7 @@ async def register(data: RegisterIn, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
+@limiter.limit("5/minute")
 async def login(data: LoginIn, db: Session = Depends(get_db)):
     """登录，返回 JWT token。"""
     user = db.query(User).filter(User.username == data.username.strip()).first()

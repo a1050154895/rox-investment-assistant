@@ -8,3 +8,4 @@ SQLAlchemy==2.0.43
 psycopg2-binary==2.9.10
 PyJWT==2.10.1
 httpx==0.28.1
+slowapi==0.1.9

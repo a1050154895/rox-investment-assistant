@@ -88,3 +88,28 @@ class Setting(Base):
     user_id = mapped_column(ForeignKey("users.id"), index=True)
     key = mapped_column(String(50))
     value = mapped_column(Text, default="")
+
+
+class Position(Base):
+    __tablename__ = "positions"
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    code = mapped_column(String(10))
+    name = mapped_column(String(30))
+    shares = mapped_column(Float, default=0)       # 持仓股数
+    cost_price = mapped_column(Float, default=0)    # 成本价
+    date = mapped_column(String(10))                 # 建仓日期
+    notes = mapped_column(Text, default="")
+    created_at = mapped_column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "code": self.code,
+            "name": self.name,
+            "shares": self.shares,
+            "cost_price": self.cost_price,
+            "date": self.date,
+            "notes": self.notes,
+        }
