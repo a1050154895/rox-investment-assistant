@@ -197,4 +197,61 @@ ROX.register('/', async function(container) {
       </div>
     </div>
   `;
+
+  // Async: 持仓概览卡片
+  loadPortfolioCard();
 });
+
+async function loadPortfolioCard() {
+  // 找到宏观指南针卡片后的插入位置
+  const compass = document.querySelector('.macro-meta')?.closest('.card');
+  if (!compass) return;
+
+  const data = await ROX.api.get('/api/portfolio/');
+  if (!data) return;
+
+  const s = data.summary || {};
+  const posCount = s.count || 0;
+  const pnlColor = (s.total_pnl || 0) >= 0 ? 'var(--color-up)' : 'var(--color-down)';
+  const fmt = ROX.fmt;
+
+  const card = document.createElement('div');
+  card.className = 'card full-width';
+  card.style.marginTop = '16px';
+  card.innerHTML = posCount === 0 ? `
+    <div class="card-header">
+      <div class="card-title">持仓概览</div>
+    </div>
+    <div style="text-align:center;padding:20px 0;color:var(--text-tertiary);">
+      <p style="margin:0 0 8px;">暂无持仓</p>
+      <button class="btn btn-secondary btn-sm" data-route="/portfolio">管理持仓</button>
+    </div>
+  ` : `
+    <div class="card-header">
+      <div class="card-title">持仓概览</div>
+      <button class="btn btn-secondary btn-sm" data-route="/portfolio">全部</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:16px;margin-bottom:12px;">
+      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">持仓数</div><div style="font-size:18px;font-weight:590;">${posCount}</div></div>
+      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总成本</div><div style="font-size:18px;font-weight:590;">${fmt.num(s.total_cost)}</div></div>
+      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总市值</div><div style="font-size:18px;font-weight:590;">${fmt.num(s.total_market)}</div></div>
+      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总盈亏</div><div style="font-size:18px;font-weight:590;color:${pnlColor};">${fmt.num(s.total_pnl)}</div></div>
+      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">收益率</div><div style="font-size:18px;font-weight:590;color:${pnlColor};">${fmt.pct(s.total_pnl_pct)}</div></div>
+    </div>
+    ${(data.positions || []).slice(0, 3).map(p => {
+      const c = p.pnl >= 0 ? 'var(--color-up)' : 'var(--color-down)';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-secondary);border-radius:var(--radius-md);margin-bottom:6px;cursor:pointer;" data-action="view-stock" data-code="${ROX.escape(p.code)}">
+        <span style="font-size:12px;font-weight:500;">${ROX.escape(p.name)} <span style="color:var(--text-tertiary);font-size:11px;">${ROX.escape(p.code)}</span></span>
+        <span style="font-size:12px;font-family:var(--font-mono);color:${c};">${fmt.pct(p.pnl_pct)}</span>
+      </div>`;
+    }).join('')}
+  `;
+
+  // 插入到宏观指南针卡片之后
+  compass.after(card);
+
+  // 路由按钮事件
+  card.querySelectorAll('[data-route]').forEach(btn => {
+    btn.addEventListener('click', () => ROX.navigate(btn.dataset.route));
+  });
+}

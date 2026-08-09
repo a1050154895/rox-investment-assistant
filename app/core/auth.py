@@ -16,7 +16,9 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import User
 
-SECRET_KEY = os.getenv("SECRET_KEY", "").strip() or secrets.token_hex(32)
+_env_key = os.getenv("SECRET_KEY", "").strip()
+SECRET_KEY = _env_key or secrets.token_hex(32)
+KEY_SOURCE = "env" if _env_key else "random"  # random = 重启后 JWT 全部失效
 ALGORITHM = "HS256"
 TOKEN_TTL_HOURS = 24 * 7  # 7 天
 

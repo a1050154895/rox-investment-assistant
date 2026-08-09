@@ -74,16 +74,29 @@ app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"]
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.7.0", "name": "ROX投资助手", "db_persistent": DB_BACKEND == "postgresql"}
+    from app.core.auth import KEY_SOURCE
+    return {
+        "status": "ok",
+        "version": "3.7.0",
+        "name": "ROX投资助手",
+        "db_persistent": DB_BACKEND == "postgresql",
+        "key_source": KEY_SOURCE,
+    }
 
 
 @app.get("/ready")
 async def ready():
     """就绪检查：数据库连接与关键服务状态。"""
     from app.services.market_data import REAL_QUOTES
+    from app.core.auth import KEY_SOURCE
     db_ok = check_database()
     checks = {
         "configuration": {"status": "ok", "environment": settings.ENVIRONMENT},
+        "auth": {
+            "status": "ok" if KEY_SOURCE == "env" else "degraded",
+            "key_source": KEY_SOURCE,
+            "message": "SECRET_KEY 来自环境变量，稳定" if KEY_SOURCE == "env" else "SECRET_KEY 为随机生成 — 重启后所有 JWT 失效，请设置 SECRET_KEY 环境变量",
+        },
         "database": {
             "status": "ok" if db_ok else "error",
             "backend": DB_BACKEND,
