@@ -50,6 +50,7 @@ ROX.register('/stock', async function(container, params) {
                 <button class="btn btn-secondary btn-sm" data-period="daily" id="btn-daily">日线</button>
                 <button class="btn btn-secondary btn-sm" data-period="weekly" id="btn-weekly">周线</button>
               </div>
+              <button class="btn btn-secondary btn-sm" id="btn-add-watch" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 自选</button>
               <button class="btn btn-primary btn-sm" data-action="add-decision" data-code="${info.code}">记录决策</button>
               <button class="btn btn-secondary btn-sm" id="btn-add-alert" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 预警</button>
             </div>
@@ -198,6 +199,36 @@ ROX.register('/stock', async function(container, params) {
     if (res?.success) { alert(`已为 ${name} 设置 ${dir==='above'?'≥':'≤'}${price} 预警`); }
     else { alert('设置失败'); }
   });
+
+  // Add to watchlist
+  const addWatchBtn = document.getElementById('btn-add-watch');
+  if (addWatchBtn) {
+    const markAdded = () => {
+      addWatchBtn.textContent = '已加入 ✓';
+      addWatchBtn.classList.add('btn-primary');
+      addWatchBtn.classList.remove('btn-secondary');
+    };
+    addWatchBtn.addEventListener('click', async () => {
+      const code = addWatchBtn.dataset.code;
+      const name = decodeURIComponent(addWatchBtn.dataset.name || code);
+      addWatchBtn.disabled = true;
+      addWatchBtn.textContent = '添加中…';
+      const res = await ROX.api.post('/api/watchlist/', { code, name });
+      if (res && res.success) {
+        markAdded();
+      } else {
+        addWatchBtn.disabled = false;
+        addWatchBtn.textContent = '+ 自选';
+        const detail = res?.detail;
+        alert(typeof detail === 'string' ? detail : '加入自选失败');
+      }
+    });
+    // 初始状态：若已在自选股中则标记
+    try {
+      const wl = await ROX.api.get('/api/watchlist/');
+      if ((wl?.watchlist || []).some(w => w.code === addWatchBtn.dataset.code)) markAdded();
+    } catch (_) { /* 忽略 */ }
+  }
 
   // Fund flow mini chart
   if (analysis?.fund_flow?.trend?.length) {

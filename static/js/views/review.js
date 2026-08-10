@@ -16,7 +16,7 @@ ROX.register('/review', async function() {
       </div>
     </div>
   `;
-  document.getElementById('app-main').innerHTML = html;
+  document.getElementById('view-container').innerHTML = html;
   await ROX.views.review.load();
 });
 

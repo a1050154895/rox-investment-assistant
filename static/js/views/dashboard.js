@@ -132,24 +132,10 @@ ROX.register('/', async function(container) {
         <div class="card">
           <div class="card-header">
             <div class="card-title">自选股概览</div>
-            <button class="btn btn-ghost btn-sm" data-action="search-stock">查看全部</button>
+            <button class="btn btn-ghost btn-sm" data-route="/watchlist">查看全部</button>
           </div>
-          <div style="display:flex;flex-direction:column;gap:2px;">
-            ${data.watchlist.map(s => `
-              <div class="stock-row" data-action="view-stock" data-code="${s.code}">
-                <div class="stock-info">
-                  <div class="stock-name">${s.name}</div>
-                  <div class="stock-code">${s.code}</div>
-                </div>
-                <div style="display:flex;align-items:center;gap:12px;">
-                  <span class="tag ${s.stale ? 'tag-amber' : 'tag-green'}">${s.stale ? '快照' : '实时'}</span>
-                  <div style="text-align:right;">
-                    <div class="stock-price ${ROX.fmt.color(s.change_pct)}">${ROX.fmt.num(s.price)}</div>
-                    <div class="stock-change ${ROX.fmt.color(s.change_pct)}">${ROX.fmt.pct(s.change_pct)}</div>
-                  </div>
-                </div>
-              </div>
-            `).join('')}
+          <div id="watchlist-overview-body">
+            <div class="loading"><div class="spinner"></div></div>
           </div>
         </div>
       </div>
@@ -201,6 +187,8 @@ ROX.register('/', async function(container) {
   // Async: 持仓概览卡片
   loadPortfolioCard();
   loadAlertsCard();
+  loadWatchlistCard();
+  loadStatsCard();
 });
 
 async function loadPortfolioCard() {
@@ -290,4 +278,51 @@ async function loadAlertsCard() {
 
   card.innerHTML = html;
   compass.after(card);
+}
+
+async function loadWatchlistCard() {
+  const body = document.getElementById('watchlist-overview-body');
+  if (!body) return;
+  const data = await ROX.api.get('/api/watchlist/');
+  if (!data) { body.innerHTML = '<div class="empty-state"><p>加载失败</p></div>'; return; }
+  const list = data.watchlist || [];
+  if (list.length === 0) {
+    body.innerHTML = `<div style="text-align:center;padding:16px 0;color:var(--text-tertiary);font-size:12px;">
+      <p style="margin:0 0 8px;">暂无自选股</p>
+      <button class="btn btn-secondary btn-sm" data-route="/watchlist">去添加</button>
+    </div>`;
+    return;
+  }
+  body.innerHTML = `<div style="display:flex;flex-direction:column;gap:2px;">${list.slice(0, 6).map(s => {
+    const cls = ROX.fmt.color(s.change_pct || 0);
+    return `<div class="stock-row" data-action="view-stock" data-code="${ROX.escape(s.code)}">
+      <div class="stock-info">
+        <div class="stock-name">${ROX.escape(s.price_name || s.name)}</div>
+        <div class="stock-code">${ROX.escape(s.code)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="stock-price ${cls}">${s.price != null ? ROX.fmt.num(s.price) : '--'}</div>
+        <div class="stock-change ${cls}">${s.change_pct != null ? ROX.fmt.pct(s.change_pct) : '--'}</div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function loadStatsCard() {
+  const data = await ROX.api.get('/api/dashboard/stats');
+  if (!data) return;
+  const j = data.journal || {}, p = data.portfolio || {}, a = data.alerts || {}, w = data.watchlist || {};
+  const card = document.createElement('div');
+  card.className = 'card full-width';
+  card.style.marginTop = '16px';
+  card.innerHTML = `
+    <div class="card-header"><div class="card-title">我的投资数据</div></div>
+    <div class="grid-4" style="gap:16px;">
+      <div class="stat-item"><span class="stat-label">决策记录</span><span class="stat-value">${j.total || 0}</span><span style="font-size:11px;color:var(--text-tertiary);">胜率 ${j.win_rate || 0}% · 均分 ${j.avg_consistency || 0}</span></div>
+      <div class="stat-item"><span class="stat-label">持仓</span><span class="stat-value">${p.count || 0}</span><span style="font-size:11px;color:var(--text-tertiary);">盈亏 ${ROX.fmt.num(p.total_pnl || 0)}</span></div>
+      <div class="stat-item"><span class="stat-label">价格预警</span><span class="stat-value">${a.total || 0}</span><span style="font-size:11px;color:var(--text-tertiary);">触发 ${a.triggered || 0} · 生效 ${a.active || 0}</span></div>
+      <div class="stat-item"><span class="stat-label">自选股</span><span class="stat-value">${w.count || 0}</span><span style="font-size:11px;color:var(--text-tertiary);"><span data-route="/watchlist" style="color:var(--rox-accent);cursor:pointer;">管理 →</span></span></div>
+    </div>`;
+  const view = document.getElementById('view-container');
+  if (view) view.appendChild(card);
 }

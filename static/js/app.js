@@ -100,6 +100,8 @@ const ROX = {
       handler = this.routes['/review'];
     } else if (path.startsWith('/portfolio')) {
       handler = this.routes['/portfolio'];
+    } else if (path.startsWith('/watchlist')) {
+      handler = this.routes['/watchlist'];
     }
 
     // Update nav active state
@@ -112,7 +114,7 @@ const ROX = {
     });
 
     // Update page title and search visibility
-    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架', '/intelligence': '宏观情报', '/screener': '选股筛选', '/backtest': '策略回测', '/review': '每日复盘', '/portfolio': '持仓组合' };
+    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架', '/intelligence': '宏观情报', '/screener': '选股筛选', '/backtest': '策略回测', '/review': '每日复盘', '/portfolio': '持仓组合', '/watchlist': '自选股' };
     let titleKey = '/';
     if (path.startsWith('/stock')) titleKey = '/stock';
     else if (path.startsWith('/journal')) titleKey = '/journal';
@@ -122,6 +124,7 @@ const ROX = {
     else if (path.startsWith('/backtest')) titleKey = '/backtest';
     else if (path.startsWith('/review')) titleKey = '/review';
     else if (path.startsWith('/portfolio')) titleKey = '/portfolio';
+    else if (path.startsWith('/watchlist')) titleKey = '/watchlist';
     document.getElementById('page-title').textContent = titles[titleKey] || 'ROX投资助手';
     document.getElementById('search-box').style.display = titleKey === '/stock' ? 'block' : 'none';
 
@@ -153,6 +156,7 @@ const ROX = {
       { route: '/backtest', label: '回测', icon: '<path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-7"/>' },
       { route: '/review', label: '复盘', icon: '<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/><circle cx="19" cy="19" r="2"/>' },
       { route: '/portfolio', label: '持仓', icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>' },
+      { route: '/watchlist', label: '自选', icon: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>' },
     ];
     nav.innerHTML = items.map(item => {
       const active = (item.route === '/' && (path === '/' || path === '')) || (item.route !== '/' && path.startsWith(item.route));
