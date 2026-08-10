@@ -25,12 +25,12 @@ logging.basicConfig(
 logger = logging.getLogger("rox")
 from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
-    discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio, export_api, alerts,
+    discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio, export_api, alerts, watchlist,
 )
 
 app = FastAPI(
     title="ROX投资助手",
-    version="3.7.0",
+    version="3.8.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
@@ -91,6 +91,7 @@ app.include_router(fundamentals.router, prefix="/api/fundamentals", tags=["funda
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
 app.include_router(export_api.router, prefix="/api/export", tags=["export"])
 app.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
+app.include_router(watchlist.router, prefix="/api/watchlist", tags=["watchlist"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
@@ -100,7 +101,7 @@ async def health():
     from app.core.auth import KEY_SOURCE
     return {
         "status": "ok",
-        "version": "3.7.0",
+        "version": "3.8.0",
         "name": "ROX投资助手",
         "db_persistent": DB_BACKEND == "postgresql",
         "key_source": KEY_SOURCE,

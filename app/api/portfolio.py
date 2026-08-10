@@ -21,6 +21,13 @@ class PositionIn(BaseModel):
     notes: str = Field(default="", max_length=500)
 
 
+class PositionUpdate(BaseModel):
+    shares: float | None = Field(None, gt=0, description="持仓股数")
+    cost_price: float | None = Field(None, gt=0, description="成本价")
+    date: str | None = Field(None, min_length=8, max_length=10, description="建仓日期")
+    notes: str | None = Field(None, max_length=500)
+
+
 @router.get("/")
 async def list_positions(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """列出当前用户所有持仓。"""
@@ -93,3 +100,27 @@ async def delete_position(pos_id: int, user: User = Depends(get_current_user), d
     db.delete(pos)
     db.commit()
     return {"success": True}
+
+
+@router.put("/{pos_id}")
+async def update_position(
+    pos_id: int,
+    data: PositionUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """修改持仓（股数 / 成本价 / 日期 / 备注）。"""
+    pos = db.query(Position).filter(Position.id == pos_id, Position.user_id == user.id).first()
+    if not pos:
+        raise HTTPException(status_code=404, detail="持仓不存在")
+    if data.shares is not None:
+        pos.shares = data.shares
+    if data.cost_price is not None:
+        pos.cost_price = data.cost_price
+    if data.date is not None:
+        pos.date = data.date.strip()
+    if data.notes is not None:
+        pos.notes = data.notes.strip()
+    db.commit()
+    db.refresh(pos)
+    return {"success": True, "position": pos.to_dict()}

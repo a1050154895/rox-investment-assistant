@@ -5,11 +5,16 @@
 """
 import asyncio
 from datetime import datetime
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
+from app.core.auth import get_current_user
+from app.db import get_db
+from app.models import Alert, JournalEntry, Position, User, Watchlist
 from app.services.market_data import get_market_indices, get_stock_quote
 from app.services.intelligence_data import get_intelligence_brief
 from app.services.macro_data import get_macro_matrix
+from app.services.tencent_data import fetch_quotes
 
 router = APIRouter()
 
@@ -95,4 +100,73 @@ async def market_heatmap():
     return {
         "sectors": [], "data_status": "unavailable", "stale": True,
         "message": "板块行情数据源尚未接入，系统不会生成模拟热力图。",
+    }
+
+
+@router.get("/stats")
+async def user_stats(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """用户综合统计 — 聚合决策、持仓、预警、自选股数据。"""
+    # --- 决策日志统计 ---
+    entries = db.query(JournalEntry).filter(JournalEntry.user_id == user.id).all()
+    total_decisions = len(entries)
+    wins = [r for r in entries if r.result == "盈"]
+    losses = [r for r in entries if r.result == "亏"]
+    pending = [r for r in entries if r.result == "待观察"]
+    scored = [r for r in entries if r.consistency_score]
+    avg_consistency = round(sum(r.consistency_score for r in scored) / max(len(scored), 1), 1)
+    win_rate = round(len(wins) / max(len(wins) + len(losses), 1) * 100, 1)
+
+    # --- 持仓统计 ---
+    positions = db.query(Position).filter(Position.user_id == user.id).all()
+    pos_codes = [p.code for p in positions]
+    quotes = await fetch_quotes(pos_codes) if pos_codes else {}
+    total_cost = 0.0
+    total_market = 0.0
+    for p in positions:
+        q = quotes.get(p.code, {})
+        price = q.get("price", 0) or 0
+        cost = p.shares * p.cost_price
+        market = p.shares * price if price > 0 else cost
+        total_cost += cost
+        total_market += market
+    total_pnl = total_market - total_cost
+    total_pnl_pct = (total_market / total_cost - 1) * 100 if total_cost > 0 else 0
+
+    # --- 预警统计 ---
+    alerts = db.query(Alert).filter(Alert.user_id == user.id).all()
+    active_alerts = [a for a in alerts if a.active]
+    triggered_alerts = [a for a in alerts if a.triggered]
+
+    # --- 自选股统计 ---
+    watchlist_count = db.query(Watchlist).filter(Watchlist.user_id == user.id).count()
+
+    return {
+        "user": {"username": user.username, "plan": user.plan},
+        "journal": {
+            "total": total_decisions,
+            "wins": len(wins),
+            "losses": len(losses),
+            "pending": len(pending),
+            "win_rate": win_rate,
+            "avg_consistency": avg_consistency,
+        },
+        "portfolio": {
+            "count": len(positions),
+            "total_cost": round(total_cost, 2),
+            "total_market": round(total_market, 2),
+            "total_pnl": round(total_pnl, 2),
+            "total_pnl_pct": round(total_pnl_pct, 2),
+        },
+        "alerts": {
+            "total": len(alerts),
+            "active": len(active_alerts),
+            "triggered": len(triggered_alerts),
+        },
+        "watchlist": {
+            "count": watchlist_count,
+        },
+        "updated_at": datetime.now().isoformat(),
     }

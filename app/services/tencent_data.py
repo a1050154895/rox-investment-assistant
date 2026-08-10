@@ -10,10 +10,33 @@
 """
 import codecs
 import logging
+import time
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+# ---- 内存缓存 ----
+# 行情缓存：TTL 30 秒，避免短时间内对同一批股票的重复请求
+_QUOTE_CACHE: dict[str, tuple[float, dict]] = {}
+_QUOTE_CACHE_TTL = 30.0  # 秒
+
+
+def _cache_get(key: str) -> dict | None:
+    """读取缓存，过期返回 None。"""
+    entry = _QUOTE_CACHE.get(key)
+    if entry and (time.time() - entry[0]) < _QUOTE_CACHE_TTL:
+        return entry[1]
+    return None
+
+
+def _cache_set(key: str, value: dict) -> None:
+    _QUOTE_CACHE[key] = (time.time(), value)
+
+
+def clear_quote_cache() -> None:
+    """清空行情缓存（测试用）。"""
+    _QUOTE_CACHE.clear()
 
 
 def _decode_unicode_escapes(s: str) -> str:
@@ -95,7 +118,15 @@ async def fetch_quotes(codes: list[str], is_index: bool = False) -> dict[str, di
     """批量获取行情快照，返回 {6位代码: {...}}；失败或无法识别时返回 {}。
 
     is_index=True 时按指数代码映射市场前缀（用于上证/深证/中证系列指数）。
+    内置 30 秒内存缓存，减少对外部 API 的重复调用。
     """
+    # 去重 + 排序，保证缓存 key 稳定
+    codes = sorted(set(codes))
+    cache_key = f"q:{','.join(codes)}:{is_index}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     symbols, mapping = [], {}
     for code in codes:
         symbol = to_tencent_symbol(code, is_index=is_index)
@@ -103,7 +134,9 @@ async def fetch_quotes(codes: list[str], is_index: bool = False) -> dict[str, di
             symbols.append(symbol)
             mapping[symbol] = code
     if not symbols:
-        return {}
+        result = {}
+        _cache_set(cache_key, result)
+        return result
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(QUOTE_URL.format(symbols=",".join(symbols)))
@@ -120,6 +153,7 @@ async def fetch_quotes(codes: list[str], is_index: bool = False) -> dict[str, di
         quote = parse_quote_line(line)
         if quote:
             result[mapping.get(quote["code"], quote["code"])] = quote
+    _cache_set(cache_key, result)
     return result
 
 

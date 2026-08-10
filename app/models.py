@@ -140,3 +140,23 @@ class Alert(Base):
             "triggered": self.triggered,
             "triggered_at": self.triggered_at.isoformat() if self.triggered_at else None,
         }
+
+
+class Watchlist(Base):
+    __tablename__ = "watchlist"
+    __table_args__ = (UniqueConstraint("user_id", "code", name="uq_watchlist_user_code"),)
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    code = mapped_column(String(10))
+    name = mapped_column(String(30))
+    sort_order = mapped_column(Integer, default=0)
+    created_at = mapped_column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "code": self.code,
+            "name": self.name,
+            "sort_order": self.sort_order,
+        }

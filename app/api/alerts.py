@@ -20,6 +20,12 @@ class AlertIn(BaseModel):
     direction: str = Field("above", pattern="^(above|below)$")
 
 
+class AlertUpdate(BaseModel):
+    active: bool | None = None
+    target_price: float | None = Field(None, gt=0)
+    direction: str | None = Field(None, pattern="^(above|below)$")
+
+
 @router.get("/")
 async def list_alerts(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """列出所有预警，并实时检测触发状态。"""
@@ -76,3 +82,29 @@ async def delete_alert(alert_id: int, user: User = Depends(get_current_user), db
     db.delete(a)
     db.commit()
     return {"success": True}
+
+
+@router.put("/{alert_id}")
+async def update_alert(
+    alert_id: int,
+    data: AlertUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """修改预警（激活/暂停、目标价、方向）。"""
+    a = db.query(Alert).filter(Alert.id == alert_id, Alert.user_id == user.id).first()
+    if not a:
+        raise HTTPException(status_code=404, detail="预警不存在")
+    if data.active is not None:
+        a.active = data.active
+        # 重新激活时重置触发状态
+        if data.active:
+            a.triggered = False
+            a.triggered_at = None
+    if data.target_price is not None:
+        a.target_price = data.target_price
+    if data.direction is not None:
+        a.direction = data.direction
+    db.commit()
+    db.refresh(a)
+    return {"success": True, "alert": a.to_dict()}

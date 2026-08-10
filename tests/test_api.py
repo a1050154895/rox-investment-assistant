@@ -1,4 +1,6 @@
 """ROX 核心 API 冒烟测试。"""
+import asyncio
+
 import pytest
 
 
@@ -8,7 +10,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "3.7.0"
+        assert data["version"] == "3.8.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -160,3 +162,140 @@ class TestDiscipline:
         assert resp.status_code == 200
         data = resp.json()
         assert "profile" in data
+
+
+class TestWatchlist:
+    def test_empty_watchlist(self, client, auth_headers):
+        resp = client.get("/api/watchlist/", headers=auth_headers)
+        assert resp.status_code == 200
+        assert resp.json()["count"] == 0
+
+    def test_add_and_remove(self, client, auth_headers):
+        add = client.post("/api/watchlist/", json={
+            "code": "600519", "name": "贵州茅台",
+        }, headers=auth_headers)
+        assert add.status_code == 200
+        assert add.json()["success"] is True
+
+        lst = client.get("/api/watchlist/", headers=auth_headers)
+        assert lst.json()["count"] == 1
+        wid = lst.json()["watchlist"][0]["id"]
+
+        # 重复添加应不增加数量
+        dup = client.post("/api/watchlist/", json={
+            "code": "600519", "name": "贵州茅台",
+        }, headers=auth_headers)
+        assert dup.json()["exists"] is True
+        assert client.get("/api/watchlist/", headers=auth_headers).json()["count"] == 1
+
+        # 删除
+        resp = client.delete(f"/api/watchlist/{wid}", headers=auth_headers)
+        assert resp.status_code == 200
+        assert client.get("/api/watchlist/", headers=auth_headers).json()["count"] == 0
+
+    def test_requires_auth(self, client):
+        resp = client.get("/api/watchlist/")
+        assert resp.status_code == 401
+
+
+class TestPortfolioUpdate:
+    def test_update_position(self, client, auth_headers):
+        add = client.post("/api/portfolio/", json={
+            "code": "600519", "name": "贵州茅台",
+            "shares": 100, "cost_price": 1320.00, "date": "2026-08-09",
+        }, headers=auth_headers)
+        pid = add.json()["position"]["id"]
+
+        upd = client.put(f"/api/portfolio/{pid}", json={
+            "shares": 200, "cost_price": 1400.00,
+        }, headers=auth_headers)
+        assert upd.status_code == 200
+        data = upd.json()["position"]
+        assert data["shares"] == 200
+        assert data["cost_price"] == 1400.0
+
+    def test_update_nonexistent(self, client, auth_headers):
+        resp = client.put("/api/portfolio/9999", json={"shares": 10}, headers=auth_headers)
+        assert resp.status_code == 404
+
+
+class TestAlertUpdate:
+    def test_toggle_alert(self, client, auth_headers):
+        add = client.post("/api/alerts/", json={
+            "code": "600519", "name": "贵州茅台",
+            "target_price": 1500.00, "direction": "above",
+        }, headers=auth_headers)
+        aid = add.json()["alert"]["id"]
+
+        # 暂停
+        pause = client.put(f"/api/alerts/{aid}", json={"active": False}, headers=auth_headers)
+        assert pause.status_code == 200
+        assert pause.json()["alert"]["active"] is False
+
+        # 重新激活应重置触发状态
+        reactivate = client.put(f"/api/alerts/{aid}", json={"active": True}, headers=auth_headers)
+        assert reactivate.json()["alert"]["active"] is True
+        assert reactivate.json()["alert"]["triggered"] is False
+
+    def test_update_nonexistent(self, client, auth_headers):
+        resp = client.put("/api/alerts/9999", json={"active": False}, headers=auth_headers)
+        assert resp.status_code == 404
+
+
+class TestUserStats:
+    def test_stats_empty(self, client, auth_headers):
+        resp = client.get("/api/dashboard/stats", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["journal"]["total"] == 0
+        assert data["portfolio"]["count"] == 0
+        assert data["alerts"]["total"] == 0
+        assert data["watchlist"]["count"] == 0
+
+    def test_stats_with_data(self, client, auth_headers):
+        # 添加决策
+        client.post("/api/journal/", json={
+            "stock": "贵州茅台", "code": "600519", "action": "买入",
+            "stage": "试仓30%", "cycle_stage": "积累",
+            "contradiction_intensity": 65, "value_realization": 70,
+            "consistency_score": 80, "reason": "测试",
+        }, headers=auth_headers)
+        # 添加持仓
+        client.post("/api/portfolio/", json={
+            "code": "600519", "name": "贵州茅台",
+            "shares": 100, "cost_price": 1320.00, "date": "2026-08-09",
+        }, headers=auth_headers)
+        # 添加预警
+        client.post("/api/alerts/", json={
+            "code": "600519", "name": "贵州茅台",
+            "target_price": 1500.00, "direction": "above",
+        }, headers=auth_headers)
+        # 添加自选
+        client.post("/api/watchlist/", json={
+            "code": "600519", "name": "贵州茅台",
+        }, headers=auth_headers)
+
+        resp = client.get("/api/dashboard/stats", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["journal"]["total"] == 1
+        assert data["portfolio"]["count"] == 1
+        assert data["alerts"]["total"] == 1
+        assert data["watchlist"]["count"] == 1
+
+    def test_stats_requires_auth(self, client):
+        resp = client.get("/api/dashboard/stats")
+        assert resp.status_code == 401
+
+
+class TestQuoteCache:
+    def test_cache_layer(self):
+        from app.services import tencent_data as td
+        td.clear_quote_cache()
+        # 第一次调用走网络
+        r1 = asyncio.run(td.fetch_quotes(["600519"]))
+        # 缓存应命中（30s TTL）
+        assert td._cache_get(f"q:600519:False") is not None
+        # 值应一致
+        r2 = asyncio.run(td.fetch_quotes(["600519"]))
+        assert set(r1.keys()) == set(r2.keys())
