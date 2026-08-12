@@ -189,6 +189,13 @@ ROX.register('/', async function(container) {
   loadAlertsCard();
   loadWatchlistCard();
   loadStatsCard();
+
+  // 自动刷新：指数 ticker + 自选股 + 持仓卡片每 30s 更新
+  ROX.startAutoRefresh(async () => {
+    ROX.loadIndexTicker();
+    loadWatchlistCard();
+    loadPortfolioCard();
+  }, 30000);
 });
 
 async function loadPortfolioCard() {

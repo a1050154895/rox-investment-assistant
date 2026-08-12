@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user
 from app.db import get_db
 from app.models import Alert, JournalEntry, Position, User, Watchlist
-from app.services.market_data import get_market_indices, get_stock_quote
+from app.services.market_data import get_market_indices
 from app.services.intelligence_data import get_intelligence_brief
 from app.services.macro_data import get_macro_matrix
 from app.services.tencent_data import fetch_quotes
@@ -30,23 +30,8 @@ async def overview():
         get_intelligence_brief(), get_macro_matrix()
     )
 
-    # 自选股实时行情
+    # 自选股实时行情 — 前端异步加载用户真实自选股，此处返回空数组
     watchlist = []
-    watchlist_codes = [("600519", 78), ("300750", 65), ("300308", 85), ("600036", 71), ("002371", 80)]
-    for code, base_score in watchlist_codes:
-        quote = await get_stock_quote(code)
-        if "error" not in quote:
-            score = base_score
-            watchlist.append({
-                "name": quote.get("name", ""),
-                "code": code,
-                "price": quote.get("price", 0),
-                "change_pct": quote.get("change_pct", 0),
-                "score": score,
-                "score_label": "观察评分" if quote.get("stale") else ("高" if score >= 75 else "较高" if score >= 60 else "中等"),
-                "data_status": quote.get("data_status"), "data_source": quote.get("data_source"),
-                "as_of": quote.get("as_of"), "stale": quote.get("stale", False),
-            })
 
     return {
         "market_indices": market_indices,

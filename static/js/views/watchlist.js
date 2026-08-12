@@ -129,7 +129,7 @@ ROX.views.watchlist = {
         await this.load();
       } else {
         const detail = res?.detail;
-        alert(typeof detail === 'string' ? detail : '添加失败，请检查输入');
+        ROX.toast(typeof detail === 'string' ? detail : '添加失败，请检查输入', 'error');
       }
     });
   },

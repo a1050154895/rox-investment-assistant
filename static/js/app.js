@@ -13,6 +13,7 @@ const ROX = {
     user: null,
     token: localStorage.getItem('rox-token') || null,
     authMode: 'login',
+    refreshTimer: null,
   },
 
   // API client（自动携带 JWT；非 2xx 返回含 error/status/detail，便于前端提示）
@@ -63,6 +64,18 @@ const ROX = {
     },
   },
 
+  // Auto-refresh timer management
+  startAutoRefresh(callback, interval = 30000) {
+    this.stopAutoRefresh();
+    this.state.refreshTimer = setInterval(callback, interval);
+  },
+  stopAutoRefresh() {
+    if (this.state.refreshTimer) {
+      clearInterval(this.state.refreshTimer);
+      this.state.refreshTimer = null;
+    }
+  },
+
   // Router
   routes: {},
   register(route, handler) { this.routes[route] = handler; },
@@ -74,6 +87,7 @@ const ROX = {
 
   async render(path) {
     this.state.currentRoute = path;
+    this.stopAutoRefresh();
     const container = document.getElementById('view-container');
 
     // Determine route handler
@@ -102,6 +116,8 @@ const ROX = {
       handler = this.routes['/portfolio'];
     } else if (path.startsWith('/watchlist')) {
       handler = this.routes['/watchlist'];
+    } else if (path.startsWith('/alerts')) {
+      handler = this.routes['/alerts'];
     }
 
     // Update nav active state
@@ -114,7 +130,7 @@ const ROX = {
     });
 
     // Update page title and search visibility
-    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架', '/intelligence': '宏观情报', '/screener': '选股筛选', '/backtest': '策略回测', '/review': '每日复盘', '/portfolio': '持仓组合', '/watchlist': '自选股' };
+    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架', '/intelligence': '宏观情报', '/screener': '选股筛选', '/backtest': '策略回测', '/review': '每日复盘', '/portfolio': '持仓组合', '/watchlist': '自选股', '/alerts': '价格预警' };
     let titleKey = '/';
     if (path.startsWith('/stock')) titleKey = '/stock';
     else if (path.startsWith('/journal')) titleKey = '/journal';
@@ -125,6 +141,7 @@ const ROX = {
     else if (path.startsWith('/review')) titleKey = '/review';
     else if (path.startsWith('/portfolio')) titleKey = '/portfolio';
     else if (path.startsWith('/watchlist')) titleKey = '/watchlist';
+    else if (path.startsWith('/alerts')) titleKey = '/alerts';
     document.getElementById('page-title').textContent = titles[titleKey] || 'ROX投资助手';
     document.getElementById('search-box').style.display = titleKey === '/stock' ? 'block' : 'none';
 
@@ -157,6 +174,7 @@ const ROX = {
       { route: '/review', label: '复盘', icon: '<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/><circle cx="19" cy="19" r="2"/>' },
       { route: '/portfolio', label: '持仓', icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>' },
       { route: '/watchlist', label: '自选', icon: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>' },
+      { route: '/alerts', label: '预警', icon: '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>' },
     ];
     nav.innerHTML = items.map(item => {
       const active = (item.route === '/' && (path === '/' || path === '')) || (item.route !== '/' && path.startsWith(item.route));
@@ -309,6 +327,32 @@ const ROX = {
   },
   closeModal() {
     document.getElementById('modal-overlay').classList.remove('open');
+  },
+
+  // Toast 通知（替代 alert）
+  toast(msg, type = 'info', duration = 3000) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+    }
+    const icons = {
+      success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>',
+      error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
+      warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>',
+      info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+    };
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span class="toast-msg">${this.escape(msg)}</span>`;
+    container.appendChild(el);
+    const remove = () => {
+      el.classList.add('hide');
+      setTimeout(() => el.remove(), 250);
+    };
+    el.addEventListener('click', remove);
+    setTimeout(remove, duration);
   },
 
   // ============ Auth ============
@@ -521,6 +565,7 @@ const ROX = {
     const data = await this.api.get('/api/dashboard/overview');
     if (!data || !data.market_indices) return;
     const ticker = document.getElementById('index-ticker');
+    if (!ticker) return;
     ticker.innerHTML = data.market_indices.map(idx => `
       <div class="index-item">
         <span class="index-name">${idx.name}</span>

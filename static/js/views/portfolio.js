@@ -66,7 +66,7 @@ ROX.views.portfolio = {
           <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${cp};font-weight:500;">${fmt.num(p.pnl)}</td>
           <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${cp};">${fmt.pct(p.pnl_pct)}</td>
           <td style="text-align:right;padding:8px 12px;font-size:12px;color:var(--text-tertiary);">${esc(p.date)}</td>
-          <td style="text-align:right;padding:8px 12px;"><button class="btn btn-sm btn-ghost" data-action="delete-position" data-id="${p.id}" style="font-size:11px;color:var(--color-up);">删除</button></td>
+          <td style="text-align:right;padding:8px 12px;white-space:nowrap;"><button class="btn btn-sm btn-ghost" data-action="edit-position" data-id="${p.id}" data-code="${esc(p.code)}" data-name="${esc(p.name)}" data-shares="${p.shares}" data-cost="${p.cost_price}" data-date="${esc(p.date)}" data-notes="${esc(p.notes||'')}" style="font-size:11px;">编辑</button><button class="btn btn-sm btn-ghost" data-action="delete-position" data-id="${p.id}" style="font-size:11px;color:var(--color-up);margin-left:4px;">删除</button></td>
         </tr>`;
       });
       html += '</tbody></table></div></div>';
@@ -89,8 +89,16 @@ ROX.views.portfolio = {
         const id = btn.dataset.id;
         if (confirm('确认删除该持仓？')) {
           await ROX.api.delete(`/api/portfolio/${id}`);
+          ROX.toast('持仓已删除', 'success');
           await this.load();
         }
+      });
+    });
+
+    document.querySelectorAll('[data-action="edit-position"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showEditModal(btn.dataset);
       });
     });
   },
@@ -122,9 +130,45 @@ ROX.views.portfolio = {
       const res = await ROX.api.post('/api/portfolio/', payload);
       if (res && res.success) {
         ROX.closeModal();
+        ROX.toast('持仓添加成功', 'success');
         await this.load();
       } else {
-        alert('添加失败，请检查输入');
+        ROX.toast('添加失败，请检查输入', 'error');
+      }
+    });
+  },
+
+  showEditModal(d) {
+    ROX.showModal(`
+      <div class="modal-header">
+        <span class="modal-title">编辑持仓 — ${ROX.escape(d.name)}</span>
+        <div class="modal-close" data-action="close-modal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
+      </div>
+      <form id="edit-position-form" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="form-group"><label class="form-label">股票代码</label><input class="form-input" value="${ROX.escape(d.code)}" disabled style="opacity:0.6;"></div>
+        <div class="form-group"><label class="form-label">股票名称</label><input class="form-input" value="${ROX.escape(d.name)}" disabled style="opacity:0.6;"></div>
+        <div class="form-group"><label class="form-label">持仓股数</label><input class="form-input" name="shares" value="${d.shares}" required type="number" step="1" min="1"></div>
+        <div class="form-group"><label class="form-label">成本价</label><input class="form-input" name="cost_price" value="${d.cost}" required type="number" step="0.01" min="0.01"></div>
+        <div class="form-group"><label class="form-label">建仓日期</label><input class="form-input" name="date" value="${ROX.escape(d.date)}" required maxlength="10"></div>
+        <div class="form-group"><label class="form-label">备注（可选）</label><textarea class="form-textarea" name="notes" maxlength="500" rows="2">${ROX.escape(d.notes)}</textarea></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" data-action="close-modal">取消</button>
+          <button type="submit" class="btn btn-primary">保存修改</button>
+        </div>
+      </form>`);
+    document.getElementById('edit-position-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = Object.fromEntries(fd);
+      payload.shares = parseFloat(payload.shares);
+      payload.cost_price = parseFloat(payload.cost_price);
+      const res = await ROX.api.put(`/api/portfolio/${d.id}`, payload);
+      if (res && res.success) {
+        ROX.closeModal();
+        ROX.toast('持仓已更新', 'success');
+        await this.load();
+      } else {
+        ROX.toast('更新失败，请检查输入', 'error');
       }
     });
   },

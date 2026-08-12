@@ -196,8 +196,8 @@ ROX.register('/stock', async function(container, params) {
     if (!price || price <= 0) return;
     const dir = confirm('点击"确定"=向上突破预警, "取消"=向下突破预警') ? 'above' : 'below';
     const res = await ROX.api.post('/api/alerts/', { code, name, target_price: price, direction: dir });
-    if (res?.success) { alert(`已为 ${name} 设置 ${dir==='above'?'≥':'≤'}${price} 预警`); }
-    else { alert('设置失败'); }
+    if (res?.success) { ROX.toast(`已为 ${name} 设置 ${dir==='above'?'≥':'≤'}${price} 预警`, 'success'); }
+    else { ROX.toast('设置失败', 'error'); }
   });
 
   // Add to watchlist
@@ -220,7 +220,7 @@ ROX.register('/stock', async function(container, params) {
         addWatchBtn.disabled = false;
         addWatchBtn.textContent = '+ 自选';
         const detail = res?.detail;
-        alert(typeof detail === 'string' ? detail : '加入自选失败');
+        ROX.toast(typeof detail === 'string' ? detail : '加入自选失败', 'error');
       }
     });
     // 初始状态：若已在自选股中则标记
@@ -240,6 +240,20 @@ ROX.register('/stock', async function(container, params) {
 
   // Async load valuation (DCF + Comps)
   ROX.views.stock.loadValuation(code);
+
+  // 自动刷新：每 30s 更新实时价格
+  ROX.startAutoRefresh(async () => {
+    const fresh = await ROX.api.get(`/api/stock/${code}`);
+    if (!fresh || fresh.error) return;
+    const priceEl = document.querySelector('.stock-live-price');
+    if (priceEl) {
+      const upColor = fresh.change_pct >= 0 ? 'var(--rox-up)' : 'var(--rox-down)';
+      priceEl.innerHTML = `
+        <span style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:${upColor};">${ROX.fmt.num(fresh.price)}</span>
+        <span style="font-family:var(--font-mono);font-size:13px;color:${upColor};">${ROX.fmt.pct(fresh.change_pct)}</span>
+      `;
+    }
+  }, 30000);
 });
 
 function renderKline(candles, info) {
