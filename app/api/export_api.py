@@ -1,6 +1,8 @@
 """数据导出 API — CSV 下载。"""
 import csv
 import io
+import json
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -8,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_db
-from app.models import JournalEntry, Position, User
+from app.models import Alert, DisciplineProfile, JournalEntry, Position, Setting, User, Watchlist
 
 router = APIRouter()
 
@@ -60,4 +62,34 @@ async def export_portfolio(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=rox-portfolio.csv"},
+    )
+
+
+@router.get("/backup")
+async def export_backup(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """导出当前账号全部数据为 JSON，用于手动备份（防止免费 PostgreSQL 过期丢数据）。"""
+    profile = db.query(DisciplineProfile).filter(DisciplineProfile.user_id == user.id).first()
+    payload = {
+        "version": 1,
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "username": user.username,
+        "journal": [e.to_dict() for e in db.query(JournalEntry).filter(JournalEntry.user_id == user.id).order_by(JournalEntry.date.desc()).all()],
+        "positions": [p.to_dict() for p in db.query(Position).filter(Position.user_id == user.id).all()],
+        "watchlist": [w.to_dict() for w in db.query(Watchlist).filter(Watchlist.user_id == user.id).order_by(Watchlist.sort_order).all()],
+        "alerts": [a.to_dict() for a in db.query(Alert).filter(Alert.user_id == user.id).all()],
+        "settings": {s.key: s.value for s in db.query(Setting).filter(Setting.user_id == user.id).all()},
+        "discipline_profile": profile.profile_json if profile else None,
+    }
+
+    output = io.StringIO()
+    json.dump(payload, output, ensure_ascii=False, indent=2)
+    output.seek(0)
+    filename = f"rox-backup-{user.username}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )

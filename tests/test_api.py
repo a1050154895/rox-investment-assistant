@@ -378,3 +378,25 @@ class TestQuoteCache:
         ts, value = td._QUOTE_CACHE["q:ttl"]
         td._QUOTE_CACHE["q:ttl"] = (ts - td._QUOTE_CACHE_TTL - 1, value)
         assert td._cache_get("q:ttl") is None
+
+
+class TestExport:
+    def test_backup_includes_user_data(self, client, auth_headers):
+        client.post("/api/journal/", json={
+            "stock": "贵州茅台", "code": "600519", "action": "买入",
+            "stage": "试仓30%", "cycle_stage": "积累",
+            "contradiction_intensity": 65, "value_realization": 70,
+            "consistency_score": 80, "reason": "备份测试",
+        }, headers=auth_headers)
+        client.post("/api/watchlist/", json={"code": "600519", "name": "贵州茅台"}, headers=auth_headers)
+
+        resp = client.get("/api/export/backup", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["version"] == 1
+        assert "exported_at" in data
+        assert len(data["journal"]) == 1
+        assert data["journal"][0]["code"] == "600519"
+        assert len(data["watchlist"]) == 1
+        assert "settings" in data
+        assert "positions" in data
