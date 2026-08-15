@@ -400,3 +400,18 @@ class TestExport:
         assert len(data["watchlist"]) == 1
         assert "settings" in data
         assert "positions" in data
+
+    def test_report_generates_markdown(self, client, auth_headers):
+        client.post("/api/journal/", json={
+            "stock": "贵州茅台", "code": "600519", "action": "买入",
+            "stage": "试仓30%", "cycle_stage": "积累",
+            "contradiction_intensity": 65, "value_realization": 70,
+            "consistency_score": 80, "reason": "报告测试",
+        }, headers=auth_headers)
+
+        resp = client.get("/api/export/report", headers=auth_headers)
+        assert resp.status_code == 200
+        text = resp.text
+        assert "# ROX 研究报告" in text
+        assert "决策复盘" in text
+        assert "600519" in text
