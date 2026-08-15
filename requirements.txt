@@ -1,4 +1,5 @@
-fastapi==0.115.5
+fastapi==0.141.1
+starlette==1.6.0
 uvicorn[standard]==0.31.0
 pydantic==2.12.5
 python-multipart
@@ -8,4 +9,4 @@ SQLAlchemy==2.0.43
 psycopg2-binary==2.9.10
 PyJWT==2.13.0
 httpx==0.28.1
-slowapi==0.1.9
+slowapi==0.1.10

@@ -54,7 +54,7 @@ class TestAuth:
 
 class TestFundamentals:
     def test_dcf_available(self, client):
-        resp = client.get("/api/fundamentals/600519/dcf", timeout=60)
+        resp = client.get("/api/fundamentals/600519/dcf")
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] in ("available", "unavailable")
@@ -63,7 +63,7 @@ class TestFundamentals:
             assert "assumptions" in data
 
     def test_comps_structure(self, client):
-        resp = client.get("/api/fundamentals/600519/comps", timeout=30)
+        resp = client.get("/api/fundamentals/600519/comps")
         assert resp.status_code == 200
         data = resp.json()
         assert "status" in data
@@ -187,7 +187,7 @@ class TestBacktest:
 
 class TestDashboard:
     def test_overview(self, client):
-        resp = client.get("/api/dashboard/overview", timeout=30)
+        resp = client.get("/api/dashboard/overview")
         assert resp.status_code == 200
         data = resp.json()
         assert "macro_compass" in data
@@ -195,7 +195,7 @@ class TestDashboard:
 
 class TestReview:
     def test_daily(self, client):
-        resp = client.get("/api/review/daily", timeout=30)
+        resp = client.get("/api/review/daily")
         assert resp.status_code in (200, 503)
 
 
