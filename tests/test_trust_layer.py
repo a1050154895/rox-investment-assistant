@@ -39,6 +39,22 @@ class TrustLayerTests(unittest.TestCase):
             self.assertIn("as_of", idx)
             self.assertIn("stale", idx)
 
+    def test_capital_cycle_classification(self):
+        from app.services.review_engine import classify_capital_cycle
+        self.assertEqual(classify_capital_cycle(70, 70, 5, 0, 5, 2, 1.0), "流转")
+        self.assertEqual(classify_capital_cycle(30, 35, 0, 5, 1, 6, -1.0), "再生产")
+        self.assertEqual(classify_capital_cycle(50, 60, 1, 2, 2, 4, 0.5), "分配")
+        self.assertEqual(classify_capital_cycle(48, 55, 2, 0, 4, 1, 0.3), "集中")
+        self.assertEqual(classify_capital_cycle(50, 50, 1, 1, 2, 2, 0.0), "积累")
+
+    def test_capital_cycle_stage_shape(self):
+        from app.services.review_engine import get_capital_cycle_stage
+        result = asyncio.run(get_capital_cycle_stage(force=True))
+        self.assertIn("stages", result)
+        self.assertIn("stage_name", result)
+        self.assertIn("signals", result)
+        self.assertIn(result["stage_name"], ("积累", "集中", "流转", "分配", "再生产", "未评估"))
+
 
 if __name__ == "__main__":
     unittest.main()

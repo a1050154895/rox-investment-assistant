@@ -287,3 +287,113 @@ async def get_review_history(days: int = 7) -> list[dict[str, Any]]:
         logger.warning("历史复盘获取失败: %s", exc)
 
     return history
+
+
+# ============ 资本周期阶段判定 ============
+
+CAPITAL_CYCLE_STAGES = ["积累", "集中", "流转", "分配", "再生产"]
+
+_CYCLE_DETAIL = {
+    "积累": "涨跌互现、情绪中性，资金缓慢蓄积，等待方向明确。",
+    "集中": "资金向少数主线集中，局部出现赚钱效应。",
+    "流转": "普涨、广度全面，资金在行业间轮动。",
+    "分配": "指数高位但广度回落，资金流出领涨板块，警惕顶部。",
+    "再生产": "普跌、情绪低迷、资金流出，市场重新洗牌。",
+}
+
+_CYCLE_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_CYCLE_CACHE_TTL = 300
+
+
+def classify_capital_cycle(
+    up_ratio: float,
+    score: int,
+    limit_up: int,
+    limit_down: int,
+    inflow: int,
+    outflow: int,
+    index_avg: float,
+) -> str:
+    """纯函数：根据市场广度、情绪、资金流与指数动量判定资本周期阶段。"""
+    if up_ratio >= 60:
+        return "流转"
+    if up_ratio <= 35:
+        return "再生产"
+    if index_avg > 0 and up_ratio < 55 and outflow > inflow and limit_down > 0:
+        return "分配"
+    if inflow >= 2 and inflow > outflow and limit_up > 0 and up_ratio >= 45:
+        return "集中"
+    return "积累"
+
+
+def _cycle_confidence(up_ratio: float, score: int, inflow: int, outflow: int) -> str:
+    strong = 0
+    if up_ratio >= 60 or up_ratio <= 40:
+        strong += 1
+    if score >= 60 or score <= 40:
+        strong += 1
+    if abs(inflow - outflow) >= 3:
+        strong += 1
+    return "高" if strong >= 2 else ("中" if strong == 1 else "低")
+
+
+async def get_capital_cycle_stage(force: bool = False) -> dict[str, Any]:
+    """资本周期阶段判定：基于可观测信号，数据不足时诚实返回「未评估」。"""
+    cache_key = "cycle_stage"
+    cached = _CYCLE_CACHE.get(cache_key)
+    if cached and not force and time.time() - cached[0] < _CYCLE_CACHE_TTL:
+        return cached[1]
+
+    indices = await _fetch_index_data()
+    breadth = await _fetch_market_breadth()
+    sectors = await _fetch_sector_performance()
+
+    total = breadth.get("total_stocks", 0)
+    if total == 0:
+        result = {
+            "stages": CAPITAL_CYCLE_STAGES,
+            "current_stage": None,
+            "stage_name": "未评估",
+            "progress": 0,
+            "stage_detail": "缺少可靠的成交结构、资金流和宏观数据，暂不判断周期阶段",
+            "evidence": "",
+            "confidence": None,
+            "signals": {},
+            "rule": "不先定阶段，不要讲仓位；阶段判断不清时建议观望",
+        }
+        _CYCLE_CACHE[cache_key] = (time.time(), result)
+        return result
+
+    sentiment = _calc_sentiment(indices, breadth)
+    up_ratio = breadth.get("up_ratio", 0)
+    limit_up = breadth.get("limit_up", 0)
+    limit_down = breadth.get("limit_down", 0)
+    score = sentiment.get("score", 50)
+    inflow = sum(1 for s in sectors if s.get("trend") == "inflow")
+    outflow = sum(1 for s in sectors if s.get("trend") == "outflow")
+    index_avg = round(sum(i.get("change_pct", 0) for i in indices) / len(indices), 2) if indices else 0.0
+
+    stage = classify_capital_cycle(up_ratio, score, limit_up, limit_down, inflow, outflow, index_avg)
+    result = {
+        "stages": CAPITAL_CYCLE_STAGES,
+        "current_stage": CAPITAL_CYCLE_STAGES.index(stage),
+        "stage_name": stage,
+        "progress": round((CAPITAL_CYCLE_STAGES.index(stage) + 1) / len(CAPITAL_CYCLE_STAGES) * 100),
+        "stage_detail": _CYCLE_DETAIL[stage],
+        "evidence": f"上涨占比 {up_ratio}% · 情绪 {sentiment['label']}({score}分) · 流入板块 {inflow} / 流出 {outflow}",
+        "confidence": _cycle_confidence(up_ratio, score, inflow, outflow),
+        "signals": {
+            "up_ratio": up_ratio,
+            "down_ratio": breadth.get("down_ratio", 0),
+            "limit_up": limit_up,
+            "limit_down": limit_down,
+            "sentiment_score": score,
+            "sentiment_label": sentiment.get("label"),
+            "inflow_sectors": inflow,
+            "outflow_sectors": outflow,
+            "index_avg_change": index_avg,
+        },
+        "rule": "广度+情绪+资金流综合判定，经验规则，仅作参考，不构成投资建议。",
+    }
+    _CYCLE_CACHE[cache_key] = (time.time(), result)
+    return result

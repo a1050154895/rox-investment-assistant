@@ -66,6 +66,7 @@ ROX.register('/', async function(container) {
           </div>
           <div class="progress" style="margin-bottom:8px;"><div class="progress-fill blue" style="width:${data.capital_cycle.progress}%"></div></div>
           <div style="font-size:11px;color:var(--text-tertiary);">${data.capital_cycle.stage_detail}</div>
+          ${data.capital_cycle.evidence ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:6px;">${ROX.escape(data.capital_cycle.evidence)}${data.capital_cycle.confidence ? ` · 置信度 ${data.capital_cycle.confidence}` : ''}</div>` : ''}
         </div>
 
         <!-- 矛盾追踪 -->

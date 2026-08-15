@@ -14,6 +14,7 @@ from app.models import Alert, JournalEntry, Position, User, Watchlist
 from app.services.market_data import get_market_indices
 from app.services.intelligence_data import get_intelligence_brief
 from app.services.macro_data import get_macro_matrix
+from app.services.review_engine import get_capital_cycle_stage
 from app.services.tencent_data import fetch_quotes
 
 router = APIRouter()
@@ -26,8 +27,8 @@ async def overview():
     market_indices = await get_market_indices()
 
     # 资讯与宏观矩阵独立降级，任一外部数据源异常都不影响行情主看板
-    intelligence, macro_matrix = await asyncio.gather(
-        get_intelligence_brief(), get_macro_matrix()
+    intelligence, macro_matrix, capital_cycle = await asyncio.gather(
+        get_intelligence_brief(), get_macro_matrix(), get_capital_cycle_stage()
     )
 
     # 自选股实时行情 — 前端异步加载用户真实自选股，此处返回空数组
@@ -36,15 +37,7 @@ async def overview():
     return {
         "market_indices": market_indices,
         "macro_compass": macro_matrix,
-        "capital_cycle": {
-            "stages": ["积累", "集中", "流转", "分配", "再生产"],
-            "current_stage": None,
-            "stage_name": "未评估",
-            "stage_detail": "缺少可靠的成交结构、资金流和宏观数据，暂不判断周期阶段",
-            "characteristics": {},
-            "progress": 0,
-            "rule": "不先定阶段，不要讲仓位；阶段判断不清时建议观望"
-        },
+        "capital_cycle": capital_cycle,
         "contradictions": {
             "primary": {"name": "待真实数据验证", "type": "未评估", "intensity": 0, "trend": "unknown", "desc": "不使用模拟强度"},
             "secondary": {"name": "待真实数据验证", "type": "未评估", "intensity": 0, "trend": "unknown", "desc": "不使用模拟强度"},

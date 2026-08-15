@@ -30,7 +30,7 @@ from app.api import (
 
 app = FastAPI(
     title="ROX投资助手",
-    version="4.2.0",
+    version="4.3.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
@@ -101,7 +101,7 @@ async def health():
     from app.core.auth import KEY_SOURCE
     return {
         "status": "ok",
-        "version": "4.2.0",
+        "version": "4.3.0",
         "name": "ROX投资助手",
         "db_persistent": DB_BACKEND == "postgresql",
         "key_source": KEY_SOURCE,
