@@ -1,6 +1,4 @@
 """ROX 核心 API 冒烟测试。"""
-import asyncio
-
 import pytest
 
 
@@ -334,13 +332,20 @@ class TestUserStats:
 
 
 class TestQuoteCache:
-    def test_cache_layer(self):
+    def test_cache_set_get_and_clear(self):
         from app.services import tencent_data as td
         td.clear_quote_cache()
-        # 第一次调用走网络
-        r1 = asyncio.run(td.fetch_quotes(["600519"]))
-        # 缓存应命中（30s TTL）
-        assert td._cache_get(f"q:600519:False") is not None
-        # 值应一致
-        r2 = asyncio.run(td.fetch_quotes(["600519"]))
-        assert set(r1.keys()) == set(r2.keys())
+        td._cache_set("q:test", {"price": 100})
+        assert td._cache_get("q:test") == {"price": 100}
+        td.clear_quote_cache()
+        assert td._cache_get("q:test") is None
+
+    def test_cache_ttl_expiry(self):
+        from app.services import tencent_data as td
+        td.clear_quote_cache()
+        td._cache_set("q:ttl", {"price": 1})
+        assert td._cache_get("q:ttl") is not None
+        # 把时间戳拨到 TTL 之外，模拟过期
+        ts, value = td._QUOTE_CACHE["q:ttl"]
+        td._QUOTE_CACHE["q:ttl"] = (ts - td._QUOTE_CACHE_TTL - 1, value)
+        assert td._cache_get("q:ttl") is None

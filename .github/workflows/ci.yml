@@ -65,3 +65,15 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           find static/js -name '*.js' -print0 | xargs -0 -n1 node --check
+
+  secret-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

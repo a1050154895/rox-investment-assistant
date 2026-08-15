@@ -1,6 +1,7 @@
-"""pytest 共享夹具 —— SQLite 文件数据库 + TestClient。"""
+"""pytest 共享夹具 —— SQLite 文件数据库 + TestClient + 网络脱敏。"""
 import sys
 import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -68,3 +69,41 @@ def auth_token(client):
 @pytest.fixture
 def auth_headers(auth_token):
     return {"Authorization": f"Bearer {auth_token['token']}"}
+
+
+@pytest.fixture(autouse=True)
+def _offline_network(monkeypatch):
+    """测试全程离线：禁用真实行情与 AKShare 网络调用，走确定性降级路径。"""
+    # 1) 空 akshare 替身，拦截所有惰性 `import akshare as ak`
+    monkeypatch.setitem(sys.modules, "akshare", types.SimpleNamespace())
+
+    # 2) 关闭 market_data 的 AKShare 分支
+    import app.services.market_data as md
+    monkeypatch.setattr(md, "AKSHARE_AVAILABLE", False)
+
+    # 3) 腾讯行情网络函数替换为确定性的空结果
+    async def _no_quotes(codes, is_index=False):
+        return {}
+
+    async def _no_kline(code, period="day", limit=120, is_index=False):
+        return []
+
+    async def _no_indices():
+        return []
+
+    targets = [
+        ("app.services.tencent_data", "fetch_quotes", _no_quotes),
+        ("app.services.tencent_data", "fetch_kline", _no_kline),
+        ("app.services.tencent_data", "fetch_global_indices", _no_indices),
+        ("app.services.market_data", "fetch_quotes", _no_quotes),
+        ("app.services.market_data", "fetch_kline", _no_kline),
+        ("app.services.fundamentals_engine", "fetch_quotes", _no_quotes),
+        ("app.services.review_engine", "fetch_quotes", _no_quotes),
+        ("app.services.review_engine", "fetch_kline", _no_kline),
+        ("app.services.review_engine", "fetch_global_indices", _no_indices),
+        ("app.services.screener_engine", "fetch_quotes", _no_quotes),
+        ("app.services.backtest_engine", "fetch_kline", _no_kline),
+        ("app.api.watchlist", "fetch_quotes", _no_quotes),
+    ]
+    for mod_path, attr, repl in targets:
+        monkeypatch.setattr(f"{mod_path}.{attr}", repl)
