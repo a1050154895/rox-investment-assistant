@@ -369,6 +369,7 @@ function renderFlowChart(trend) {
   requestAnimationFrame(() => _flowChart && _flowChart.resize());
 }
 
+ROX.views = ROX.views || {};
 ROX.views.stock = ROX.views.stock || {};
 ROX.views.stock.loadValuation = async function(code) {
   const panel = document.getElementById('valuation-panel');
