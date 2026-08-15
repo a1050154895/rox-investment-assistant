@@ -11,7 +11,6 @@ const ROX = {
     settings: null,
     membership: null,
     user: null,
-    token: localStorage.getItem('rox-token') || null,
     authMode: 'login',
     refreshTimer: null,
   },
@@ -21,12 +20,11 @@ const ROX = {
     _headers(json = true) {
       const headers = {};
       if (json) headers['Content-Type'] = 'application/json';
-      if (ROX.state.token) headers['Authorization'] = `Bearer ${ROX.state.token}`;
       return headers;
     },
     async _request(url, options) {
       try {
-        const res = await fetch(url, options);
+        const res = await fetch(url, { credentials: 'same-origin', ...options });
         const data = await res.json().catch(() => null);
         if (!res.ok) return { status: res.status, error: true, ...(data || {}) };
         return data;
@@ -372,16 +370,13 @@ const ROX = {
   // ============ Auth ============
   async authCheck() {
     const gate = document.getElementById('auth-gate');
-    if (!this.state.token) { this.showAuthGate(); return; }
     const res = await this.api.get('/api/auth/me');
     if (res && res.user) {
       this.state.user = res.user;
       if (gate) gate.style.display = 'none';
       this.updateUserChip();
     } else {
-      this.state.token = null;
       this.state.user = null;
-      localStorage.removeItem('rox-token');
       this.showAuthGate();
     }
   },
@@ -430,10 +425,8 @@ const ROX = {
     if (this.state.authMode === 'register' && password.length < 6) { this.showAuthError('密码至少 6 位'); return; }
     const url = this.state.authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
     const res = await this.api.post(url, { username, password });
-    if (res && res.token) {
-      this.state.token = res.token;
+    if (res && res.success) {
       this.state.user = res.user;
-      localStorage.setItem('rox-token', res.token);
       this.hideAuthError();
       const gate = document.getElementById('auth-gate');
       if (gate) gate.style.display = 'none';
@@ -447,12 +440,11 @@ const ROX = {
     }
   },
 
-  logout() {
-    this.state.token = null;
+  async logout() {
+    try { await this.api.post('/api/auth/logout'); } catch (_) { /* 忽略登出接口错误 */ }
     this.state.user = null;
     this.state.settings = null;
     this.state.membership = null;
-    localStorage.removeItem('rox-token');
     localStorage.removeItem('rox-discipline-profile');
     this.showAuthGate();
   },
@@ -811,17 +803,16 @@ const ROX = {
     }) : null;
     answer.textContent = '';
 
-    const token = ROX.state.token;
-    if (!token) { answer.textContent = '请先登录以使用 AI 助手。'; return; }
-
     try {
       const resp = await fetch('/api/ai/chat/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, context }),
       });
       if (!resp.ok) {
-        answer.textContent = resp.status === 503 ? 'AI 服务未配置，请在设置中填写 API Key。' : 'AI 服务调用失败。';
+        answer.textContent = resp.status === 503 ? 'AI 服务未配置，请在设置中填写 API Key。'
+          : resp.status === 401 ? '请先登录以使用 AI 助手。'
+          : 'AI 服务调用失败。';
         return;
       }
       const reader = resp.body.getReader();

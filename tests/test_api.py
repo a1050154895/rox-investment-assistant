@@ -63,6 +63,23 @@ class TestAuth:
         resp = client.get("/api/auth/me")
         assert resp.status_code == 401
 
+    def test_cookie_auth_flow(self, client):
+        resp = client.post("/api/auth/register", json={
+            "username": "cookie_user",
+            "password": "Cookie123!",
+        })
+        assert resp.status_code == 200
+        assert "rox_token" in resp.cookies
+
+        # 不携带 Authorization 头，仅靠 HttpOnly Cookie 也应能通过鉴权
+        me = client.get("/api/auth/me")
+        assert me.status_code == 200
+        assert me.json()["user"]["username"] == "cookie_user"
+
+        # 登出后 Cookie 清除，再次访问应 401
+        assert client.post("/api/auth/logout").status_code == 200
+        assert client.get("/api/auth/me").status_code == 401
+
 
 class TestFundamentals:
     def test_dcf_available(self, client):

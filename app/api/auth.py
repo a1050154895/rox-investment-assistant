@@ -1,9 +1,9 @@
 """认证 API — 注册 / 登录 / 当前用户。"""
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.core.auth import create_token, get_current_user, hash_password, verify_password
+from app.core.auth import clear_auth_cookie, create_token, get_current_user, hash_password, set_auth_cookie, verify_password
 from app.core.limiter import limiter
 from app.db import get_db
 from app.models import User
@@ -22,7 +22,7 @@ class LoginIn(BaseModel):
 
 
 @router.post("/register")
-async def register(data: RegisterIn, db: Session = Depends(get_db)):
+async def register(data: RegisterIn, response: Response, db: Session = Depends(get_db)):
     """注册新用户，返回 JWT token。"""
     username = data.username.strip()
     if not username:
@@ -34,17 +34,28 @@ async def register(data: RegisterIn, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    return {"success": True, "token": create_token(user.id), "user": user.to_dict()}
+    token = create_token(user.id)
+    set_auth_cookie(response, token)
+    return {"success": True, "token": token, "user": user.to_dict()}
 
 
 @router.post("/login")
 @limiter.limit("5/minute")
-async def login(request: Request, data: LoginIn, db: Session = Depends(get_db)):
+async def login(request: Request, response: Response, data: LoginIn, db: Session = Depends(get_db)):
     """登录，返回 JWT token。"""
     user = db.query(User).filter(User.username == data.username.strip()).first()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="用户名或密码错误")
-    return {"success": True, "token": create_token(user.id), "user": user.to_dict()}
+    token = create_token(user.id)
+    set_auth_cookie(response, token)
+    return {"success": True, "token": token, "user": user.to_dict()}
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    """清除登录 Cookie。"""
+    clear_auth_cookie(response)
+    return {"success": True}
 
 
 @router.get("/me")

@@ -9,10 +9,11 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db import get_db
 from app.models import User
 
@@ -21,6 +22,7 @@ SECRET_KEY = _env_key or secrets.token_hex(32)
 KEY_SOURCE = "env" if _env_key else "random"  # random = 重启后 JWT 全部失效
 ALGORITHM = "HS256"
 TOKEN_TTL_HOURS = 24 * 7  # 7 天
+COOKIE_NAME = "rox_token"
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -51,15 +53,34 @@ def create_token(user_id: int) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def set_auth_cookie(response: Response, token: str) -> None:
+    """把 JWT 写入 HttpOnly Cookie（同源 SPA 自动携带，降低 XSS 暴露面）。"""
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=settings.ENVIRONMENT == "production",
+        samesite="lax",
+        max_age=TOKEN_TTL_HOURS * 3600,
+        path="/",
+    )
+
+
+def clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(key=COOKIE_NAME, path="/")
+
+
 def get_current_user(
+    request: Request,
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
     db: Session = Depends(get_db),
 ) -> User:
-    """FastAPI 依赖：解析 Bearer token 并返回当前用户；无效则 401。"""
-    if creds is None:
+    """FastAPI 依赖：优先从 HttpOnly Cookie 读取 JWT，兼容 Bearer header；无效则 401。"""
+    token = request.cookies.get(COOKIE_NAME) or (creds.credentials if creds else None)
+    if not token:
         raise HTTPException(status_code=401, detail="未登录，请先登录")
     try:
-        payload = jwt.decode(creds.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub", "0"))
     except Exception:
         raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
