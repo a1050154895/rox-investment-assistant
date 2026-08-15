@@ -76,9 +76,33 @@ const ROX = {
     }
   },
 
-  // Router
+  // Router — route map (clean, no if-else chain)
   routes: {},
+  routePatterns: [
+    { match: /^\/?$/,                    handler: '/',           title: '仪表盘' },
+    { match: /^\/stock(\/(\d+))?\/?$/,   handler: '/stock',      title: '个股透视', extract: m => ({ code: m[2] }) },
+    { match: /^\/journal/,               handler: '/journal',    title: '决策日志' },
+    { match: /^\/framework/,             handler: '/framework',  title: '认知框架' },
+    { match: /^\/intelligence/,          handler: '/intelligence', title: '宏观情报' },
+    { match: /^\/screener/,              handler: '/screener',   title: '选股筛选' },
+    { match: /^\/backtest/,              handler: '/backtest',   title: '策略回测' },
+    { match: /^\/review/,                handler: '/review',     title: '每日复盘' },
+    { match: /^\/portfolio/,             handler: '/portfolio',  title: '持仓组合' },
+    { match: /^\/watchlist/,             handler: '/watchlist',  title: '自选股' },
+    { match: /^\/alerts/,                handler: '/alerts',     title: '价格预警' },
+  ],
   register(route, handler) { this.routes[route] = handler; },
+
+  resolveRoute(path) {
+    for (const pattern of this.routePatterns) {
+      const m = path.match(pattern.match);
+      if (m) {
+        const params = pattern.extract ? pattern.extract(m) : {};
+        return { handler: pattern.handler, title: pattern.title, params };
+      }
+    }
+    return null;
+  },
 
   navigate(path) {
     history.pushState(null, '', path);
@@ -88,37 +112,17 @@ const ROX = {
   async render(path) {
     this.state.currentRoute = path;
     this.stopAutoRefresh();
+    // 清理 ECharts 实例
+    if (this._chartInstances) {
+      this._chartInstances.forEach(c => { try { c.dispose(); } catch(_) {} });
+      this._chartInstances = [];
+    }
     const container = document.getElementById('view-container');
 
-    // Determine route handler
-    let handler = null;
-    let params = {};
-
-    if (path === '/' || path === '') {
-      handler = this.routes['/'];
-    } else if (path.startsWith('/stock')) {
-      handler = this.routes['/stock'];
-      const match = path.match(/\/stock\/?(\d+)?/);
-      if (match && match[1]) params.code = match[1];
-    } else if (path.startsWith('/journal')) {
-      handler = this.routes['/journal'];
-    } else if (path.startsWith('/framework')) {
-      handler = this.routes['/framework'];
-    } else if (path.startsWith('/intelligence')) {
-      handler = this.routes['/intelligence'];
-    } else if (path.startsWith('/screener')) {
-      handler = this.routes['/screener'];
-    } else if (path.startsWith('/backtest')) {
-      handler = this.routes['/backtest'];
-    } else if (path.startsWith('/review')) {
-      handler = this.routes['/review'];
-    } else if (path.startsWith('/portfolio')) {
-      handler = this.routes['/portfolio'];
-    } else if (path.startsWith('/watchlist')) {
-      handler = this.routes['/watchlist'];
-    } else if (path.startsWith('/alerts')) {
-      handler = this.routes['/alerts'];
-    }
+    // Resolve route via route map
+    const resolved = this.resolveRoute(path);
+    const handler = resolved ? this.routes[resolved.handler] : null;
+    const params = resolved ? resolved.params : {};
 
     // Update nav active state
     document.querySelectorAll('.nav-item[data-route]').forEach(item => {
@@ -130,20 +134,8 @@ const ROX = {
     });
 
     // Update page title and search visibility
-    const titles = { '/': '仪表盘', '/stock': '个股透视', '/journal': '决策日志', '/framework': '认知框架', '/intelligence': '宏观情报', '/screener': '选股筛选', '/backtest': '策略回测', '/review': '每日复盘', '/portfolio': '持仓组合', '/watchlist': '自选股', '/alerts': '价格预警' };
-    let titleKey = '/';
-    if (path.startsWith('/stock')) titleKey = '/stock';
-    else if (path.startsWith('/journal')) titleKey = '/journal';
-    else if (path.startsWith('/framework')) titleKey = '/framework';
-    else if (path.startsWith('/intelligence')) titleKey = '/intelligence';
-    else if (path.startsWith('/screener')) titleKey = '/screener';
-    else if (path.startsWith('/backtest')) titleKey = '/backtest';
-    else if (path.startsWith('/review')) titleKey = '/review';
-    else if (path.startsWith('/portfolio')) titleKey = '/portfolio';
-    else if (path.startsWith('/watchlist')) titleKey = '/watchlist';
-    else if (path.startsWith('/alerts')) titleKey = '/alerts';
-    document.getElementById('page-title').textContent = titles[titleKey] || 'ROX投资助手';
-    document.getElementById('search-box').style.display = titleKey === '/stock' ? 'block' : 'none';
+    document.getElementById('page-title').textContent = resolved ? resolved.title : 'ROX投资助手';
+    document.getElementById('search-box').style.display = (resolved && resolved.handler === '/stock') ? 'block' : 'none';
 
     // Mobile nav
     this.updateMobileNav(path);
@@ -355,6 +347,28 @@ const ROX = {
     setTimeout(remove, duration);
   },
 
+  // Confirm dialog (replaces browser confirm)
+  confirm(message, onConfirm, onCancel) {
+    this.showModal(`
+      <div class="modal-header">
+        <span class="modal-title">确认操作</span>
+      </div>
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin:0 0 20px;">${this.escape(message)}</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-secondary" id="confirm-cancel">取消</button>
+        <button class="btn btn-primary" id="confirm-ok" style="background:var(--color-down);">确认</button>
+      </div>
+    `);
+    document.getElementById('confirm-ok').addEventListener('click', () => {
+      this.closeModal();
+      if (onConfirm) onConfirm();
+    });
+    document.getElementById('confirm-cancel').addEventListener('click', () => {
+      this.closeModal();
+      if (onCancel) onCancel();
+    });
+  },
+
   // ============ Auth ============
   async authCheck() {
     const gate = document.getElementById('auth-gate');
@@ -543,6 +557,27 @@ const ROX = {
       if (e.key === 'Enter' && (e.target.id === 'auth-username' || e.target.id === 'auth-password')) {
         e.preventDefault();
         this.submitAuth();
+      }
+    });
+
+    // Keyboard shortcuts: number keys 1-9, 0 for quick navigation
+    document.addEventListener('keydown', (e) => {
+      // Skip if typing in input/textarea/select
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Skip if modal or settings is open
+      if (document.getElementById('modal-overlay')?.classList.contains('open')) return;
+      if (document.getElementById('settings-panel')?.classList.contains('open')) return;
+      if (!this.state.user) return; // not logged in
+
+      const shortcuts = {
+        '1': '/', '2': '/stock', '3': '/journal', '4': '/framework',
+        '5': '/intelligence', '6': '/screener', '7': '/backtest',
+        '8': '/portfolio', '9': '/watchlist', '0': '/alerts',
+      };
+      if (shortcuts[e.key]) {
+        e.preventDefault();
+        this.navigate(shortcuts[e.key]);
       }
     });
 

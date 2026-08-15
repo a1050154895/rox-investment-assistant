@@ -1,0 +1,22 @@
+{
+  "name": "ROX投资助手",
+  "short_name": "ROX",
+  "description": "投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a84ff",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a84ff'/><text x='50' y='70' font-size='60' font-family='-apple-system' font-weight='600' text-anchor='middle' fill='white'>R</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a84ff'/><text x='50' y='70' font-size='60' font-family='-apple-system' font-weight='600' text-anchor='middle' fill='white'>R</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

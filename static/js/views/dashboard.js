@@ -227,24 +227,59 @@ async function loadPortfolioCard() {
       <div class="card-title">持仓概览</div>
       <button class="btn btn-secondary btn-sm" data-route="/portfolio">全部</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:16px;margin-bottom:12px;">
-      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">持仓数</div><div style="font-size:18px;font-weight:590;">${posCount}</div></div>
-      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总成本</div><div style="font-size:18px;font-weight:590;">${fmt.num(s.total_cost)}</div></div>
-      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总市值</div><div style="font-size:18px;font-weight:590;">${fmt.num(s.total_market)}</div></div>
-      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总盈亏</div><div style="font-size:18px;font-weight:590;color:${pnlColor};">${fmt.num(s.total_pnl)}</div></div>
-      <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">收益率</div><div style="font-size:18px;font-weight:590;color:${pnlColor};">${fmt.pct(s.total_pnl_pct)}</div></div>
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:12px;margin-bottom:12px;">
+          <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">持仓数</div><div style="font-size:18px;font-weight:590;">${posCount}</div></div>
+          <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总成本</div><div style="font-size:18px;font-weight:590;">${fmt.num(s.total_cost)}</div></div>
+          <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总市值</div><div style="font-size:18px;font-weight:590;">${fmt.num(s.total_market)}</div></div>
+          <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">总盈亏</div><div style="font-size:18px;font-weight:590;color:${pnlColor};">${fmt.num(s.total_pnl)}</div></div>
+          <div style="text-align:center;"><div style="font-size:11px;color:var(--text-tertiary);">收益率</div><div style="font-size:18px;font-weight:590;color:${pnlColor};">${fmt.pct(s.total_pnl_pct)}</div></div>
+        </div>
+        ${(data.positions || []).slice(0, 3).map(p => {
+          const c = p.pnl >= 0 ? 'var(--color-up)' : 'var(--color-down)';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-secondary);border-radius:var(--radius-md);margin-bottom:6px;cursor:pointer;" data-action="view-stock" data-code="${ROX.escape(p.code)}">
+            <span style="font-size:12px;font-weight:500;">${ROX.escape(p.name)} <span style="color:var(--text-tertiary);font-size:11px;">${ROX.escape(p.code)}</span></span>
+            <span style="font-size:12px;font-family:var(--font-mono);color:${c};">${fmt.pct(p.pnl_pct)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div id="portfolio-pie-chart" style="width:200px;height:200px;flex-shrink:0;"></div>
     </div>
-    ${(data.positions || []).slice(0, 3).map(p => {
-      const c = p.pnl >= 0 ? 'var(--color-up)' : 'var(--color-down)';
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-secondary);border-radius:var(--radius-md);margin-bottom:6px;cursor:pointer;" data-action="view-stock" data-code="${ROX.escape(p.code)}">
-        <span style="font-size:12px;font-weight:500;">${ROX.escape(p.name)} <span style="color:var(--text-tertiary);font-size:11px;">${ROX.escape(p.code)}</span></span>
-        <span style="font-size:12px;font-family:var(--font-mono);color:${c};">${fmt.pct(p.pnl_pct)}</span>
-      </div>`;
-    }).join('')}
   `;
 
   // 插入到宏观指南针卡片之后
   compass.after(card);
+
+  // 渲染持仓配置饼图
+  if (posCount > 0 && typeof echarts !== 'undefined') {
+    const chartEl = card.querySelector('#portfolio-pie-chart');
+    if (chartEl) {
+      const chart = echarts.init(chartEl);
+      const positions = data.positions || [];
+      const pieData = positions.map(p => ({
+        name: p.name,
+        value: Math.max(p.market || p.cost || 0, 0.01),
+      }));
+      chart.setOption({
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', textStyle: { fontSize: 12 } },
+        series: [{
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['50%', '50%'],
+          avoidLabelOverlap: true,
+          itemStyle: { borderRadius: 6, borderColor: 'transparent', borderWidth: 2 },
+          label: { show: false },
+          emphasis: { label: { show: true, fontSize: 13, fontWeight: 'bold' } },
+          data: pieData,
+        }],
+        color: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'],
+      });
+      // 响应式
+      ROX._chartInstances = ROX._chartInstances || [];
+      ROX._chartInstances.push(chart);
+    }
+  }
 
   // 路由按钮事件
   card.querySelectorAll('[data-route]').forEach(btn => {

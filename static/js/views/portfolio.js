@@ -87,11 +87,11 @@ ROX.views.portfolio = {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
-        if (confirm('确认删除该持仓？')) {
+        ROX.confirm('确认删除该持仓？', async () => {
           await ROX.api.delete(`/api/portfolio/${id}`);
           ROX.toast('持仓已删除', 'success');
           await this.load();
-        }
+        });
       });
     });
 

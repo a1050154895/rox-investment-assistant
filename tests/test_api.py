@@ -10,7 +10,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "3.9.0"
+        assert data["version"] == "4.0.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -121,6 +121,51 @@ class TestJournal:
         assert resp.status_code == 200
         data = resp.json()
         assert data["decision"]["stock"] == "贵州茅台"
+
+    def test_update_decision_full_fields(self, client, auth_headers):
+        """PUT 全字段编辑：修改决策本身的字段（非仅结果追踪）。"""
+        # 先创建
+        create = client.post("/api/journal/", json={
+            "stock": "测试股", "code": "000001", "action": "买入",
+            "stage": "试仓30%", "cycle_stage": "积累",
+            "contradiction_intensity": 50, "value_realization": 50,
+            "consistency_score": 50, "reason": "原始理由",
+        }, headers=auth_headers)
+        assert create.status_code == 200
+        did = create.json()["id"]
+
+        # 全字段编辑
+        resp = client.put(f"/api/journal/{did}", json={
+            "stock": "修改后的股", "action": "卖出", "reason": "修正理由",
+            "consistency_score": 85, "result": "盈", "result_pct": 12.5,
+        }, headers=auth_headers)
+        assert resp.status_code == 200
+        d = resp.json()["decision"]
+        assert d["stock"] == "修改后的股"
+        assert d["action"] == "卖出"
+        assert d["reason"] == "修正理由"
+        assert d["consistency_score"] == 85
+        assert d["result"] == "盈"
+        assert d["result_pct"] == 12.5
+
+    def test_delete_decision(self, client, auth_headers):
+        """DELETE 删除决策记录。"""
+        create = client.post("/api/journal/", json={
+            "stock": "待删除", "code": "000002", "action": "持有",
+            "stage": "确认30%", "cycle_stage": "流转",
+            "contradiction_intensity": 40, "value_realization": 40,
+            "consistency_score": 40, "reason": "测试删除",
+        }, headers=auth_headers)
+        assert create.status_code == 200
+        did = create.json()["id"]
+
+        resp = client.delete(f"/api/journal/{did}", headers=auth_headers)
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+        # 确认已删除
+        get = client.get(f"/api/journal/{did}", headers=auth_headers)
+        assert get.status_code == 404
 
 
 class TestScreener:

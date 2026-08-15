@@ -659,3 +659,45 @@ ul { list-style: none; }
   to { opacity: 0; transform: translateX(40px); }
 }
 .toast.hide { animation: toast-out 0.25s ease-in forwards; }
+
+/* ============================================
+   Skeleton Loading Screen
+   ============================================ */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-input) 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite linear;
+  border-radius: var(--radius-md);
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-line { height: 14px; margin-bottom: 8px; }
+.skeleton-line.short { width: 60%; }
+.skeleton-line.medium { width: 80%; }
+.skeleton-card {
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--border-faint);
+  margin-bottom: 16px;
+}
+
+/* Keyboard shortcut hint */
+.kbd-hint {
+  position: fixed; bottom: 12px; right: 12px;
+  font-size: 10px; color: var(--text-muted);
+  background: var(--bg-glass); padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 0.5px solid var(--border-faint);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  pointer-events: none; z-index: 100;
+  opacity: 0.6; transition: opacity 0.3s;
+}
+.kbd-hint:hover { opacity: 1; }
+.kbd-hint kbd {
+  font-family: var(--font-mono); font-size: 10px;
+  background: var(--bg-input); padding: 1px 5px;
+  border-radius: 3px; border: 0.5px solid var(--border-color);
+  margin: 0 1px;
+}

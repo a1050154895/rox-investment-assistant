@@ -25,6 +25,16 @@ class DecisionCreate(BaseModel):
 
 
 class DecisionUpdate(BaseModel):
+    """支持全字段编辑：事后结果追踪 + 决策本身的修正。"""
+    stock: str | None = None
+    code: str | None = None
+    action: str | None = None
+    stage: str | None = None
+    cycle_stage: str | None = None
+    contradiction_intensity: int | None = Field(None, ge=0, le=100)
+    value_realization: int | None = Field(None, ge=0, le=100)
+    consistency_score: int | None = Field(None, ge=0, le=100)
+    reason: str | None = None
     result: str | None = None
     result_pct: float | None = None
     review: str | None = None
@@ -106,18 +116,16 @@ async def update_decision(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """更新决策记录（补充事后结果/复盘）。"""
+    """更新决策记录（全字段可编辑：事后结果追踪 + 决策本身修正）。"""
     entry = db.query(JournalEntry).filter(
         JournalEntry.id == decision_id, JournalEntry.user_id == user.id
     ).first()
     if not entry:
         raise HTTPException(status_code=404, detail="未找到该决策记录")
-    if update.result is not None:
-        entry.result = update.result
-    if update.result_pct is not None:
-        entry.result_pct = update.result_pct
-    if update.review is not None:
-        entry.review = update.review
+    update_data = update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        if value is not None:
+            setattr(entry, field, value)
     db.commit()
     db.refresh(entry)
     return {"success": True, "decision": _entry_to_dict(entry)}
