@@ -66,6 +66,36 @@ jobs:
         run: |
           find static/js -name '*.js' -print0 | xargs -0 -n1 node --check
 
+      - name: Check view initialization
+        run: |
+          set -e
+          for f in static/js/views/*.js; do
+            if grep -q 'ROX\.views\.' "$f" && ! grep -q 'ROX\.views = ROX\.views || {}' "$f"; then
+              echo "::error file=$f::视图文件引用了 ROX.views 但未先初始化 ROX.views"
+              exit 1
+            fi
+          done
+          echo "view initialization OK"
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pip-audit
+
+      - name: Audit dependencies
+        run: pip-audit
+
   secret-scan:
     runs-on: ubuntu-latest
 
