@@ -18,6 +18,18 @@ class TestHealth:
         assert "checks" in data
 
 
+class TestSpa:
+    def test_index_renders_html(self, client):
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert "text/html" in resp.headers.get("content-type", "")
+
+    def test_fallback_route_renders_html(self, client):
+        resp = client.get("/stock")
+        assert resp.status_code == 200
+        assert "text/html" in resp.headers.get("content-type", "")
+
+
 class TestAuth:
     def test_register_new_user(self, client):
         resp = client.post("/api/auth/register", json={

@@ -141,7 +141,7 @@ async def index(request: Request):
     """SPA 壳页面 — 所有视图通过前端路由渲染"""
     if templates is None:
         return "<h1>ROX投资助手</h1><p>模板未找到</p>"
-    return templates.TemplateResponse("shell.html", {"request": request})
+    return templates.TemplateResponse(request, "shell.html")
 
 
 @app.get("/{path:path}", response_class=HTMLResponse)
@@ -151,7 +151,7 @@ async def spa_fallback(request: Request, path: str):
         return HTMLResponse(status_code=404, content="Not Found")
     if templates is None:
         return "<h1>ROX投资助手</h1><p>模板未找到</p>"
-    return templates.TemplateResponse("shell.html", {"request": request})
+    return templates.TemplateResponse(request, "shell.html")
 
 
 if __name__ == "__main__":
