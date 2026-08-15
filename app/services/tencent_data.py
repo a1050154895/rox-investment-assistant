@@ -14,6 +14,8 @@ import time
 
 import httpx
 
+from app.services.resilience import CircuitBreaker, run_with_retry
+
 logger = logging.getLogger(__name__)
 
 # ---- 内存缓存 ----
@@ -52,6 +54,16 @@ def _decode_unicode_escapes(s: str) -> str:
 QUOTE_URL = "https://qt.gtimg.cn/q={symbols}"
 KLINE_URL = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
 TIMEOUT = 10.0
+
+# 连接类错误值得重试；读/写超时（端点挂起）重试无益，交给熔断快速失败。
+_RETRY_ON = (httpx.ConnectError, httpx.ConnectTimeout)
+_QUOTE_BREAKER = CircuitBreaker()
+_KLINE_BREAKER = CircuitBreaker()
+
+
+async def _request(url: str, params: dict | None = None):
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        return await client.get(url, params=params)
 
 
 def to_tencent_symbol(code: str, is_index: bool = False) -> str:
@@ -138,9 +150,12 @@ async def fetch_quotes(codes: list[str], is_index: bool = False) -> dict[str, di
         _cache_set(cache_key, result)
         return result
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            resp = await client.get(QUOTE_URL.format(symbols=",".join(symbols)))
-            text = resp.content.decode("gbk", errors="replace")
+        resp = await run_with_retry(
+            lambda: _request(QUOTE_URL.format(symbols=",".join(symbols))),
+            breaker=_QUOTE_BREAKER,
+            retry_on=_RETRY_ON,
+        )
+        text = resp.content.decode("gbk", errors="replace")
     except Exception as e:
         logger.warning("腾讯行情获取失败: %s", e)
         return {}
@@ -167,9 +182,12 @@ async def fetch_kline(code: str, period: str = "day", limit: int = 120, is_index
         return []
     params = {"param": f"{symbol},{period},,,{limit},qfq"}
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            resp = await client.get(KLINE_URL, params=params)
-            data = resp.json()
+        resp = await run_with_retry(
+            lambda: _request(KLINE_URL, params=params),
+            breaker=_KLINE_BREAKER,
+            retry_on=_RETRY_ON,
+        )
+        data = resp.json()
         node = data.get("data", {}).get(symbol, {}) or {}
         rows = node.get(f"qfq{period}") or node.get(period) or []
         candles = []
@@ -210,9 +228,12 @@ async def fetch_global_indices() -> list[dict]:
     """
     symbols = ",".join(_GLOBAL_INDEX_SYMBOLS.keys())
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            resp = await client.get(QUOTE_URL.format(symbols=symbols))
-            text = resp.content.decode("gbk", errors="replace")
+        resp = await run_with_retry(
+            lambda: _request(QUOTE_URL.format(symbols=symbols)),
+            breaker=_QUOTE_BREAKER,
+            retry_on=_RETRY_ON,
+        )
+        text = resp.content.decode("gbk", errors="replace")
     except Exception as e:
         logger.warning("海外指数获取失败: %s", e)
         return []
