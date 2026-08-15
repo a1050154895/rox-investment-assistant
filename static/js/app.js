@@ -635,8 +635,29 @@ const ROX = {
           <span style="font-weight:500;">${s.name}</span>
           <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);margin-left:8px;">${s.code}</span>
           ${s.industry ? `<span class="tag tag-gray" style="margin-left:4px;">${s.industry}</span>` : ''}
+          <button class="search-star-btn" data-quick-watch="${s.code}" data-quick-name="${this.escape(s.name)}" title="加入自选" style="margin-left:auto;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:2px 4px;font-size:14px;line-height:1;">☆</button>
         </div>
       `).join('');
+      // Bind quick-watch star buttons
+      results.querySelectorAll('[data-quick-watch]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const code = btn.dataset.quickWatch;
+          const name = btn.dataset.quickName;
+          const res = await this.api.post('/api/watchlist/', { code, name });
+          if (res && res.success && !res.exists) {
+            btn.textContent = '★';
+            btn.style.color = 'var(--color-up)';
+            this.toast(`${name} 已加入自选`, 'success');
+          } else if (res && res.success && res.exists) {
+            btn.textContent = '★';
+            btn.style.color = 'var(--text-tertiary)';
+            this.toast(`${name} 已在自选列表中`, 'info');
+          } else {
+            this.toast('加入失败', 'error');
+          }
+        });
+      });
     }
     results.classList.add('show');
   },
