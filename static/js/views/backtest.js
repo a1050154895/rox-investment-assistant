@@ -242,8 +242,8 @@ ROX.register('/backtest', async function(container) {
         series: [{
           type: 'line', data: res.equity_curve.map(e => e.equity),
           smooth: true, symbol: 'none',
-          lineStyle: { width: 2, color: '#38bdf8' },
-          areaStyle: { color: 'rgba(56, 189, 248, 0.1)' },
+          lineStyle: { width: 2, color: '#0a84ff' },
+          areaStyle: { color: 'rgba(10, 132, 255, 0.1)' },
         }],
         grid: { left: 50, right: 20, top: 10, bottom: 30 },
       });

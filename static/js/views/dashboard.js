@@ -122,7 +122,7 @@ ROX.register('/', async function(container) {
             <div style="font-size:11px;color:var(--text-secondary);">核心池：${data.discipline_334.core.stocks.join('、')}</div>
             <div style="font-size:11px;color:var(--text-secondary);">卫星池：${data.discipline_334.satellite.stocks.join('、')}</div>
           </div>
-          <div style="margin-top:12px;padding:10px 12px;background:rgba(200,153,66,0.08);border-left:2px solid var(--ink-warn);font-size:11px;color:var(--ink-warn);">
+          <div style="margin-top:12px;padding:10px 12px;background:rgba(255,159,10,0.08);border-left:2px solid var(--ink-warn);font-size:11px;color:var(--ink-warn);">
             ${data.discipline_334.advice}
           </div>
           <div style="margin-top:10px;font-size:10px;color:var(--text-muted);">个人参数只保存在当前浏览器；未登录状态下不会上传共享仓位数据。</div>
@@ -273,7 +273,7 @@ async function loadPortfolioCard() {
           emphasis: { label: { show: true, fontSize: 13, fontWeight: 'bold' } },
           data: pieData,
         }],
-        color: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'],
+        color: ['#0a84ff', '#5e5ce6', '#bf5af2', '#ff9f0a', '#ffd60a', '#30d158', '#64d2ff', '#ff453a'],
       });
       // 响应式
       ROX._chartInstances = ROX._chartInstances || [];

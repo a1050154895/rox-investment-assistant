@@ -304,7 +304,7 @@ function renderKline(candles, info) {
   const ohlc = candles.map(c => [c.open, c.close, c.low, c.high]);
   const volumes = candles.map(c => ({
     value: c.volume,
-    itemStyle: { color: c.close >= c.open ? 'rgba(212,87,74,0.52)' : 'rgba(122,158,110,0.52)' }
+    itemStyle: { color: c.close >= c.open ? 'rgba(255,69,58,0.52)' : 'rgba(48,209,88,0.52)' }
   }));
 
   const option = {
@@ -314,26 +314,26 @@ function renderKline(candles, info) {
       { left: '8%', right: '3%', top: '72%', height: '18%' }
     ],
     xAxis: [
-      { type: 'category', data: dates, gridIndex: 0, axisLine: { lineStyle: { color: 'rgba(200,180,160,0.14)' } }, axisLabel: { color: '#8a7f70', fontSize: 10 } },
+      { type: 'category', data: dates, gridIndex: 0, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }, axisLabel: { color: '#86868b', fontSize: 10 } },
       { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false } }
     ],
     yAxis: [
-      { scale: true, gridIndex: 0, splitLine: { lineStyle: { color: 'rgba(200,180,160,0.07)' } }, axisLabel: { color: '#8a7f70', fontSize: 10 } },
+      { scale: true, gridIndex: 0, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }, axisLabel: { color: '#86868b', fontSize: 10 } },
       { gridIndex: 1, splitLine: { show: false }, axisLabel: { show: false } }
     ],
     dataZoom: [
       { type: 'inside', xAxisIndex: [0, 1], start: 60, end: 100 },
-      { type: 'slider', xAxisIndex: [0, 1], start: 60, end: 100, height: 20, bottom: 5, borderColor: 'transparent', backgroundColor: 'rgba(200,180,160,0.05)', fillerColor: 'rgba(200,65,44,0.14)', handleStyle: { color: '#c8412c' } }
+      { type: 'slider', xAxisIndex: [0, 1], start: 60, end: 100, height: 20, bottom: 5, borderColor: 'transparent', backgroundColor: 'rgba(255,255,255,0.05)', fillerColor: 'rgba(10,132,255,0.14)', handleStyle: { color: '#0a84ff' } }
     ],
     tooltip: {
       trigger: 'axis', axisPointer: { type: 'cross' },
-      backgroundColor: 'rgba(34,29,24,0.97)', borderColor: 'rgba(200,180,160,0.18)',
-      textStyle: { color: '#f5ede0', fontSize: 11 }
+      backgroundColor: 'rgba(28,28,30,0.97)', borderColor: 'rgba(255,255,255,0.12)',
+      textStyle: { color: '#f5f5f7', fontSize: 11 }
     },
     series: [
       {
         name: info.name, type: 'candlestick', data: ohlc, xAxisIndex: 0, yAxisIndex: 0,
-        itemStyle: { color: '#d4574a', color0: '#7a9e6e', borderColor: '#d4574a', borderColor0: '#7a9e6e' }
+        itemStyle: { color: '#ff453a', color0: '#30d158', borderColor: '#ff453a', borderColor0: '#30d158' }
       },
       {
         name: '成交量', type: 'bar', data: volumes, xAxisIndex: 1, yAxisIndex: 1,
@@ -360,11 +360,11 @@ function renderFlowChart(trend) {
     series: [{
       type: 'bar', data: trend.map(v => ({
         value: v,
-        itemStyle: { color: v >= 0 ? 'rgba(212,87,74,0.68)' : 'rgba(122,158,110,0.68)' }
+        itemStyle: { color: v >= 0 ? 'rgba(255,69,58,0.68)' : 'rgba(48,209,88,0.68)' }
       })),
       barWidth: '60%'
     }],
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(34,29,24,0.97)', borderColor: 'rgba(200,180,160,0.18)', textStyle: { color: '#f5ede0', fontSize: 11 } }
+    tooltip: { trigger: 'axis', backgroundColor: 'rgba(28,28,30,0.97)', borderColor: 'rgba(255,255,255,0.12)', textStyle: { color: '#f5f5f7', fontSize: 11 } }
   });
   requestAnimationFrame(() => _flowChart && _flowChart.resize());
 }

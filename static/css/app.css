@@ -20,8 +20,8 @@ input, textarea, select { font-family: inherit; }
 ul { list-style: none; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(200,180,160,0.08); border-radius: 0; }
-::-webkit-scrollbar-thumb:hover { background: rgba(200,65,44,0.15); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
 
 /* ============================================
    Layout Shell
@@ -311,7 +311,7 @@ ul { list-style: none; }
 
 /* Modal */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(15, 10, 7, 0.72);
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(3px); z-index: 300;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none; transition: opacity var(--transition-normal);
@@ -403,14 +403,14 @@ ul { list-style: none; }
   border-bottom: 2px solid var(--border-color); transition: all var(--transition-fast);
 }
 .cycle-stage.active { color: var(--brand-blue); border-bottom-color: var(--brand-blue); }
-.cycle-stage.passed { color: var(--text-secondary); border-bottom-color: #5e5ce6; }
+.cycle-stage.passed { color: var(--text-secondary); border-bottom-color: var(--rox-secondary); }
 
 /* 334 Discipline */
 .discipline-bar { display: flex; height: 30px; border-radius: var(--radius-none); overflow: hidden; background: var(--ink-bg-raised); }
 .discipline-segment { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; transition: width var(--transition-slow); }
-.discipline-core { background: rgba(74,111,165,0.23); color: var(--ink-indigo-soft); }
-.discipline-satellite { background: rgba(200,65,44,0.14); color: var(--ink-vermilion-soft); }
-.discipline-cash { background: rgba(200,153,66,0.14); color: var(--ink-warn); }
+.discipline-core { background: rgba(94,92,230,0.18); color: var(--ink-indigo-soft); }
+.discipline-satellite { background: rgba(10,132,255,0.14); color: var(--ink-vermilion-soft); }
+.discipline-cash { background: rgba(255,159,10,0.14); color: var(--ink-warn); }
 
 /* Macro evidence */
 .macro-evidence-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 14px; }
@@ -607,11 +607,11 @@ ul { list-style: none; }
 .auth-tab.active { background: var(--brand-blue); color: #fff; font-weight: 500; }
 .auth-form { display: flex; flex-direction: column; gap: 14px; text-align: left; }
 .auth-error {
-  font-size: 12px; color: #ff453a; background: rgba(255,69,58,0.08);
+  font-size: 12px; color: var(--color-up); background: var(--color-up-bg);
   border: 0.5px solid rgba(255,69,58,0.2); border-radius: var(--radius-md); padding: 10px 14px;
 }
 .auth-submit { width: 100%; }
-.auth-foot { font-size: 11px; color: var(--text-tertiary, #8a8276); margin: 18px 0 0; line-height: 1.6; }
+.auth-foot { font-size: 11px; color: var(--text-tertiary); margin: 18px 0 0; line-height: 1.6; }
 
 /* ============ User chip ============ */
 .user-chip {
@@ -644,9 +644,9 @@ ul { list-style: none; }
   animation: toast-in 0.3s ease-out; pointer-events: auto;
   cursor: pointer;
 }
-.toast.success { background: rgba(74,158,110,0.18); border-color: rgba(74,158,110,0.3); color: #7ace8f; }
-.toast.error { background: rgba(212,87,74,0.18); border-color: rgba(212,87,74,0.3); color: #e88070; }
-.toast.warn { background: rgba(200,153,66,0.18); border-color: rgba(200,153,66,0.3); color: #d9a84a; }
+.toast.success { background: rgba(48,209,88,0.16); border-color: rgba(48,209,88,0.3); color: #30d158; }
+.toast.error { background: rgba(255,69,58,0.16); border-color: rgba(255,69,58,0.3); color: #ff453a; }
+.toast.warn { background: rgba(255,159,10,0.16); border-color: rgba(255,159,10,0.3); color: #ff9f0a; }
 .toast.info { background: var(--bg-glass); color: var(--text-primary); }
 .toast-icon { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
 .toast-msg { flex: 1; }

@@ -89,7 +89,7 @@ ROX.views.review = {
         <div class="card" style="padding:20px;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">涨跌统计（样本池 ${br.total_stocks || 0} 只）</h3>
           <div style="display:flex;gap:16px;margin-bottom:16px;">
-            <div style="flex:1;text-align:center;padding:12px;background:rgba(220,38,38,0.08);border-radius:8px;">
+            <div style="flex:1;text-align:center;padding:12px;background:rgba(255,69,58,0.08);border-radius:8px;">
               <div style="font-size:24px;font-weight:700;color:var(--color-up);">${br.up_count || 0}</div>
               <div style="font-size:12px;color:var(--text-secondary);">上涨</div>
             </div>
@@ -97,16 +97,16 @@ ROX.views.review = {
               <div style="font-size:24px;font-weight:700;color:var(--text-secondary);">${br.flat_count || 0}</div>
               <div style="font-size:12px;color:var(--text-secondary);">平盘</div>
             </div>
-            <div style="flex:1;text-align:center;padding:12px;background:rgba(34,197,94,0.08);border-radius:8px;">
+            <div style="flex:1;text-align:center;padding:12px;background:rgba(48,209,88,0.08);border-radius:8px;">
               <div style="font-size:24px;font-weight:700;color:var(--color-down);">${br.down_count || 0}</div>
               <div style="font-size:12px;color:var(--text-secondary);">下跌</div>
             </div>
           </div>
           <div style="display:flex;gap:16px;">
-            <div style="flex:1;text-align:center;padding:8px;background:rgba(220,38,38,0.06);border-radius:6px;">
+            <div style="flex:1;text-align:center;padding:8px;background:rgba(255,69,58,0.06);border-radius:6px;">
               <span style="font-size:14px;font-weight:600;color:var(--color-up);">涨停 ${br.limit_up || 0}</span>
             </div>
-            <div style="flex:1;text-align:center;padding:8px;background:rgba(34,197,94,0.06);border-radius:6px;">
+            <div style="flex:1;text-align:center;padding:8px;background:rgba(48,209,88,0.06);border-radius:6px;">
               <span style="font-size:14px;font-weight:600;color:var(--color-down);">跌停 ${br.limit_down || 0}</span>
             </div>
           </div>
@@ -163,7 +163,7 @@ ROX.views.review = {
                     <td style="padding:8px 12px;text-align:right;color:${flowColor};font-weight:600;">${s.flow > 0 ? '+' : ''}${fmt.num(s.flow)}</td>
                     <td style="padding:8px 12px;text-align:right;color:${flowColor};">${s.flow_pct != null ? fmt.pct(s.flow_pct) : '--'}</td>
                     <td style="padding:8px 12px;text-align:center;">
-                      <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${isInflow ? 'rgba(220,38,38,0.1)' : 'rgba(34,197,94,0.1)'};color:${flowColor};">
+                      <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${isInflow ? 'rgba(255,69,58,0.1)' : 'rgba(48,209,88,0.1)'};color:${flowColor};">
                         ${isInflow ? '流入' : '流出'}
                       </span>
                     </td>
