@@ -257,6 +257,8 @@ async def fetch_global_indices() -> list[dict]:
             "change_pct": round(quote["change_pct"], 2),
             "change": round(quote["change"], 2),
             "as_of": quote.get("as_of", ""),
+            "data_source": "腾讯自选股公开接口",
+            "stale": False,
         })
     # 补位：腾讯不支持的日经/DAX/CAC
     try:
@@ -304,6 +306,8 @@ async def _fetch_indices_fallback() -> list[dict]:
                 "change_pct": round(change_pct, 2),
                 "change": round(change, 2),
                 "as_of": "",
+                "data_source": "AKShare/东方财富公开接口",
+                "stale": False,
             })
         if results:
             logger.info("AKShare 补位海外指数: %d 个", len(results))

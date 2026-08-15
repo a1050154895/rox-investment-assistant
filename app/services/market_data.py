@@ -258,7 +258,10 @@ async def get_stock_quote(code: str) -> dict[str, Any]:
             "as_of": "2026-07-29", "stale": True,
         }
 
-    return {"error": "未找到该股票或数据源暂不可用", "code": code, "data_status": "unavailable", "stale": True}
+    return {
+        "error": "未找到该股票或数据源暂不可用", "code": code,
+        "data_status": "unavailable", "data_source": None, "as_of": None, "stale": True,
+    }
 
 
 async def get_kline(code: str, period: str = "daily", limit: int = 120) -> dict[str, Any]:
@@ -311,7 +314,7 @@ async def get_kline(code: str, period: str = "daily", limit: int = 120) -> dict[
 
     return {
         "code": code, "name": REAL_QUOTES.get(code, {}).get("name", code), "period": period,
-        "candles": [], "data_status": "unavailable", "data_source": None, "stale": True,
+        "candles": [], "data_status": "unavailable", "data_source": None, "as_of": None, "stale": True,
         "message": "K线数据源暂不可用，系统不会生成模拟行情。",
     }
 
@@ -350,7 +353,7 @@ async def get_fund_flow(code: str) -> dict[str, Any]:
         }
     return {
         "main_inflow": None, "trend": [], "north_flow": None, "sector_comparison": None,
-        "data_status": "unavailable", "data_source": None, "stale": True,
+        "data_status": "unavailable", "data_source": None, "as_of": None, "stale": True,
         "message": "资金流数据源暂不可用。",
     }
 
@@ -373,6 +376,7 @@ async def get_market_indices() -> list[dict]:
                         "price": float(r.get('最新价', 0) or 0),
                         "change": float(r.get('涨跌额', 0) or 0),
                         "change_pct": float(r.get('涨跌幅', 0) or 0),
+                        "data_source": "AKShare/东方财富公开接口", "as_of": "", "stale": False,
                     })
             if len(indices) >= 3:
                 return indices
@@ -382,7 +386,8 @@ async def get_market_indices() -> list[dict]:
     # 回退到真实数据快照
     return [{"code": idx["code"], "name": idx["name"], "price": idx["price"],
              "change": round(idx["price"] * idx["change_pct"] / 100, 2),
-             "change_pct": idx["change_pct"]} for idx in REAL_INDICES]
+             "change_pct": idx["change_pct"],
+             "data_source": "NeoData 历史快照", "as_of": "2026-07-29", "stale": True} for idx in REAL_INDICES]
 
 
 # ============ 全市场股票名录（搜索用） ============

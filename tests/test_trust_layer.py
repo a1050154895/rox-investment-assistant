@@ -30,6 +30,15 @@ class TrustLayerTests(unittest.TestCase):
         self.assertEqual(kline["candles"], [])
         self.assertIsNone(flow["main_inflow"])
 
+    def test_market_indices_carry_freshness(self):
+        from app.services.market_data import get_market_indices
+        indices = asyncio.run(get_market_indices())
+        self.assertTrue(indices)
+        for idx in indices:
+            self.assertIn("data_source", idx)
+            self.assertIn("as_of", idx)
+            self.assertIn("stale", idx)
+
 
 if __name__ == "__main__":
     unittest.main()
