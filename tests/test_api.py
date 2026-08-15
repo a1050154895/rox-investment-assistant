@@ -10,7 +10,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.0.0"
+        assert data["version"] == "4.1.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):

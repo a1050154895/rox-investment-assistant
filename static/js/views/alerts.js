@@ -145,11 +145,11 @@ ROX.views.alerts = {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
-        if (confirm('确认删除该预警？')) {
+        ROX.confirm('确认删除该预警？', async () => {
           await ROX.api.delete(`/api/alerts/${id}`);
           ROX.toast('预警已删除', 'success');
           await this.load();
-        }
+        });
       });
     });
   },

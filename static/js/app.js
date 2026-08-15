@@ -594,6 +594,15 @@ const ROX = {
     this.updateUserChip();
     this.loadIndexTicker();
     this.render(location.pathname);
+    // Show keyboard shortcut hint (once per session)
+    if (!sessionStorage.getItem('kbd-hint-shown')) {
+      const hint = document.getElementById('kbd-hint');
+      if (hint) {
+        hint.style.display = 'block';
+        setTimeout(() => { hint.style.opacity = '0'; }, 5000);
+        sessionStorage.setItem('kbd-hint-shown', '1');
+      }
+    }
   },
 
   async loadIndexTicker() {

@@ -692,6 +692,7 @@ ul { list-style: none; }
   border: 0.5px solid var(--border-faint);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   pointer-events: none; z-index: 100;
+  transition: opacity 0.5s ease;
   opacity: 0.6; transition: opacity 0.3s;
 }
 .kbd-hint:hover { opacity: 1; }

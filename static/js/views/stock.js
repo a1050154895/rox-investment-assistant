@@ -187,17 +187,54 @@ ROX.register('/stock', async function(container, params) {
     if (data?.candles?.length) renderKline(data.candles, info);
   });
 
-  // Price alert
+  // Price alert — custom modal form (replaces prompt + confirm)
   document.getElementById('btn-add-alert')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-add-alert');
     const code = btn.dataset.code;
     const name = decodeURIComponent(btn.dataset.name || code);
-    const price = parseFloat(prompt(`${name} 当前价 ${ROX.fmt.num(info.price)}，设定预警价：`));
-    if (!price || price <= 0) return;
-    const dir = confirm('点击"确定"=向上突破预警, "取消"=向下突破预警') ? 'above' : 'below';
-    const res = await ROX.api.post('/api/alerts/', { code, name, target_price: price, direction: dir });
-    if (res?.success) { ROX.toast(`已为 ${name} 设置 ${dir==='above'?'≥':'≤'}${price} 预警`, 'success'); }
-    else { ROX.toast('设置失败', 'error'); }
+    const currentPrice = ROX.fmt.num(info.price);
+    ROX.showModal(`
+      <div class="modal-header">
+        <span class="modal-title">设置价格预警 — ${ROX.escape(name)}</span>
+        <div class="modal-close" data-action="close-modal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="padding:10px 14px;background:var(--bg-input);border-radius:var(--radius-md);font-size:13px;color:var(--text-secondary);">
+          当前价格：<strong style="font-family:var(--font-mono);font-size:16px;">¥${currentPrice}</strong>
+        </div>
+        <div class="form-group">
+          <label class="form-label">预警价格</label>
+          <input class="form-input" type="number" id="alert-target-price" placeholder="输入目标价格" step="0.01" min="0" style="font-family:var(--font-mono);">
+        </div>
+        <div class="form-group">
+          <label class="form-label">触发方向</label>
+          <div style="display:flex;gap:8px;">
+            <label style="flex:1;display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 14px;border:0.5px solid var(--border-color);border-radius:var(--radius-md);font-size:13px;">
+              <input type="radio" name="alert-dir" value="above" checked> 向上突破 ≥
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 14px;border:0.5px solid var(--border-color);border-radius:var(--radius-md);font-size:13px;">
+              <input type="radio" name="alert-dir" value="below"> 向下突破 ≤
+            </label>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-secondary" data-action="close-modal">取消</button>
+          <button class="btn btn-primary" id="alert-submit-btn">确认设置</button>
+        </div>
+      </div>
+    `);
+    document.getElementById('alert-submit-btn')?.addEventListener('click', async () => {
+      const price = parseFloat(document.getElementById('alert-target-price')?.value);
+      const dir = document.querySelector('input[name="alert-dir"]:checked')?.value || 'above';
+      if (!price || price <= 0) { ROX.toast('请输入有效的预警价格', 'warn'); return; }
+      const res = await ROX.api.post('/api/alerts/', { code, name, target_price: price, direction: dir });
+      if (res?.success) {
+        ROX.closeModal();
+        ROX.toast(`已为 ${name} 设置 ${dir==='above'?'≥':'≤'}${price} 预警`, 'success');
+      } else {
+        ROX.toast('设置失败', 'error');
+      }
+    });
   });
 
   // Add to watchlist
