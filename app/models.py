@@ -4,12 +4,17 @@
 解析 PEP 604 联合类型会触发 typing.Union bug（TypeError: descriptor '__getitem__'）。
 统一使用无注解的 mapped_column 声明，兼容 Python 3.11 ~ 3.14。
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import mapped_column
 
 from app.db import Base
+
+
+def utcnow() -> datetime:
+    """Return timezone-naive UTC now (replaces deprecated datetime.utcnow)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class User(Base):
@@ -19,7 +24,7 @@ class User(Base):
     username = mapped_column(String(50), unique=True, index=True)
     password_hash = mapped_column(String(200))
     plan = mapped_column(String(20), default="基础版")
-    created_at = mapped_column(DateTime, default=datetime.utcnow)
+    created_at = mapped_column(DateTime, default=utcnow)
 
     def to_dict(self):
         return {
@@ -49,7 +54,7 @@ class JournalEntry(Base):
     result_pct = mapped_column(Float, nullable=True)
     holding_days = mapped_column(Integer, default=0)
     review = mapped_column(Text, nullable=True)
-    created_at = mapped_column(DateTime, default=datetime.utcnow)
+    created_at = mapped_column(DateTime, default=utcnow)
 
     def to_dict(self):
         return {
@@ -77,7 +82,7 @@ class DisciplineProfile(Base):
     id = mapped_column(Integer, primary_key=True)
     user_id = mapped_column(ForeignKey("users.id"), unique=True, index=True)
     profile_json = mapped_column(Text, default="{}")
-    updated_at = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class Setting(Base):
@@ -101,7 +106,7 @@ class Position(Base):
     cost_price = mapped_column(Float, default=0)    # 成本价
     date = mapped_column(String(10))                 # 建仓日期
     notes = mapped_column(Text, default="")
-    created_at = mapped_column(DateTime, default=datetime.utcnow)
+    created_at = mapped_column(DateTime, default=utcnow)
 
     def to_dict(self):
         return {
@@ -127,7 +132,7 @@ class Alert(Base):
     active = mapped_column(Boolean, default=True)
     triggered = mapped_column(Boolean, default=False)
     triggered_at = mapped_column(DateTime, nullable=True)
-    created_at = mapped_column(DateTime, default=datetime.utcnow)
+    created_at = mapped_column(DateTime, default=utcnow)
 
     def to_dict(self):
         return {
@@ -151,7 +156,7 @@ class Watchlist(Base):
     code = mapped_column(String(10))
     name = mapped_column(String(30))
     sort_order = mapped_column(Integer, default=0)
-    created_at = mapped_column(DateTime, default=datetime.utcnow)
+    created_at = mapped_column(DateTime, default=utcnow)
 
     def to_dict(self):
         return {

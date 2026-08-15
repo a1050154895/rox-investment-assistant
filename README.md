@@ -124,7 +124,7 @@ ROX 不试图用单一指标预测涨跌，而是把投资研究拆成五类可�
 | 可视化 | Apache ECharts 5 | K 线和资金趋势图 |
 | 市场数据 | 腾讯自选股公开接口（行情/K线/搜索）→ AKShare → 可信快照降级 | 行情与 K 线实时；失败时逐级降级，绝不生成模拟数据 |
 | 样式 | 原生 CSS + Design Tokens | 响应式“战略文房”设计系统 |
-| 测试 | Python `unittest` | 可信数据和确定性分析测试 |
+| 测试 | Python `pytest` | 可信数据 + API 冒烟测试 |
 | 部署 | Render Web Service | 使用 `render.yaml` 自动配置 |
 
 当前为**单体全栈应用**：浏览器通过同源 REST API 获取数据，不需要独立前端服务，也没有 WebSocket/SSE 实时通道。
@@ -149,26 +149,51 @@ Browser
 ```text
 rox-investment-assistant/
 ├── app/
-│   ├── api/                    # REST 路由
+│   ├── api/                    # REST 路由（18 个模块）
+│   │   ├── auth.py             # 注册 / 登录 / 当前用户
 │   │   ├── dashboard.py
 │   │   ├── stock.py
 │   │   ├── intelligence.py
 │   │   ├── journal.py
 │   │   ├── framework.py
-│   │   └── settings_api.py
+│   │   ├── settings_api.py
+│   │   ├── discipline.py       # 334 纪律
+│   │   ├── macro.py            # 宏观矩阵
+│   │   ├── ai.py               # AI 对话（含 SSE）
+│   │   ├── screener.py         # 选股扫描
+│   │   ├── backtest.py         # 策略回测
+│   │   ├── review.py           # 每日复盘
+│   │   ├── fundamentals.py     # 基本面估值
+│   │   ├── portfolio.py        # 持仓
+│   │   ├── export_api.py       # 数据导出
+│   │   ├── alerts.py           # 价格预警
+│   │   └── watchlist.py        # 自选股
 │   ├── core/
 │   │   ├── config.py           # 环境配置与 CORS 白名单
-│   │   └── security.py         # 请求 ID、错误处理与安全响应头
+│   │   ├── auth.py             # PBKDF2 密码哈希 + JWT
+│   │   ├── security.py         # 请求 ID、错误处理与安全响应头
+│   │   └── limiter.py          # slowapi 请求限流
 │   ├── services/
 │   │   ├── market_data.py      # 市场行情、K 线与资金数据
+│   │   ├── tencent_data.py     # 腾讯行情接口 + 短时缓存
 │   │   ├── analysis_engine.py  # 确定性分析与技术指标
+│   │   ├── fundamentals_engine.py
+│   │   ├── macro_data.py
+│   │   ├── discipline_engine.py
+│   │   ├── screener_engine.py
+│   │   ├── backtest_engine.py
+│   │   ├── review_engine.py
+│   │   ├── ai_service.py
 │   │   └── intelligence_data.py
+│   ├── db.py                   # SQLAlchemy 2.0 + DATABASE_URL 降级
+│   ├── models.py               # 用户 / 日志 / 纪律 / 设置 / 持仓 / 预警 / 自选股
 │   └── main.py                 # FastAPI 应用入口
 ├── static/
 │   ├── css/                    # Design Tokens 与响应式样式
-│   └── js/                     # SPA 内核和各页面视图
+│   ├── js/                     # SPA 内核和 12 个页面视图
+│   └── manifest.json           # PWA 清单
 ├── templates/shell.html        # SPA 页面外壳
-├── tests/test_trust_layer.py   # 可信数据测试
+├── tests/                      # pytest：可信数据 + API 冒烟测试
 ├── .env.example                # 环境变量示例
 ├── render.yaml                 # Render Blueprint
 ├── requirements.txt
@@ -266,12 +291,21 @@ FastAPI 自动提供 `/docs` 和 `/openapi.json`。主要接口如下：
 | GET | `/health` | 存活检查与应用版本 |
 | GET | `/ready` | 配置、市场快照和数据库就绪状态 |
 
+### 账户认证
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| POST | `/api/auth/register` | 注册并返回 JWT |
+| POST | `/api/auth/login` | 登录并返回 JWT |
+| GET | `/api/auth/me` | 当前用户信息 |
+
 ### 仪表盘
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
 | GET | `/api/dashboard/overview` | 仪表盘聚合数据 |
 | GET | `/api/dashboard/market_heatmap` | 板块热力图；无可靠数据时返回不可用状态 |
+| GET | `/api/dashboard/stats` | 决策胜率、持仓盈亏、预警、自选股数量统计 |
 
 ### 股票
 
@@ -283,6 +317,14 @@ FastAPI 自动提供 `/docs` 和 `/openapi.json`。主要接口如下：
 | GET | `/api/stock/{code}/analysis` | 确定性框架分析 |
 | GET | `/api/stock/{code}/indicators` | 基于真实 K 线计算技术指标 |
 
+### 基本面估值
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/fundamentals/{code}` | 个股基本面概览 |
+| GET | `/api/fundamentals/{code}/dcf` | DCF 估值（参数可调） |
+| GET | `/api/fundamentals/{code}/comps` | 可比公司估值 |
+
 ### 宏观情报
 
 | 方法 | 路径 | 用途 |
@@ -290,6 +332,12 @@ FastAPI 自动提供 `/docs` 和 `/openapi.json`。主要接口如下：
 | GET | `/api/intelligence/brief` | 资讯、政策、全球风险和行业资金简报 |
 | GET | `/api/intelligence/brief?refresh=true` | 绕过短时缓存手动刷新 |
 | GET | `/api/intelligence/stock/{code}` | 个股关联的传导路径与验证清单 |
+
+### 宏观矩阵
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/macro/matrix` | 财政信用 × 价值实现 宏观矩阵 |
 
 ### 决策日志
 
@@ -303,6 +351,79 @@ FastAPI 自动提供 `/docs` 和 `/openapi.json`。主要接口如下：
 | GET | `/api/journal/stats/summary` | 汇总统计 |
 | POST | `/api/journal/review` | 生成规则化复盘摘要 |
 
+### 持仓
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/portfolio/` | 持仓列表 |
+| POST | `/api/portfolio/` | 新建持仓 |
+| PUT | `/api/portfolio/{pos_id}` | 更新持仓 |
+| DELETE | `/api/portfolio/{pos_id}` | 删除持仓 |
+
+### 自选股
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/watchlist/` | 自选股列表（附带行情） |
+| POST | `/api/watchlist/` | 加入自选（重复返回已有记录） |
+| DELETE | `/api/watchlist/{item_id}` | 移除自选 |
+| PUT | `/api/watchlist/reorder` | 批量调整排序 |
+
+### 价格预警
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/alerts/` | 预警列表 |
+| POST | `/api/alerts/` | 新建预警 |
+| PUT | `/api/alerts/{alert_id}` | 更新或激活/暂停预警 |
+| DELETE | `/api/alerts/{alert_id}` | 删除预警 |
+
+### 选股扫描
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/screener/presets` | 选股预设 |
+| POST | `/api/screener/scan` | 执行扫描 |
+
+### 策略回测
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/backtest/strategies` | 回测策略库 |
+| GET | `/api/backtest/stocks` | 可回测股票列表 |
+| POST | `/api/backtest/run` | 运行回测 |
+
+### 334 纪律
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/discipline/defaults` | 纪律默认参数 |
+| POST | `/api/discipline/evaluate` | 执行纪律检查 |
+| GET | `/api/discipline/profile` | 获取纪律档案 |
+| PUT | `/api/discipline/profile` | 保存纪律档案 |
+
+### 每日复盘
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/review/daily` | 今日复盘 |
+| GET | `/api/review/history` | 复盘历史 |
+
+### 数据导出
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/export/journal` | 导出决策日志 CSV |
+| GET | `/api/export/portfolio` | 导出持仓 CSV |
+
+### AI 助手
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/ai/status` | AI 配置状态（不回传密钥） |
+| POST | `/api/ai/chat` | AI 对话 |
+| POST | `/api/ai/chat/stream` | AI 对话（SSE 流式） |
+
 ### 框架与设置
 
 | 方法 | 路径 | 用途 |
@@ -315,18 +436,18 @@ FastAPI 自动提供 `/docs` 和 `/openapi.json`。主要接口如下：
 
 ## 测试与质量检查
 
-### 运行可信数据测试
+### 运行测试
 
 ```bash
-PYTHONPATH=. python -m unittest discover -s tests -v
+PYTHONPATH=. python -m pytest tests/ -v
 ```
 
-现有测试覆盖：
+现有 38 个测试覆盖：
 
-- 股票代码标准化
-- 同输入下分析结果确定性
-- K 线样本不足时拒绝生成技术指标
-- 未知股票不生成模拟行情或资金流
+- 健康检查与就绪检查
+- 注册 / 登录 / 鉴权与账号级数据隔离
+- 决策日志、持仓、预警、自选股 CRUD 与统计
+- 可信数据层：股票代码标准化、分析确定性、K 线样本不足拒算指标、未知股票不造数据
 
 ### Python 编译检查
 
@@ -339,12 +460,7 @@ python -m compileall -q app
 需要 Node.js 18+：
 
 ```bash
-node --check static/js/app.js
-node --check static/js/views/dashboard.js
-node --check static/js/views/stock.js
-node --check static/js/views/intelligence.js
-node --check static/js/views/journal.js
-node --check static/js/views/framework.js
+find static/js -name '*.js' -print0 | xargs -0 -n1 node --check
 ```
 
 ### Git 差异检查
@@ -353,7 +469,7 @@ node --check static/js/views/framework.js
 git diff --check
 ```
 
-发布前建议至少执行以上四类检查，并验证 `/health`、`/ready`、仪表盘、个股页和手机底部导航。
+发布前建议至少执行以上四类检查，并验证 `/health`、`/ready`、仪表盘、个股页和手机底部导航。推送到 `main` 分支后，GitHub Actions 会自动运行 pytest、flake8 和前端 JS 语法检查。
 
 ## 部署到 Render
 
@@ -423,7 +539,7 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 - 关键日志字段前端转义
 - Git 仓库不保存真实环境变量和访问令牌
 
-当前 API 已具备多用户 JWT 鉴权与账号级数据隔离；请求限流、找回密码与 RBAC 仍在路线图中，正式收费服务前需补齐并完成合规审核。
+当前 API 已具备多用户 JWT 鉴权、账号级数据隔离与接口限流（全局 200 次/分钟、登录 5 次/分钟）；找回密码与 RBAC 仍在路线图中，正式收费服务前需补齐并完成合规审核。
 
 ### 密钥安全
 
@@ -442,10 +558,10 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 | 数据库 | 已接入（生产 PostgreSQL / 本地 SQLite 自动降级），日志、设置、纪律档案按用户持久化 |
 | 用户体系 | 已支持注册、登录（JWT + PBKDF2 哈希）与账号级数据隔离；找回密码、RBAC 待实现 |
 | AI 服务 | 已接入真实后端（OpenAI 兼容），需配置 API Key；AI 仅做解释/复盘，不覆盖硬性风控规则 |
-| 缓存 | 仅有进程内短时缓存，实例重启后失效 |
+| 缓存 | 行情接口有 30 秒进程内 TTL 缓存，实例重启后失效；无 Redis |
 | 任务系统 | 暂无独立采集 Worker、消息队列和定时任务 |
 | 可观测性 | 有请求 ID，但尚无集中日志、错误追踪和告警 |
-| 测试 | 已有可信数据单元测试，尚缺完整集成与 E2E 测试 |
+| 测试 | 已有 38 个后端测试（可信数据 + API 冒烟）；尚缺前端自动化测试与 E2E |
 | 主题 | 当前以深色“战略文房”为主，完整 light/dark/system 切换待实现 |
 | 商业合规 | 用户协议、隐私政策、风险揭示和法律审核尚未完成 |
 
@@ -454,7 +570,7 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 ### 阶段 2：账户与持久化（✅ 已基本完成，v3.3.0）
 
 - ✅ PostgreSQL 数据库（生产）/ SQLite 自动降级（本地）
-- ✅ SQLAlchemy 模型：用户、决策日志、纪律档案、设置
+- ✅ SQLAlchemy 模型：用户、决策日志、纪律档案、设置、持仓、预警、自选股
 - ✅ 注册、登录（JWT + PBKDF2 密码哈希）、账号级数据隔离
 - ⏳ 邮箱验证和密码重置
 - ⏳ 服务端安全会话与 HttpOnly Cookie（当前为 Bearer Token）
@@ -462,12 +578,14 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 
 ### 阶段 3：生产质量
 
-- Redis 缓存和接口限流
-- 数据源超时、重试、熔断和降级监控
-- 结构化日志、错误追踪和性能监控
-- GitHub Actions 测试、依赖扫描和密钥扫描
-- staging / production 分离
-- 自动备份、恢复演练与发布回滚
+- ✅ 接口限流（slowapi：全局 200 次/分钟、登录 5 次/分钟）
+- ✅ GitHub Actions 测试（pytest + flake8 + 前端 JS 语法检查）
+- ⏳ Redis 缓存（当前为进程内 30 秒 TTL）
+- ⏳ 数据源超时、重试、熔断和降级监控
+- ⏳ 结构化日志、错误追踪和性能监控
+- ⏳ 依赖扫描和密钥扫描
+- ⏳ staging / production 分离
+- ⏳ 自动备份、恢复演练与发布回滚
 
 ### 阶段 4：可信研究平台
 
