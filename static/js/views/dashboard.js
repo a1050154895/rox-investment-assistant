@@ -11,6 +11,14 @@ ROX.register('/', async function(container) {
 
   container.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:16px;">
+      <!-- 研究传导链 -->
+      <div class="card full-width" style="padding:16px 20px;">
+        <div class="card-header" style="margin-bottom:8px;">
+          <div class="card-title">研究传导链</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-primary);line-height:1.7;">${ROX.escape(data.research_chain?.summary || '宏观数据不足')}</div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">宏观定调 → 资本周期 → 矛盾分析 → 决策纪律，逐层传导、可追溯。</div>
+      </div>
       <!-- 宏观指南针 -->
       <div class="card full-width">
         <div class="card-header">

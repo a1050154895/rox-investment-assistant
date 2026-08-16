@@ -87,6 +87,19 @@ def _normalize_news(frame: Any, limit: int) -> list[dict[str, Any]]:
     return items
 
 
+def _dedup_news(news: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """按标准化标题去重：完全一致的资讯只保留一条。"""
+    seen: set[str] = set()
+    result: list[dict[str, Any]] = []
+    for item in news:
+        key = str(item.get("title", "")).strip().lower().replace(" ", "")
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        result.append(item)
+    return result
+
+
 async def _fetch_news_akshare() -> tuple[list[dict[str, Any]], str]:
     """尝试多个 AKShare 资讯接口，返回 (news, source_status)。"""
     sources = [
@@ -123,6 +136,7 @@ async def get_intelligence_brief(force: bool = False) -> dict[str, Any]:
     if not news:
         news = FALLBACK_NEWS
         source_status = "公开信息结构化快照（AKShare 资讯源暂不可用）"
+    news = _dedup_news(news)
 
     # 尝试获取实时行业资金流
     sector_flow = SECTOR_FLOW

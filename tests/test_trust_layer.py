@@ -46,6 +46,10 @@ class TrustLayerTests(unittest.TestCase):
         self.assertEqual(classify_capital_cycle(50, 60, 1, 2, 2, 4, 0.5), "分配")
         self.assertEqual(classify_capital_cycle(48, 55, 2, 0, 4, 1, 0.3), "集中")
         self.assertEqual(classify_capital_cycle(50, 50, 1, 1, 2, 2, 0.0), "积累")
+        # 信用扩张但价值承压 → 集中（即使盘面中性）
+        self.assertEqual(classify_capital_cycle(50, 50, 1, 1, 2, 2, 0.0, credit_score=70, value_score=40), "集中")
+        # 信用收缩 + 价值承压 + 盘面弱 → 再生产
+        self.assertEqual(classify_capital_cycle(40, 50, 0, 1, 1, 2, -0.5, credit_score=40, value_score=40), "再生产")
 
     def test_capital_cycle_stage_shape(self):
         from app.services.review_engine import get_capital_cycle_stage
@@ -79,6 +83,16 @@ class TrustLayerTests(unittest.TestCase):
             self.assertIn("name", result[rank])
             self.assertIn("intensity", result[rank])
         self.assertEqual(len(result["all"]), 4)
+
+    def test_news_dedup(self):
+        from app.services.intelligence_data import _dedup_news
+        items = [
+            {"title": "央行降息", "id": 1},
+            {"title": "央行降息", "id": 2},
+            {"title": " 央行 降息 ", "id": 3},
+            {"title": "PMI数据公布", "id": 4},
+        ]
+        self.assertEqual(len(_dedup_news(items)), 2)
 
 
 if __name__ == "__main__":

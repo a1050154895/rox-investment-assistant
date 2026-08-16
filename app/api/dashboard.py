@@ -35,11 +35,23 @@ async def overview():
     # 自选股实时行情 — 前端异步加载用户真实自选股，此处返回空数组
     watchlist = []
 
+    research_chain = {
+        "macro": macro_matrix.get("matrix_cell", "宏观数据不足"),
+        "cycle": capital_cycle.get("stage_name", "未评估"),
+        "contradiction": contradictions["primary"]["name"],
+        "summary": (
+            f"{macro_matrix.get('matrix_cell', '宏观数据不足')} → "
+            f"资本周期「{capital_cycle.get('stage_name', '未评估')}」 → "
+            f"主要矛盾「{contradictions['primary']['name']}」"
+        ),
+    }
+
     return {
         "market_indices": market_indices,
         "macro_compass": macro_matrix,
         "capital_cycle": capital_cycle,
         "contradictions": contradictions,
+        "research_chain": research_chain,
         "discipline_334": {
             "core": {
                 "target": 30, "actual": 30, "stocks": [],

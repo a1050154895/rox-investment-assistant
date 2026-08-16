@@ -12,6 +12,7 @@ from typing import Any
 
 from app.services.tencent_data import fetch_global_indices, fetch_kline, fetch_quotes
 from app.services.market_data import REAL_QUOTES, REAL_INDICES
+from app.services.macro_data import get_macro_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -313,15 +314,34 @@ def classify_capital_cycle(
     inflow: int,
     outflow: int,
     index_avg: float,
+    credit_score: float | None = None,
+    value_score: float | None = None,
 ) -> str:
-    """纯函数：根据市场广度、情绪、资金流与指数动量判定资本周期阶段。"""
+    """纯函数：信用环境优先，结合盘面广度/资金流判定资本周期阶段。"""
+    credit_expand = credit_score is not None and credit_score >= 65
+    credit_contract = credit_score is not None and credit_score < 45
+    value_improve = value_score is not None and value_score >= 65
+    value_weak = value_score is not None and value_score < 45
+
+    # 信用扩张 + 价值改善 + 盘面偏强 → 流转（资本顺畅流转）
+    if credit_expand and value_improve and up_ratio >= 55:
+        return "流转"
+    # 信用扩张但价值承压 → 集中（宽信用未传导到实体，资金堆积集中）
+    if credit_expand and value_weak:
+        return "集中"
+    # 信用收缩 + 价值承压 + 盘面偏弱 → 再生产（收缩重置）
+    if credit_contract and value_weak and up_ratio <= 45:
+        return "再生产"
+    # 盘面顶部背离 → 分配
+    if index_avg > 0 and up_ratio < 55 and outflow > inflow and limit_down > 0:
+        return "分配"
+    # 盘面兜底：普涨 → 流转；普跌 → 再生产
     if up_ratio >= 60:
         return "流转"
     if up_ratio <= 35:
         return "再生产"
-    if index_avg > 0 and up_ratio < 55 and outflow > inflow and limit_down > 0:
-        return "分配"
-    if inflow >= 2 and inflow > outflow and limit_up > 0 and up_ratio >= 45:
+    # 资金集中 → 集中
+    if inflow > outflow and limit_up > 0 and up_ratio >= 45:
         return "集中"
     return "积累"
 
@@ -347,6 +367,7 @@ async def get_capital_cycle_stage(force: bool = False) -> dict[str, Any]:
     indices = await _fetch_index_data()
     breadth = await _fetch_market_breadth()
     sectors = await _fetch_sector_performance()
+    macro = await get_macro_matrix()
 
     total = breadth.get("total_stocks", 0)
     if total == 0:
@@ -372,17 +393,27 @@ async def get_capital_cycle_stage(force: bool = False) -> dict[str, Any]:
     inflow = sum(1 for s in sectors if s.get("trend") == "inflow")
     outflow = sum(1 for s in sectors if s.get("trend") == "outflow")
     index_avg = round(sum(i.get("change_pct", 0) for i in indices) / len(indices), 2) if indices else 0.0
+    credit_score = macro.get("sovereign_credit", {}).get("score")
+    value_score = macro.get("value_realization", {}).get("score")
+    if not credit_score or not value_score:
+        credit_score = value_score = None
 
-    stage = classify_capital_cycle(up_ratio, score, limit_up, limit_down, inflow, outflow, index_avg)
+    stage = classify_capital_cycle(up_ratio, score, limit_up, limit_down, inflow, outflow, index_avg, credit_score, value_score)
+    macro_env = (
+        f"信用端 {credit_score:.0f}分 / 实体端 {value_score:.0f}分"
+        if credit_score is not None and value_score is not None else "宏观数据不足"
+    )
     result = {
         "stages": CAPITAL_CYCLE_STAGES,
         "current_stage": CAPITAL_CYCLE_STAGES.index(stage),
         "stage_name": stage,
         "progress": round((CAPITAL_CYCLE_STAGES.index(stage) + 1) / len(CAPITAL_CYCLE_STAGES) * 100),
         "stage_detail": _CYCLE_DETAIL[stage],
-        "evidence": f"上涨占比 {up_ratio}% · 情绪 {sentiment['label']}({score}分) · 流入板块 {inflow} / 流出 {outflow}",
+        "evidence": f"{macro_env} · 上涨占比 {up_ratio}% · 情绪 {sentiment['label']}({score}分) · 流入板块 {inflow} / 流出 {outflow}",
         "confidence": _cycle_confidence(up_ratio, score, inflow, outflow),
         "signals": {
+            "credit_score": credit_score,
+            "value_score": value_score,
             "up_ratio": up_ratio,
             "down_ratio": breadth.get("down_ratio", 0),
             "limit_up": limit_up,
