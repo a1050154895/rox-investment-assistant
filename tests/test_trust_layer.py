@@ -55,6 +55,31 @@ class TrustLayerTests(unittest.TestCase):
         self.assertIn("signals", result)
         self.assertIn(result["stage_name"], ("积累", "集中", "流转", "分配", "再生产", "未评估"))
 
+    def test_analyze_contradictions(self):
+        from app.services.contradiction_engine import analyze_contradictions
+        result = analyze_contradictions(
+            index_avg=1.0, up_ratio=30.0, inflow=4, outflow=1,
+            credit_score=70.0, real_score=40.0,
+        )
+        self.assertEqual([c["name"] for c in result], ["量价矛盾", "资金矛盾", "结构矛盾", "预期矛盾"])
+        for c in result:
+            self.assertGreaterEqual(c["intensity"], 0)
+            self.assertLessEqual(c["intensity"], 100)
+            self.assertIn("desc", c)
+            self.assertIn("evidence", c)
+        expectation = [c for c in result if c["key"] == "expectation"][0]
+        self.assertGreater(expectation["intensity"], 0)
+        self.assertEqual(expectation["trend"], "信用强、实体弱")
+
+    def test_get_contradictions_shape(self):
+        from app.services.contradiction_engine import get_contradictions
+        result = asyncio.run(get_contradictions(force=True))
+        for rank in ("primary", "secondary", "tertiary"):
+            self.assertIn(rank, result)
+            self.assertIn("name", result[rank])
+            self.assertIn("intensity", result[rank])
+        self.assertEqual(len(result["all"]), 4)
+
 
 if __name__ == "__main__":
     unittest.main()

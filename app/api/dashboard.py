@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user
 from app.db import get_db
 from app.models import Alert, JournalEntry, Position, User, Watchlist
+from app.services.contradiction_engine import get_contradictions
 from app.services.market_data import get_market_indices
 from app.services.intelligence_data import get_intelligence_brief
 from app.services.macro_data import get_macro_matrix
@@ -27,8 +28,8 @@ async def overview():
     market_indices = await get_market_indices()
 
     # 资讯与宏观矩阵独立降级，任一外部数据源异常都不影响行情主看板
-    intelligence, macro_matrix, capital_cycle = await asyncio.gather(
-        get_intelligence_brief(), get_macro_matrix(), get_capital_cycle_stage()
+    intelligence, macro_matrix, capital_cycle, contradictions = await asyncio.gather(
+        get_intelligence_brief(), get_macro_matrix(), get_capital_cycle_stage(), get_contradictions()
     )
 
     # 自选股实时行情 — 前端异步加载用户真实自选股，此处返回空数组
@@ -38,12 +39,7 @@ async def overview():
         "market_indices": market_indices,
         "macro_compass": macro_matrix,
         "capital_cycle": capital_cycle,
-        "contradictions": {
-            "primary": {"name": "待真实数据验证", "type": "未评估", "intensity": 0, "trend": "unknown", "desc": "不使用模拟强度"},
-            "secondary": {"name": "待真实数据验证", "type": "未评估", "intensity": 0, "trend": "unknown", "desc": "不使用模拟强度"},
-            "tertiary": {"name": "待真实数据验证", "type": "未评估", "intensity": 0, "trend": "unknown", "desc": "不使用模拟强度"},
-            "rule": "只有经过来源校验的数据才能进入矛盾强度计算"
-        },
+        "contradictions": contradictions,
         "discipline_334": {
             "core": {
                 "target": 30, "actual": 30, "stocks": [],

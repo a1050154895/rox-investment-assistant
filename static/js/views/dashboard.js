@@ -74,31 +74,22 @@ ROX.register('/', async function(container) {
           <div class="card-header">
             <div class="card-title">主矛盾追踪</div>
           </div>
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                <span style="font-size:12px;color:var(--text-primary);">主要矛盾</span>
-                <span style="font-size:11px;color:var(--text-tertiary);">${data.contradictions.primary.trend === 'up' ? '↑ 强化' : data.contradictions.primary.trend === 'down' ? '↓ 缓解' : '→ 稳定'}</span>
-              </div>
-              <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">${data.contradictions.primary.name}</div>
-              <div class="progress"><div class="progress-fill red" style="width:${data.contradictions.primary.intensity}%"></div></div>
-            </div>
-            <div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                <span style="font-size:12px;color:var(--text-primary);">次要矛盾</span>
-                <span style="font-size:11px;color:var(--text-tertiary);">${data.contradictions.secondary.trend === 'up' ? '↑ 强化' : data.contradictions.secondary.trend === 'down' ? '↓ 缓解' : '→ 稳定'}</span>
-              </div>
-              <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">${data.contradictions.secondary.name}</div>
-              <div class="progress"><div class="progress-fill amber" style="width:${data.contradictions.secondary.intensity}%"></div></div>
-            </div>
-            <div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                <span style="font-size:12px;color:var(--text-primary);">第三矛盾</span>
-                <span style="font-size:11px;color:var(--text-tertiary);">${data.contradictions.tertiary.trend === 'up' ? '↑ 强化' : data.contradictions.tertiary.trend === 'down' ? '↓ 缓解' : '→ 稳定'}</span>
-              </div>
-              <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">${data.contradictions.tertiary.name}</div>
-              <div class="progress"><div class="progress-fill green" style="width:${data.contradictions.tertiary.intensity}%"></div></div>
-            </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            ${[['primary', '主要矛盾', 'red'], ['secondary', '次要矛盾', 'amber'], ['tertiary', '第三矛盾', 'green']].map(([key, label, color]) => {
+              const c = data.contradictions[key];
+              return `
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <span style="font-size:12px;color:var(--text-primary);font-weight:600;">${label} · ${ROX.escape(c.name)}</span>
+                    <span style="font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono);">强度 ${c.intensity}</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px;">${ROX.escape(c.type)} · ${ROX.escape(c.trend)}</div>
+                  <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px;">${ROX.escape(c.desc)}</div>
+                  <div class="progress"><div class="progress-fill ${color}" style="width:${c.intensity}%"></div></div>
+                  ${c.evidence ? `<div style="font-size:10px;color:var(--text-muted);margin-top:3px;">${ROX.escape(c.evidence)}</div>` : ''}
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
       </div>
