@@ -97,6 +97,18 @@ ul { list-style: none; }
 .nav-label { font-size: 13px; opacity: 0; transition: opacity var(--transition-normal); }
 
 .sidebar-bottom { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; padding: 0 var(--space-2); }
+.version-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--space-2) 0 var(--space-1);
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+.sidebar:hover .version-label { opacity: 1; }
 
 /* Main Area */
 .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }

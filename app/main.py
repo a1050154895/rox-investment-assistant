@@ -101,7 +101,7 @@ async def health():
     from app.core.auth import KEY_SOURCE
     return {
         "status": "ok",
-        "version": "4.5.0",
+        "version": app.version,
         "name": "ROX投资助手",
         "db_persistent": DB_BACKEND == "postgresql",
         "key_source": KEY_SOURCE,
@@ -141,7 +141,7 @@ async def index(request: Request):
     """SPA 壳页面 — 所有视图通过前端路由渲染"""
     if templates is None:
         return "<h1>ROX投资助手</h1><p>模板未找到</p>"
-    return templates.TemplateResponse(request, "shell.html")
+    return templates.TemplateResponse(request, "shell.html", {"version": app.version})
 
 
 @app.get("/{path:path}", response_class=HTMLResponse)
@@ -151,7 +151,7 @@ async def spa_fallback(request: Request, path: str):
         return HTMLResponse(status_code=404, content="Not Found")
     if templates is None:
         return "<h1>ROX投资助手</h1><p>模板未找到</p>"
-    return templates.TemplateResponse(request, "shell.html")
+    return templates.TemplateResponse(request, "shell.html", {"version": app.version})
 
 
 if __name__ == "__main__":
