@@ -10,6 +10,15 @@ class TrustLayerTests(unittest.TestCase):
         self.assertEqual(normalize_stock_code("sh600519"), "600519")
         self.assertEqual(normalize_stock_code("600519.SH"), "600519")
 
+    def test_etf_symbol_mapping(self):
+        from app.services.tencent_data import to_tencent_symbol
+        self.assertEqual(to_tencent_symbol("510300"), "sh510300")
+        self.assertEqual(to_tencent_symbol("159915"), "sz159915")
+        self.assertEqual(to_tencent_symbol("518880"), "sh518880")
+        self.assertEqual(to_tencent_symbol("588000"), "sh588000")
+        self.assertEqual(to_tencent_symbol("600519"), "sh600519")
+        self.assertEqual(to_tencent_symbol("000001"), "sz000001")
+
     def test_analysis_is_deterministic(self):
         quote = {"price": 100, "pe": 20, "pb": 4}
         flow = {"main_inflow": 2.5}

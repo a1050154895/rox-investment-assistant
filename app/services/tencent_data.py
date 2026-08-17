@@ -82,9 +82,11 @@ def to_tencent_symbol(code: str, is_index: bool = False) -> str:
         return ""
     if is_index:
         return f"sz{code}" if code.startswith("399") else f"sh{code}"
-    if code.startswith(("6", "9")):
+    # 沪市：6/9 开头（股票）、5 开头（ETF/封闭式基金）
+    if code.startswith(("6", "9", "5")):
         return f"sh{code}"
-    if code.startswith(("0", "3")):
+    # 深市：0/3 开头（股票）、1 开头（ETF/基金/债券）
+    if code.startswith(("0", "3", "1")):
         return f"sz{code}"
     return f"bj{code}"
 
