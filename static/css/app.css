@@ -540,7 +540,7 @@ summary { cursor: pointer; }
   .index-ticker { display: none; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-left { min-width: 0; }
-  .topbar-title { font-size: 15px; white-space: nowrap; }
+  .topbar-title { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .topbar-right { min-width: 0; flex: 1; justify-content: flex-end; }
   .search-box { width: min(210px, 58vw); min-width: 0; }
   .settings-panel { width: 100vw; }
@@ -659,6 +659,14 @@ summary { cursor: pointer; }
 .user-chip:hover { background: rgba(10,132,255,0.15); }
 .user-chip::before { content: "●"; font-size: 8px; }
 @media (max-width: 768px) { .user-chip { display: none !important; } }
+
+/* 超窄屏（375/390px）细化：更紧凑的顶栏与卡片内边距 */
+@media (max-width: 390px) {
+  .topbar { padding: 0 10px; gap: 6px; }
+  .topbar-title { font-size: 14px; }
+  .card { padding: 12px; }
+  .stock-metrics { gap: 4px 8px; }
+}
 
 /* ============ Toast 通知 ============ */
 .toast-container {
