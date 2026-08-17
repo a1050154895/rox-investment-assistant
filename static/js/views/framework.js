@@ -201,6 +201,30 @@ async function renderStrategies() {
   });
 }
 
+function articleCard(a) {
+  const body = (a.content || []).map(p =>
+    `<p style="margin:0;font-size:12px;color:var(--text-secondary);line-height:1.75;">${p}</p>`
+  ).join('');
+  return `
+    <div class="card knowledge-card" data-article-id="${a.id}" style="margin-bottom:12px;cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${a.title}</div>
+          <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${a.summary}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+          <span class="tag tag-blue">${a.category}</span>
+          <span style="font-size:10px;color:var(--text-tertiary);">${a.read_time}</span>
+        </div>
+      </div>
+      <div class="knowledge-body" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-direction:column;gap:8px;">
+        ${body}
+      </div>
+      <div class="knowledge-toggle" style="margin-top:8px;font-size:11px;color:var(--rox-primary);">阅读全文 ▾</div>
+    </div>
+  `;
+}
+
 async function renderKnowledge() {
   const el = document.getElementById('fw-content');
   const data = await ROX.api.get('/api/framework/knowledge');
@@ -212,22 +236,20 @@ async function renderKnowledge() {
       ${(data.categories||[]).map(c => `<button class="btn btn-secondary btn-sm fw-cat-filter" data-cat="${c}">${c}</button>`).join('')}
     </div>
     <div id="knowledge-list">
-      ${data.articles.map(a => `
-        <div class="card" style="margin-bottom:12px;cursor:pointer;">
-          <div style="display:flex;justify-content:space-between;align-items:start;">
-            <div style="flex:1;">
-              <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${a.title}</div>
-              <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${a.summary}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:16px;">
-              <span class="tag tag-blue">${a.category}</span>
-              <span style="font-size:10px;color:var(--text-tertiary);">${a.read_time}</span>
-            </div>
-          </div>
-        </div>
-      `).join('')}
+      ${data.articles.map(articleCard).join('')}
     </div>
   `;
+
+  const list = document.getElementById('knowledge-list');
+  list.addEventListener('click', (e) => {
+    const card = e.target.closest('.knowledge-card');
+    if (!card) return;
+    const body = card.querySelector('.knowledge-body');
+    const toggle = card.querySelector('.knowledge-toggle');
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'flex';
+    toggle.textContent = isOpen ? '阅读全文 ▾' : '收起全文 ▴';
+  });
 
   el.querySelectorAll('.fw-cat-filter').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -237,21 +259,7 @@ async function renderKnowledge() {
       const url = cat ? `/api/framework/knowledge?category=${encodeURIComponent(cat)}` : '/api/framework/knowledge';
       const d = await ROX.api.get(url);
       if (!d) return;
-      const list = document.getElementById('knowledge-list');
-      list.innerHTML = d.articles.map(a => `
-        <div class="card" style="margin-bottom:12px;cursor:pointer;">
-          <div style="display:flex;justify-content:space-between;align-items:start;">
-            <div style="flex:1;">
-              <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${a.title}</div>
-              <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${a.summary}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:16px;">
-              <span class="tag tag-blue">${a.category}</span>
-              <span style="font-size:10px;color:var(--text-tertiary);">${a.read_time}</span>
-            </div>
-          </div>
-        </div>
-      `).join('');
+      list.innerHTML = d.articles.map(articleCard).join('');
     });
   });
 }

@@ -53,3 +53,10 @@ def test_strategies_and_knowledge_non_empty():
     assert all(s["stage"] for s in STRATEGIES)
     assert len(KNOWLEDGE_ARTICLES) >= 1
     assert len(KNOWLEDGE_CATEGORIES) >= 1
+
+
+def test_knowledge_articles_have_full_content():
+    for article in KNOWLEDGE_ARTICLES:
+        content = article.get("content")
+        assert isinstance(content, list) and content, article["title"]
+        assert all(isinstance(paragraph, str) and paragraph.strip() for paragraph in content)
