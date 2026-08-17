@@ -18,10 +18,17 @@ a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 input, textarea, select { font-family: inherit; }
 ul { list-style: none; }
+summary { cursor: pointer; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: var(--radius-full); }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* 键盘导航可见焦点（ui-ux-pro-max 无障碍验收） */
+:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
 
 /* ============================================
    Layout Shell
@@ -190,6 +197,9 @@ ul { list-style: none; }
   display: inline-flex; align-items: center; gap: 4px;
   padding: 3px 10px; border-radius: var(--radius-full);
   font-size: 11px; font-weight: 500; line-height: 1.4;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .tag-blue { background: rgba(10,132,255,0.12); color: var(--brand-blue-hover); }
 .tag-amber { background: rgba(255,159,10,0.12); color: var(--color-warn); }
@@ -323,7 +333,7 @@ ul { list-style: none; }
   font-family: var(--font-display); letter-spacing: 0.5px;
 }
 .settings-tabs { display: flex; gap: var(--space-1); padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--ink-border-faint); }
-.settings-tab { padding: var(--space-sm) var(--space-md); font-size: 12px; color: var(--text-secondary); border-radius: var(--radius-none); transition: all var(--transition-fast); }
+.settings-tab { padding: var(--space-sm) var(--space-md); font-size: 12px; color: var(--text-secondary); border-radius: var(--radius-none); transition: all var(--transition-fast); cursor: pointer; }
 .settings-tab:hover { color: var(--text-primary); }
 .settings-tab.active { background: var(--ink-bg-raised); color: var(--ink-vermilion-soft); box-shadow: inset 0 -2px var(--ink-vermilion); }
 .settings-body { flex: 1; overflow-y: auto; padding: var(--space-lg); }
@@ -401,7 +411,7 @@ ul { list-style: none; }
 
 /* Tabs */
 .tabs { display: flex; gap: var(--space-1); border-bottom: 0.5px solid var(--border-color); margin-bottom: var(--space-lg); }
-.tab { padding: var(--space-md) var(--space-base); font-size: 13px; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: all var(--transition-fast); font-weight: 450; }
+.tab { padding: var(--space-md) var(--space-base); font-size: 13px; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: all var(--transition-fast); font-weight: 450; cursor: pointer; }
 .tab:hover { color: var(--text-primary); }
 .tab.active { color: var(--brand-blue); border-bottom-color: var(--brand-blue); font-weight: 500; }
 
@@ -723,4 +733,14 @@ ul { list-style: none; }
   background: var(--bg-input); padding: 1px 5px;
   border-radius: 3px; border: 0.5px solid var(--border-color);
   margin: 0 1px;
+}
+
+/* 尊重系统「减弱动态效果」偏好（ui-ux-pro-max 无障碍验收） */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
