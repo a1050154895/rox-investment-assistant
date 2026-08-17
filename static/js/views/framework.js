@@ -128,6 +128,19 @@ function renderMethodology(data) {
               `).join('')}
             </div>
           ` : ''}
+
+          ${layer.skill ? `
+            <details style="margin-top:10px;">
+              <summary style="cursor:pointer;font-size:11px;color:var(--text-secondary);font-weight:500;">执行方法 · 触发 · 边界</summary>
+              <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;font-size:11px;line-height:1.6;">
+                <div><span style="color:var(--text-tertiary);">触发：</span><span style="color:var(--text-primary);">${layer.skill.trigger}</span></div>
+                <ol style="margin:0;padding-left:16px;color:var(--text-secondary);">
+                  ${layer.skill.steps.map(st => `<li>${st}</li>`).join('')}
+                </ol>
+                <div><span style="color:var(--ink-warn);">边界：</span><span style="color:var(--text-secondary);">${layer.skill.boundary}</span></div>
+              </div>
+            </details>
+          ` : ''}
         </div>
       `).join('')}
     </div>

@@ -1,202 +1,49 @@
 """认知框架 API — 方法论、策略库、知识库
 
-方法论来源：卢麒元公开讲座思想提炼 + 马克思主义政治经济学公有领域理论
-所有表达均为项目原创，不含第三方原文段落。
+方法论与策略/知识数据统一从 app.services.methodology 单一事实源读取，
+避免同一份方法论在多处硬编码、产生口径漂移。
+
 思想来源登记见 docs/strategy_origins.md
 """
 from fastapi import APIRouter, Query
+
+from app.services.methodology import (
+    KNOWLEDGE_ARTICLES,
+    KNOWLEDGE_CATEGORIES,
+    METHODOLOGY_LAYERS,
+    STRATEGIES,
+)
 
 router = APIRouter()
 
 
 @router.get("/methodology")
 async def methodology():
-    """五层逻辑链方法论"""
+    """五层逻辑链方法论（单一事实源 + RIA-TV++ 蒸馏元数据）"""
     return {
-        "layers": [
-            {
-                "level": "L1", "name": "宏观定调",
-                "title": "主权信用 × 价值实现矩阵",
-                "summary": "宏观判断从主权信用与价值实现两个维度交叉，将宏观环境分为3×3矩阵，不同组合对应不同仓位基准",
-                "key_concepts": ["主权信用", "直接税占比", "财政纪律", "人民币国际化", "社会总资本周转率", "消费率", "积累与消费均衡度"],
-                "indicators": [
-                    {"name": "主权信用状态", "value": "未评估", "score": None,
-                     "detail": "待接入财政、税收与人民币国际化的授权宏观数据"},
-                    {"name": "价值实现度", "value": "未评估", "score": None,
-                     "detail": "待接入消费、资本周转与积累率的授权宏观数据"},
-                ],
-                "matrix": {
-                    "rows": ["扩张信用", "中性信用", "收缩信用"],
-                    "cols": ["高价值实现", "中价值实现", "低价值实现"],
-                    "rules": [
-                        {"cell": "扩张信用×高价值实现", "action": "核心池可提至35%", "desc": "主升行情多，提高核心仓位"},
-                        {"cell": "中性信用×中价值实现", "action": "保持默认30/30/40", "desc": "标准配置，按阶段调整卫星池"},
-                        {"cell": "收缩信用×低价值实现", "action": "卫星池减至15%，现金提至55%", "desc": "防御为主，增加现金缓冲"},
-                        {"cell": "其他组合", "action": "保持默认30/30/40", "desc": "按阶段微调，不大幅偏离基准"},
-                    ]
-                },
-                "observation_targets": [
-                    "央地财政比重变化",
-                    "直接税（所得税/房产税）占税收比重",
-                    "离岸人民币余额占比",
-                    "社会总资本周转率",
-                    "居民消费率与积累率均衡度",
-                ]
-            },
-            {
-                "level": "L2", "name": "资本周期",
-                "title": "五阶段资本流转模型",
-                "summary": "资本运动经历积累→集中→流转→分配→再生产五个阶段，每阶段有可观测的盘面特征，阶段判断不清时建议观望",
-                "key_concepts": ["积累阶段", "集中阶段", "流转阶段", "分配阶段", "再生产阶段"],
-                "current_stage": None,
-                "stages": [
-                    {
-                        "name": "积累", "desc": "资本蓄积，寻找价值洼地",
-                        "strategy": "防守为主，现金为王",
-                        "characteristics": {"成交额": "温和放大", "龙头集中度": "分散", "北向资金": "小幅净流", "政策导向": "稳预期"}
-                    },
-                    {
-                        "name": "集中", "desc": "资本向优势行业集中",
-                        "strategy": "布局龙头，试仓进入",
-                        "characteristics": {"成交额": "显著放大", "龙头集中度": "集中龙头", "北向资金": "大幅净流", "政策导向": "产业政策出台"}
-                    },
-                    {
-                        "name": "流转", "desc": "资本从金融向实体流转",
-                        "strategy": "核心仓位持有，卫星仓位机动",
-                        "characteristics": {"成交额": "维持高位", "龙头集中度": "龙头扩散", "北向资金": "波动加大", "政策导向": "政策落地观察"}
-                    },
-                    {
-                        "name": "分配", "desc": "利润在各部门间分配",
-                        "strategy": "逐步减仓，锁定收益",
-                        "characteristics": {"成交额": "量能衰减", "龙头集中度": "高位股回调", "北向资金": "净流出", "政策导向": "收紧预期"}
-                    },
-                    {
-                        "name": "再生产", "desc": "资本重新配置进入下一周期",
-                        "strategy": "清仓观望，等待新周期",
-                        "characteristics": {"成交额": "缩量筑底", "龙头集中度": "纺锤形", "北向资金": "微幅回流", "政策导向": "新周期蓄势"}
-                    },
-                ],
-                "rule": "不先定阶段，不要讲仓位；阶段判断不清时，输出'阶段不明确，建议观望'"
-            },
-            {
-                "level": "L3", "name": "矛盾分析",
-                "title": "矛盾分析法 — 识别主要矛盾的主要方面",
-                "summary": "识别市场四类核心矛盾，把握主要矛盾的主要方面，分析矛盾的转化趋势",
-                "key_concepts": ["主要矛盾", "次要矛盾", "矛盾转化", "矛盾强度", "矛盾的主要方面"],
-                "contradiction_types": [
-                    {"name": "量价矛盾", "desc": "量能 vs 赚钱效应", "example": "放量下跌=主力出货；放量上涨=资金入场"},
-                    {"name": "资金矛盾", "desc": "外资 vs 内资", "example": "北向资金与主力资金流向分歧"},
-                    {"name": "结构矛盾", "desc": "行业分化 vs 指数共振", "example": "少数板块涨 vs 全市场普涨"},
-                    {"name": "预期矛盾", "desc": "政策预期 vs 经济现实", "example": "政策利好 vs 基本面未改善"},
-                ],
-                "current": None,
-                "rule": "矛盾强度>70为强矛盾，需重点关注；矛盾转化时调整持仓结构"
-            },
-            {
-                "level": "L4", "name": "334纪律",
-                "title": "三池分配 + 三段建仓节奏",
-                "summary": "资金按核心30%/卫星30%/现金40%分布；任何建仓动作按首仓30%→确认仓30%→主升仓40%分批进场",
-                "key_concepts": ["核心池", "卫星池", "现金池", "首仓30%", "确认仓30%", "主升仓40%"],
-                "three_pools": [
-                    {"name": "核心池", "ratio": "30%", "desc": "宽基ETF或高确定性龙头，低换手，穿越周期",
-                     "rule": "只在宏观分类发生根本变化时调整"},
-                    {"name": "卫星池", "ratio": "30%", "desc": "阶段景气行业，允许轮动",
-                     "rule": "单月换手≤2次，不得频繁交易"},
-                    {"name": "现金预备池", "ratio": "40%", "desc": "货币基金/逆回购",
-                     "rule": "只在阶段切换+恐慌指标触发时启用，不得因短期波动消耗"},
-                ],
-                "position_334": [
-                    {"name": "首仓（左脚）", "ratio": "30%", "trigger": "趋势结构初步出现",
-                     "rule": "不要求所有指标共振；仓位≤30%"},
-                    {"name": "确认仓", "ratio": "30%", "trigger": "趋势结构被2个以上独立信号验证",
-                     "rule": "需量能+基本面+政策中至少2项确认；仓位+30%"},
-                    {"name": "主升仓", "ratio": "40%", "trigger": "突破关键结构位+资金面共振",
-                     "rule": "仓位+40%；出现破位信号按反向顺序减仓"},
-                ],
-                "rule": "任意一段未触发，后面一段不能启动；出现破位信号，按反向顺序减仓",
-                "current": None
-            },
-            {
-                "level": "L5", "name": "一致性评分",
-                "title": "框架一致性评分体系",
-                "summary": "五维度加权评分，衡量投资决策与认知框架的一致性程度。技术分析权重降至5%，突出框架思维",
-                "dimensions": [
-                    {"name": "矛盾分析", "weight": 30, "desc": "主要矛盾强度与趋势判断的准确性",
-                     "scoring": "强矛盾(>70)+正确判断方向=高分；忽视矛盾=低分"},
-                    {"name": "价值规律", "weight": 35, "desc": "剩余价值率、资本有机构成、周转率的综合评估",
-                     "scoring": "深度低估+买入=高分；高估+买入=低分"},
-                    {"name": "宏观周期", "weight": 25, "desc": "当前所处资本周期阶段的判断准确度",
-                     "scoring": "阶段判断正确+策略匹配=高分；逆周期操作=低分"},
-                    {"name": "技术分析", "weight": 5, "desc": "辅助参考，非核心依据",
-                     "scoring": "仅作为入场时点参考，不影响框架判断"},
-                    {"name": "纪律执行", "weight": 5, "desc": "334仓位纪律遵守程度",
-                     "scoring": "严格按三段建仓=高分；一次性满仓=低分"},
-                ],
-                "scoring_rule": "总分=各维度得分×权重之和；≥75分为高一致性，45-74为中等，<45为低一致性",
-                "advice": "低一致性决策（<60分）亏损率显著偏高，建议严格执行框架纪律"
-            }
-        ]
+        "layers": METHODOLOGY_LAYERS,
+        "origins": {
+            "note": "思想来源为卢麒元公开讲座思想提炼 + 马克思主义政治经济学公有领域理论；所有表达均为项目原创，不含第三方原文段落。",
+            "source_registry": "docs/strategy_origins.md",
+        },
+        "method_version": "RIA-TV++-distilled-v1",
     }
 
 
 @router.get("/strategies")
 async def strategies(stage: str = Query("", description="按周期阶段筛选")):
     """策略库 — 按资本周期阶段分类"""
-    all_strategies = [
-        {"id": 1, "name": "核心池长期持有策略", "stage": "流转", "style": "价值投资",
-         "targets": 3, "desc": "选取高ROE、低估值、行业龙头作为核心仓位，低换手穿越周期。只在宏观分类根本变化时调整"},
-        {"id": 2, "name": "卫星池波段策略", "stage": "流转", "style": "趋势跟踪",
-         "targets": 5, "desc": "跟踪主力资金流向，在确认阶段加仓，分配阶段减仓。单月换手≤2次"},
-        {"id": 3, "name": "集中阶段龙头布局", "stage": "集中", "style": "成长投资",
-         "targets": 4, "desc": "识别资本集中方向，在产业政策出台时提前布局行业龙头，首仓30%试仓"},
-        {"id": 4, "name": "积累阶段现金管理", "stage": "积累", "style": "防守",
-         "targets": 2, "desc": "以货币基金+逆回购为主，保持40%现金预备池流动性，等待价值洼地出现"},
-        {"id": 5, "name": "分配阶段止盈策略", "stage": "分配", "style": "趋势跟踪",
-         "targets": 6, "desc": "量能衰减时按反向顺序减仓（主升→确认→首仓），利润转入现金池"},
-        {"id": 6, "name": "矛盾转化捕捉策略", "stage": "流转", "style": "事件驱动",
-         "targets": 4, "desc": "当主要矛盾发生转化（如政策预期→量价矛盾）时，调整卫星池持仓结构"},
-        {"id": 7, "name": "中庸律动策略", "stage": "流转", "style": "波段操作",
-         "targets": 3, "desc": "寻找价值与价格背离，通过MACD金叉/死叉波段操作降低持仓成本。底仓30%不动，律动30%"},
-        {"id": 8, "name": "高股息防御策略", "stage": "积累", "style": "价值投资",
-         "targets": 3, "desc": "银行/公用事业/高速公路等高股息标的，在积累阶段提供稳定收益"},
-        {"id": 9, "name": "再生产阶段观察策略", "stage": "再生产", "style": "防守",
-         "targets": 1, "desc": "缩量筑底期清仓观望，监测北向资金微幅回流信号，为新周期蓄势"},
-        {"id": 10, "name": "政策导向行业轮动", "stage": "集中", "style": "主题投资",
-         "targets": 5, "desc": "在高端制造/新能源/数字经济/乡村振兴等政策导向行业做卫星池轮动"},
-    ]
     if stage:
-        return {"strategies": [s for s in all_strategies if s["stage"] == stage]}
-    return {"strategies": all_strategies}
+        return {"strategies": [s for s in STRATEGIES if s["stage"] == stage]}
+    return {"strategies": STRATEGIES}
 
 
 @router.get("/knowledge")
 async def knowledge(category: str = Query("", description="按分类筛选")):
     """知识库文章"""
-    articles = [
-        {"id": 1, "title": "资本周期五阶段：从积累到再生产的盘面特征", "category": "资本周期",
-         "summary": "详解每阶段的成交额、龙头集中度、北向资金、政策导向特征及对应策略", "read_time": "8分钟"},
-        {"id": 2, "title": "矛盾分析法：四类核心矛盾的识别与转化", "category": "矛盾分析",
-         "summary": "量价矛盾、资金矛盾、结构矛盾、预期矛盾的实操判断方法", "read_time": "12分钟"},
-        {"id": 3, "title": "334仓位纪律：三段建仓的触发条件", "category": "334纪律",
-         "summary": "首仓30%→确认仓30%→主升仓40%的具体触发信号与减仓规则", "read_time": "6分钟"},
-        {"id": 4, "title": "主权信用矩阵：直接税占比与财政纪律", "category": "宏观定调",
-         "summary": "如何通过直接税占比、央地财政比重判断宏观信用状态", "read_time": "10分钟"},
-        {"id": 5, "title": "价值规律：价格围绕价值波动的定量分析", "category": "价值规律",
-         "summary": "基于ROE、增长率、风险溢价计算内在价值与偏离度", "read_time": "15分钟"},
-        {"id": 6, "title": "中庸律动：通过波段操作降低持仓成本", "category": "律动操作",
-         "summary": "MACD金叉/死叉作为律动信号，底仓不动+律动降成本的实操方法", "read_time": "9分钟"},
-        {"id": 7, "title": "框架一致性评分：五维度加权体系", "category": "评分体系",
-         "summary": "矛盾30%+价值35%+宏观25%+技术5%+纪律5%的评分规则与使用指南", "read_time": "7分钟"},
-        {"id": 8, "title": "三池轮动：核心/卫星/现金的配置逻辑", "category": "334纪律",
-         "summary": "30/30/40分池体系的行为金融学基础与再平衡规则", "read_time": "11分钟"},
-        {"id": 9, "title": "从资本流转看行业轮动", "category": "资本周期",
-         "summary": "资本在行业间的流转规律与板块轮动判断方法", "read_time": "11分钟"},
-        {"id": 10, "title": "恐慌指标与现金池启用时机", "category": "334纪律",
-         "summary": "何时启用40%现金预备池，恐慌指标的构建与阈值设定", "read_time": "8分钟"},
-    ]
     if category:
-        return {"articles": [a for a in articles if a["category"] == category]}
+        return {"articles": [a for a in KNOWLEDGE_ARTICLES if a["category"] == category]}
     return {
-        "articles": articles,
-        "categories": ["资本周期", "矛盾分析", "334纪律", "宏观定调", "价值规律", "律动操作", "评分体系"]
+        "articles": KNOWLEDGE_ARTICLES,
+        "categories": KNOWLEDGE_CATEGORIES,
     }
