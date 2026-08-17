@@ -165,3 +165,22 @@ class Watchlist(Base):
             "name": self.name,
             "sort_order": self.sort_order,
         }
+
+
+class DecisionContext(Base):
+    """决策时的宏观/周期/矛盾上下文快照（用于复盘"当时判断是否正确"）。"""
+    __tablename__ = "decision_contexts"
+
+    id = mapped_column(Integer, primary_key=True)
+    journal_id = mapped_column(ForeignKey("journal_entries.id", ondelete="CASCADE"), unique=True, index=True)
+    macro_cell = mapped_column(String(100), default="")
+    cycle_stage = mapped_column(String(20), default="")
+    primary_contradiction = mapped_column(String(50), default="")
+    created_at = mapped_column(DateTime, default=utcnow)
+
+    def to_dict(self):
+        return {
+            "macro_cell": self.macro_cell,
+            "cycle_stage": self.cycle_stage,
+            "primary_contradiction": self.primary_contradiction,
+        }

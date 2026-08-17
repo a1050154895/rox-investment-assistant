@@ -53,6 +53,7 @@ def _decode_unicode_escapes(s: str) -> str:
 
 QUOTE_URL = "https://qt.gtimg.cn/q={symbols}"
 KLINE_URL = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+SINA_URL = "https://hq.sinajs.cn/list={symbols}"
 TIMEOUT = 10.0
 
 # 连接类错误值得重试；读/写超时（端点挂起）重试无益，交给熔断快速失败。
@@ -173,6 +174,52 @@ async def fetch_quotes(codes: list[str], is_index: bool = False) -> dict[str, di
     _cache_set(cache_key, result)
     return result
 
+
+async def fetch_sina_quote(code: str, symbol: str) -> dict | None:
+    """从新浪接口拉取单只个股行情（GBK 文本，需 Referer 头）。
+
+    新浪为免费兜底源，仅含价格/成交量，不含 PE/PB/市值等估值字段。
+    """
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            resp = await client.get(
+                SINA_URL.format(symbols=symbol),
+                headers={"Referer": "https://finance.sina.com.cn"},
+            )
+            text = resp.content.decode("gbk", errors="replace")
+    except Exception as exc:
+        logger.warning("新浪行情获取失败: %s", exc)
+        return None
+
+    marker = f'hq_str_{symbol}="'
+    if marker not in text:
+        return None
+    payload = text.split(marker, 1)[1].split('"', 1)[0]
+    parts = payload.split(",")
+    if len(parts) < 32 or not parts[0]:
+        return None
+
+    price = _f(parts[3])
+    prev_close = _f(parts[2])
+    if price <= 0:
+        return None
+    change = price - prev_close
+    change_pct = (change / prev_close * 100) if prev_close else 0.0
+    return {
+        "name": parts[0],
+        "code": code,
+        "price": price,
+        "open": _f(parts[1]),
+        "high": _f(parts[4]),
+        "low": _f(parts[5]),
+        "volume": int(_f(parts[8])),
+        "change": round(change, 2),
+        "change_pct": round(change_pct, 2),
+        "as_of": f"{parts[30] if len(parts) > 30 else ''} {parts[31] if len(parts) > 31 else ''}".strip(),
+        "data_status": "realtime",
+        "data_source": "新浪财经公开接口",
+        "stale": False,
+    }
 
 async def fetch_kline(code: str, period: str = "day", limit: int = 120, is_index: bool = False) -> list[dict]:
     """获取前复权 K 线。period: day/week。返回 [{date,open,close,high,low,volume}]。

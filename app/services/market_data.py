@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Any
 
-from app.services.tencent_data import fetch_kline, fetch_quotes
+from app.services.tencent_data import fetch_kline, fetch_quotes, fetch_sina_quote, to_tencent_symbol
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +180,7 @@ def normalize_stock_code(code: str) -> str:
 async def get_stock_quote(code: str) -> dict[str, Any]:
     """获取个股行情，并明确标注实时/快照状态。
 
-    数据源优先级：腾讯自选股公开接口（本地与 Render 均可用）→ AKShare → NeoData 快照。
+    数据源优先级：腾讯 → 新浪 → AKShare → NeoData 快照。
     """
     code = normalize_stock_code(code)
 
@@ -202,6 +202,23 @@ async def get_stock_quote(code: str) -> dict[str, Any]:
             }
     except Exception as e:
         logger.warning(f"腾讯行情回退: {e}")
+
+    # 其次：新浪财经公开接口（价格/成交量，无估值字段）
+    try:
+        symbol = to_tencent_symbol(code)
+        q = await fetch_sina_quote(code, symbol)
+        if q:
+            return {
+                "code": code, "name": q["name"],
+                "industry": REAL_QUOTES.get(code, {}).get("industry", ""),
+                "price": q["price"], "change": q["change"], "change_pct": q["change_pct"],
+                "pe": None, "pb": None, "market_cap": "", "turnover": None,
+                "open": q["open"], "high": q["high"], "low": q["low"], "volume": q["volume"],
+                "data_status": "realtime", "data_source": "新浪财经公开接口",
+                "as_of": q["as_of"], "stale": False,
+            }
+    except Exception as e:
+        logger.warning(f"新浪行情回退: {e}")
 
     # 其次：AKShare（带短超时，失败快速回退）
     if AKSHARE_AVAILABLE:

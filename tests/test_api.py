@@ -194,6 +194,24 @@ class TestJournal:
         get = client.get(f"/api/journal/{did}", headers=auth_headers)
         assert get.status_code == 404
 
+    def test_decision_context_snapshot(self, client, auth_headers):
+        """创建决策时自动快照宏观/周期/矛盾上下文。"""
+        create = client.post("/api/journal/", json={
+            "stock": "贵州茅台", "code": "600519", "action": "买入",
+            "stage": "试仓30%", "cycle_stage": "积累",
+            "contradiction_intensity": 60, "value_realization": 60,
+            "consistency_score": 70, "reason": "上下文快照测试",
+        }, headers=auth_headers)
+        assert create.status_code == 200
+        did = create.json()["id"]
+
+        detail = client.get(f"/api/journal/{did}", headers=auth_headers)
+        assert detail.status_code == 200
+        ctx = detail.json().get("context")
+        assert ctx is not None
+        assert ctx["cycle_stage"] in ("积累", "集中", "流转", "分配", "再生产", "未评估")
+        assert "primary_contradiction" in ctx
+
 
 class TestScreener:
     def test_presets(self, client):

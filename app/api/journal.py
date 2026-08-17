@@ -1,4 +1,5 @@
 """决策日志 API — CRUD + 统计 + 复盘（数据库持久化，按用户隔离）。"""
+import asyncio
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_db
-from app.models import JournalEntry, User
+from app.models import DecisionContext, JournalEntry, User
 
 router = APIRouter()
 
@@ -42,6 +43,24 @@ class DecisionUpdate(BaseModel):
 
 def _entry_to_dict(e: JournalEntry) -> dict:
     return e.to_dict()
+
+
+async def _snapshot_context() -> dict | None:
+    """快照当前宏观矩阵、资本周期与主要矛盾（用于复盘当时判断）。"""
+    try:
+        from app.services.contradiction_engine import get_contradictions
+        from app.services.macro_data import get_macro_matrix
+        from app.services.review_engine import get_capital_cycle_stage
+        macro, cycle, contradictions = await asyncio.gather(
+            get_macro_matrix(), get_capital_cycle_stage(), get_contradictions()
+        )
+        return {
+            "macro_cell": macro.get("matrix_cell", "") or "",
+            "cycle_stage": cycle.get("stage_name", "") or "",
+            "primary_contradiction": (contradictions.get("primary") or {}).get("name", "") or "",
+        }
+    except Exception:
+        return None
 
 
 @router.get("/")
@@ -91,6 +110,11 @@ async def create_decision(
     db.add(entry)
     db.commit()
     db.refresh(entry)
+    # 记录当时的宏观/周期/矛盾上下文（失败不影响决策创建）
+    context = await _snapshot_context()
+    if context:
+        db.add(DecisionContext(journal_id=entry.id, **context))
+        db.commit()
     return {"success": True, "id": entry.id, "decision": _entry_to_dict(entry)}
 
 
@@ -106,7 +130,10 @@ async def get_decision(
     ).first()
     if not entry:
         raise HTTPException(status_code=404, detail="未找到该决策记录")
-    return _entry_to_dict(entry)
+    context = db.query(DecisionContext).filter(DecisionContext.journal_id == entry.id).first()
+    data = _entry_to_dict(entry)
+    data["context"] = context.to_dict() if context else None
+    return data
 
 
 @router.put("/{decision_id}")
