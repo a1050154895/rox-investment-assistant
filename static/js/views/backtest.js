@@ -11,6 +11,11 @@ ROX.register('/backtest', async function(container) {
     ROX.api.get('/api/backtest/stocks'),
   ]);
 
+  if (stratRes?.status === 'disabled' || stockRes?.status === 'disabled') {
+    container.innerHTML = ROX.disabledState(stratRes?.reason || stockRes?.reason);
+    return;
+  }
+
   const strategies = stratRes?.strategies || [];
   const stocks = stockRes?.stocks || [];
 

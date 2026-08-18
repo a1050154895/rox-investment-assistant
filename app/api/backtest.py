@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from typing import Optional
 
+from app.core.capabilities import disabled_if
 from app.services.backtest_engine import STRATEGIES, execute_backtest
 from app.services.market_data import REAL_QUOTES
 
@@ -22,12 +23,16 @@ class BacktestRequest(BaseModel):
 @router.get("/strategies")
 async def strategies():
     """获取可用策略列表。"""
+    if (disabled := disabled_if("backtest")):
+        return disabled
     return {"strategies": STRATEGIES}
 
 
 @router.get("/stocks")
 async def stock_list():
     """获取可选股票列表（内置池）。"""
+    if (disabled := disabled_if("backtest")):
+        return disabled
     stocks = [
         {"code": code, "name": info["name"], "industry": info.get("industry", "")}
         for code, info in REAL_QUOTES.items()
@@ -38,6 +43,8 @@ async def stock_list():
 @router.post("/run")
 async def run(req: BacktestRequest):
     """执行回测。"""
+    if (disabled := disabled_if("backtest")):
+        return disabled
     name = REAL_QUOTES.get(req.code, {}).get("name", req.code)
     return await execute_backtest(
         code=req.code,

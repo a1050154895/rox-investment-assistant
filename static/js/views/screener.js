@@ -7,6 +7,11 @@ ROX.register('/screener', async function(container) {
     ROX.api.get('/api/screener/presets'),
   ]);
 
+  if (presetsRes?.status === 'disabled') {
+    container.innerHTML = ROX.disabledState(presetsRes?.reason);
+    return;
+  }
+
   const presets = presetsRes?.presets || [];
 
   container.innerHTML = `

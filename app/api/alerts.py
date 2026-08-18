@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.capabilities import disabled_if
 from app.db import get_db
 from app.models import Alert, User
 from app.services.tencent_data import fetch_quotes
@@ -29,6 +30,8 @@ class AlertUpdate(BaseModel):
 @router.get("/")
 async def list_alerts(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """列出所有预警，并实时检测触发状态。"""
+    if (disabled := disabled_if("alerts")):
+        return disabled
     alerts = db.query(Alert).filter(Alert.user_id == user.id).all()
     codes = list({a.code for a in alerts})
     quotes = await fetch_quotes(codes) if codes else {}
@@ -63,6 +66,8 @@ async def list_alerts(user: User = Depends(get_current_user), db: Session = Depe
 @router.post("/")
 async def create_alert(data: AlertIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """创建预警。"""
+    if (disabled := disabled_if("alerts")):
+        return disabled
     alert = Alert(
         user_id=user.id, code=data.code.strip(), name=data.name.strip(),
         target_price=data.target_price, direction=data.direction,
@@ -76,6 +81,8 @@ async def create_alert(data: AlertIn, user: User = Depends(get_current_user), db
 @router.delete("/{alert_id}")
 async def delete_alert(alert_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """删除预警。"""
+    if (disabled := disabled_if("alerts")):
+        return disabled
     a = db.query(Alert).filter(Alert.id == alert_id, Alert.user_id == user.id).first()
     if not a:
         raise HTTPException(status_code=404, detail="预警不存在")
@@ -92,6 +99,8 @@ async def update_alert(
     db: Session = Depends(get_db),
 ):
     """修改预警（激活/暂停、目标价、方向）。"""
+    if (disabled := disabled_if("alerts")):
+        return disabled
     a = db.query(Alert).filter(Alert.id == alert_id, Alert.user_id == user.id).first()
     if not a:
         raise HTTPException(status_code=404, detail="预警不存在")

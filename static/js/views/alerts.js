@@ -15,6 +15,10 @@ ROX.views.alerts = {
       document.getElementById('view-container').innerHTML = '<div class="empty-state"><p>预警数据加载失败</p></div>';
       return;
     }
+    if (data.status === 'disabled') {
+      document.getElementById('view-container').innerHTML = ROX.disabledState(data.reason);
+      return;
+    }
     this.render(data);
   },
 

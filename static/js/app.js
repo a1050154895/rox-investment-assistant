@@ -45,6 +45,13 @@ const ROX = {
       '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
     }[char]));
   },
+  // 功能门控：能力未启用时的诚实占位（与后端 capabilities 对齐）
+  disabledState(reason) {
+    return `<div class="empty-state" style="padding:48px 16px;text-align:center;">
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;">暂不可用</div>
+      <p style="color:var(--text-secondary);font-size:12px;max-width:360px;margin:0 auto;line-height:1.7;">${this.escape(reason || '该功能暂不可用。')}</p>
+    </div>`;
+  },
   fmt: {
     num(v, dec = 2) { return v != null ? Number(v).toFixed(dec) : '--'; },
     pct(v, dec = 2) { return v != null ? (v > 0 ? '+' : '') + Number(v).toFixed(dec) + '%' : '--'; },

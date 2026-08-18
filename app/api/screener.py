@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from typing import Optional
 
+from app.core.capabilities import disabled_if
 from app.services.screener_engine import PRESETS, run_scan
 
 router = APIRouter()
@@ -25,6 +26,8 @@ class ScanFilters(BaseModel):
 @router.get("/presets")
 async def presets():
     """获取预设策略列表。"""
+    if (disabled := disabled_if("screener")):
+        return disabled
     return {"presets": PRESETS}
 
 
@@ -37,6 +40,8 @@ async def scan(
     limit: int = Query(50, ge=1, le=200, description="最多返回数量"),
 ):
     """执行选股扫描。可组合预设策略 + 自定义条件。"""
+    if (disabled := disabled_if("screener")):
+        return disabled
     filter_dict = filters.model_dump(exclude_none=True) if filters else None
     return await run_scan(
         filters=filter_dict,

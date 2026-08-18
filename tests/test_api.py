@@ -8,7 +8,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.6.0"
+        assert data["version"] == "4.7.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -217,19 +217,20 @@ class TestScreener:
     def test_presets(self, client):
         resp = client.get("/api/screener/presets")
         assert resp.status_code == 200
-        assert "presets" in resp.json()
+        assert resp.json()["status"] == "disabled"
+        assert resp.json()["reason"]
 
 
 class TestBacktest:
     def test_strategies(self, client):
         resp = client.get("/api/backtest/strategies")
         assert resp.status_code == 200
-        assert len(resp.json()["strategies"]) >= 1
+        assert resp.json()["status"] == "disabled"
 
     def test_stocks_list(self, client):
         resp = client.get("/api/backtest/stocks")
         assert resp.status_code == 200
-        assert len(resp.json()["stocks"]) >= 10
+        assert resp.json()["status"] == "disabled"
 
 
 class TestDashboard:
@@ -310,26 +311,18 @@ class TestPortfolioUpdate:
 
 
 class TestAlertUpdate:
-    def test_toggle_alert(self, client, auth_headers):
+    def test_alerts_disabled(self, client, auth_headers):
         add = client.post("/api/alerts/", json={
             "code": "600519", "name": "贵州茅台",
             "target_price": 1500.00, "direction": "above",
         }, headers=auth_headers)
-        aid = add.json()["alert"]["id"]
+        assert add.status_code == 200
+        assert add.json()["status"] == "disabled"
 
-        # 暂停
-        pause = client.put(f"/api/alerts/{aid}", json={"active": False}, headers=auth_headers)
-        assert pause.status_code == 200
-        assert pause.json()["alert"]["active"] is False
-
-        # 重新激活应重置触发状态
-        reactivate = client.put(f"/api/alerts/{aid}", json={"active": True}, headers=auth_headers)
-        assert reactivate.json()["alert"]["active"] is True
-        assert reactivate.json()["alert"]["triggered"] is False
-
-    def test_update_nonexistent(self, client, auth_headers):
+    def test_update_disabled(self, client, auth_headers):
         resp = client.put("/api/alerts/9999", json={"active": False}, headers=auth_headers)
-        assert resp.status_code == 404
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "disabled"
 
 
 class TestUserStats:
@@ -355,11 +348,6 @@ class TestUserStats:
             "code": "600519", "name": "贵州茅台",
             "shares": 100, "cost_price": 1320.00, "date": "2026-08-09",
         }, headers=auth_headers)
-        # 添加预警
-        client.post("/api/alerts/", json={
-            "code": "600519", "name": "贵州茅台",
-            "target_price": 1500.00, "direction": "above",
-        }, headers=auth_headers)
         # 添加自选
         client.post("/api/watchlist/", json={
             "code": "600519", "name": "贵州茅台",
@@ -370,7 +358,8 @@ class TestUserStats:
         data = resp.json()
         assert data["journal"]["total"] == 1
         assert data["portfolio"]["count"] == 1
-        assert data["alerts"]["total"] == 1
+        # 预警功能已门控禁用，因此新增预警不会计入统计
+        assert data["alerts"]["total"] == 0
         assert data["watchlist"]["count"] == 1
 
     def test_stats_requires_auth(self, client):
