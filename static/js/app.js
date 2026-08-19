@@ -13,6 +13,8 @@ const ROX = {
     user: null,
     authMode: 'login',
     refreshTimer: null,
+    onboardingSteps: [],
+    onboardingStep: 0,
   },
 
   // API client（自动携带 JWT；非 2xx 返回含 error/status/detail，便于前端提示）
@@ -88,6 +90,7 @@ const ROX = {
     { match: /^\/stock(\/(\d+))?\/?$/,   handler: '/stock',      title: '个股透视', extract: m => ({ code: m[2] }) },
     { match: /^\/journal/,               handler: '/journal',    title: '决策日志' },
     { match: /^\/framework/,             handler: '/framework',  title: '认知框架' },
+    { match: /^\/guide/,                 handler: '/guide',      title: '使用教程' },
     { match: /^\/intelligence/,          handler: '/intelligence', title: '宏观情报' },
     { match: /^\/screener/,              handler: '/screener',   title: '选股筛选' },
     { match: /^\/backtest/,              handler: '/backtest',   title: '策略回测' },
@@ -165,13 +168,11 @@ const ROX = {
       { route: '/stock', label: '个股', icon: '<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>' },
       { route: '/journal', label: '日志', icon: '<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>' },
       { route: '/framework', label: '框架', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>' },
+      { route: '/guide', label: '教程', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>' },
       { route: '/intelligence', label: '情报', icon: '<path d="M4 5h16v14H4z"/><path d="M7 9h10M7 13h7"/>' },
-      { route: '/screener', label: '选股', icon: '<path d="M3 6h18M6 12h12M10 18h4"/>' },
-      { route: '/backtest', label: '回测', icon: '<path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-7"/>' },
       { route: '/review', label: '复盘', icon: '<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/><circle cx="19" cy="19" r="2"/>' },
       { route: '/portfolio', label: '持仓', icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>' },
       { route: '/watchlist', label: '自选', icon: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>' },
-      { route: '/alerts', label: '预警', icon: '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>' },
     ];
     nav.innerHTML = items.map(item => {
       const active = (item.route === '/' && (path === '/' || path === '')) || (item.route !== '/' && path.startsWith(item.route));
@@ -382,6 +383,7 @@ const ROX = {
       this.state.user = res.user;
       if (gate) gate.style.display = 'none';
       this.updateUserChip();
+      this.showOnboarding();
     } else {
       this.state.user = null;
       this.showAuthGate();
@@ -440,6 +442,7 @@ const ROX = {
       this.updateUserChip();
       this.loadIndexTicker();
       this.render(location.pathname);
+      this.showOnboarding();
     } else {
       const detail = res?.detail;
       const msg = typeof detail === 'string' ? detail : (this.state.authMode === 'login' ? '登录失败，请检查用户名或密码' : '注册失败，用户名可能已存在');
@@ -465,6 +468,60 @@ const ROX = {
     } else if (chip) {
       chip.style.display = 'none';
     }
+  },
+
+  // ============ Onboarding ============
+  async showOnboarding() {
+    if (localStorage.getItem('rox_onboarded') === '1') return;
+    const data = await this.api.get('/api/guide/');
+    const steps = (data && data.onboarding_steps) || [];
+    if (!steps.length) return;
+    this.state.onboardingSteps = steps;
+    this.state.onboardingStep = 0;
+    const overlay = document.getElementById('onboarding-overlay');
+    if (overlay) overlay.style.display = 'flex';
+    this.renderOnboardingStep();
+  },
+
+  renderOnboardingStep() {
+    const steps = this.state.onboardingSteps;
+    const i = this.state.onboardingStep;
+    const s = steps[i];
+    const body = document.getElementById('onboarding-body');
+    if (!body || !s) return;
+    const progress = document.getElementById('onboarding-progress');
+    if (progress) progress.textContent = `${i + 1} / ${steps.length}`;
+    body.innerHTML = `
+      <div class="onboarding-title">${this.escape(s.title)}</div>
+      <div class="onboarding-detail">${this.escape(s.detail)}</div>
+    `;
+    const prev = document.getElementById('onboarding-prev');
+    const next = document.getElementById('onboarding-next');
+    if (prev) prev.style.visibility = i === 0 ? 'hidden' : 'visible';
+    if (next) next.textContent = i === steps.length - 1 ? '开始使用' : '下一步';
+  },
+
+  onboardingPrev() {
+    if (this.state.onboardingStep > 0) {
+      this.state.onboardingStep -= 1;
+      this.renderOnboardingStep();
+    }
+  },
+
+  onboardingNext() {
+    const last = this.state.onboardingSteps.length - 1;
+    if (this.state.onboardingStep < last) {
+      this.state.onboardingStep += 1;
+      this.renderOnboardingStep();
+    } else {
+      this.finishOnboarding();
+    }
+  },
+
+  finishOnboarding() {
+    localStorage.setItem('rox_onboarded', '1');
+    const overlay = document.getElementById('onboarding-overlay');
+    if (overlay) overlay.style.display = 'none';
   },
 
   // Init
@@ -516,6 +573,9 @@ const ROX = {
           },
           'auth-submit': () => this.submitAuth(),
           'logout': () => this.logout(),
+          'onboarding-prev': () => this.onboardingPrev(),
+          'onboarding-next': () => this.onboardingNext(),
+          'skip-onboarding': () => this.finishOnboarding(),
         };
         actions[action]?.();
         return;

@@ -102,30 +102,15 @@ ROX.register('/', async function(container) {
         </div>
       </div>
 
-      <!-- 334 仓位纪律 + 自选股 -->
+      <!-- 334 纪律体检 + 自选股 -->
       <div class="grid-2">
-        <!-- 334 -->
-        <div class="card">
+        <!-- 334 纪律体检（异步加载真实持仓 + 周期阶段） -->
+        <div class="card" id="discipline-card">
           <div class="card-header">
-            <div><div class="card-title">334 仓位纪律</div><div class="card-subtitle">风险预算 → 仓位边界 → 操作触发</div></div>
+            <div><div class="card-title">334 纪律体检</div><div class="card-subtitle">真实持仓 + 周期阶段 + 风险边界</div></div>
             <button class="btn btn-secondary btn-sm" data-action="open-discipline">录入我的数据</button>
           </div>
-          <div class="discipline-bar" style="margin-bottom:12px;">
-            <div class="discipline-segment discipline-core" style="width:${data.discipline_334.core.actual}%;">核心 ${data.discipline_334.core.actual}%</div>
-            <div class="discipline-segment discipline-satellite" style="width:${data.discipline_334.satellite.actual}%;">卫星 ${data.discipline_334.satellite.actual}%</div>
-            <div class="discipline-segment discipline-cash" style="width:${data.discipline_334.cash.actual}%;">现金 ${data.discipline_334.cash.actual}%</div>
-          </div>
-          <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">
-            基准：核心 30% / 卫星 30% / 现金 40%
-          </div>
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <div style="font-size:11px;color:var(--text-secondary);">核心池：${data.discipline_334.core.stocks.join('、')}</div>
-            <div style="font-size:11px;color:var(--text-secondary);">卫星池：${data.discipline_334.satellite.stocks.join('、')}</div>
-          </div>
-          <div style="margin-top:12px;padding:10px 12px;background:rgba(255,159,10,0.08);border-left:2px solid var(--ink-warn);font-size:11px;color:var(--ink-warn);">
-            ${data.discipline_334.advice}
-          </div>
-          <div style="margin-top:10px;font-size:10px;color:var(--text-muted);">个人参数只保存在当前浏览器；未登录状态下不会上传共享仓位数据。</div>
+          <div id="discipline-assessment-body" style="font-size:12px;color:var(--text-tertiary);">登录后可查看你的纪律体检。</div>
         </div>
 
         <!-- 自选股 -->
@@ -189,6 +174,7 @@ ROX.register('/', async function(container) {
   loadAlertsCard();
   loadWatchlistCard();
   loadStatsCard();
+  loadDisciplineAssessment();
 
   // 自动刷新：指数 ticker + 自选股 + 持仓卡片每 30s 更新
   ROX.startAutoRefresh(async () => {
@@ -197,6 +183,35 @@ ROX.register('/', async function(container) {
     loadPortfolioCard();
   }, 30000);
 });
+
+async function loadDisciplineAssessment() {
+  const body = document.getElementById('discipline-assessment-body');
+  if (!body) return;
+  const data = await ROX.api.get('/api/discipline/assessment');
+  if (!data || data.error) {
+    body.innerHTML = '<div style="font-size:12px;color:var(--text-tertiary);">登录后可查看你的纪律体检。</div>';
+    return;
+  }
+  const a = data.assessment || {};
+  const c = data.cycle || {};
+  const p = data.portfolio || {};
+  const violations = (a.checks || []).filter(x => !x.passed);
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px;">
+      <span style="color:var(--text-secondary);">真实持仓</span>
+      <span style="font-family:var(--font-mono);color:var(--text-primary);">${p.count || 0} 只 · 市值 ${ROX.fmt.num(p.total_market)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px;">
+      <span style="color:var(--text-secondary);">周期阶段</span>
+      <span style="color:var(--rox-primary);">${ROX.escape(c.stage || '未评估')} · ${ROX.escape(c.posture || '')}</span>
+    </div>
+    <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px;">${ROX.escape(c.note || '')}</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">
+      ${ROX.escape(a.status_label || '未评估')}${violations.length ? ` · <span style="color:var(--rox-danger);">${violations.length} 项冲突</span>` : ''}
+    </div>
+    <div style="padding:10px 12px;background:rgba(255,159,10,0.08);border-left:2px solid var(--ink-warn);font-size:11px;color:var(--ink-warn);line-height:1.6;">${ROX.escape(data.guidance || '')}</div>
+  `;
+}
 
 async function loadPortfolioCard() {
   // 找到宏观指南针卡片后的插入位置

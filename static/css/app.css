@@ -361,6 +361,25 @@ summary { cursor: pointer; }
 .modal-close { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-none); color: var(--text-tertiary); }
 .modal-close:hover { background: var(--ink-bg-raised); color: var(--ink-vermilion-soft); }
 
+/* Onboarding 新手引导 */
+.onboarding-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 400;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.onboarding-card {
+  background: var(--bg-surface); border: 0.5px solid var(--border-hover);
+  border-radius: var(--radius-xl); width: 100%; max-width: 520px;
+  padding: var(--space-xl); box-shadow: var(--shadow-lg);
+}
+.onboarding-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); }
+.onboarding-progress { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
+.onboarding-body { min-height: 150px; }
+.onboarding-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin-bottom: var(--space-md); }
+.onboarding-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.75; }
+.onboarding-actions { display: flex; gap: var(--space-3); margin-top: var(--space-lg); }
+.onboarding-actions .btn { flex: 1; justify-content: center; }
+
 /* Stock detail */
 .stock-detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; min-height: calc(100vh - 96px); }
 .stock-main-column { display: flex; flex-direction: column; gap: 12px; min-width: 0; }

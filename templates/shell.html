@@ -48,6 +48,12 @@
                 </span>
                 <span class="nav-label">认知框架</span>
             </div>
+            <div class="nav-item" data-route="/guide">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                </span>
+                <span class="nav-label">教程</span>
+            </div>
             <div class="nav-item" data-route="/intelligence">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v14H4z"/><path d="M7 9h10M7 13h7"/><path d="M17 17l2 2"/></svg>
@@ -192,6 +198,23 @@
 <!-- Keyboard shortcut hint -->
 <div class="kbd-hint" id="kbd-hint" style="display:none;">按 1-9 / 0 快速切换页面</div>
 
+<!-- 新手引导 -->
+<div class="onboarding-overlay" id="onboarding-overlay" style="display:none;">
+    <div class="onboarding-card">
+        <div class="onboarding-header">
+            <span class="onboarding-progress" id="onboarding-progress">1 / 5</span>
+            <button class="modal-close" data-action="skip-onboarding" aria-label="跳过">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="onboarding-body" id="onboarding-body"><!-- Filled by JS --></div>
+        <div class="onboarding-actions">
+            <button class="btn btn-secondary" id="onboarding-prev" data-action="onboarding-prev">上一步</button>
+            <button class="btn btn-primary" id="onboarding-next" data-action="onboarding-next">下一步</button>
+        </div>
+    </div>
+</div>
+
 <!-- Scripts -->
 <script src="/static/js/app.js?v={{ version }}"></script>
 <script src="/static/js/views/dashboard.js?v={{ version }}"></script>
@@ -205,5 +228,6 @@
 <script src="/static/js/views/portfolio.js?v={{ version }}"></script>
 <script src="/static/js/views/watchlist.js?v={{ version }}"></script>
 <script src="/static/js/views/alerts.js?v={{ version }}"></script>
+<script src="/static/js/views/guide.js?v={{ version }}"></script>
 </body>
 </html>
