@@ -4,8 +4,13 @@
 
 let _klineChart = null;
 let _flowChart = null;
+let _klineSeries = null;
 window.addEventListener('resize', () => {
-  _klineChart?.resize();
+  if (_klineChart && typeof _klineChart.resize === 'function') {
+    const el = document.getElementById('kline-chart');
+    if (el && window.LightweightCharts && _klineChart.resize.length >= 2) _klineChart.resize(el.clientWidth, el.clientHeight);
+    else _klineChart.resize();
+  }
   _flowChart?.resize();
 });
 
@@ -51,7 +56,8 @@ ROX.register('/stock', async function(container, params) {
                 <button class="btn btn-secondary btn-sm" data-period="weekly" id="btn-weekly">周线</button>
               </div>
               <button class="btn btn-secondary btn-sm" id="btn-add-watch" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 自选</button>
-              <button class="btn btn-primary btn-sm" data-action="add-decision" data-code="${info.code}">记录决策</button>
+              <button class="btn btn-secondary btn-sm" data-action="create-research-card" data-code="${info.code}" data-name="${ROX.escape(info.name)}" data-price="${info.price ?? ''}" data-data-status="${ROX.escape(info.data_status || '')}" data-data-source="${ROX.escape(info.data_source || '')}" data-as-of="${ROX.escape(info.as_of || '')}">建研究卡</button>
+              <button class="btn btn-primary btn-sm" data-action="add-decision" data-code="${info.code}" data-name="${ROX.escape(info.name)}">记录决策</button>
               <button class="btn btn-secondary btn-sm" id="btn-add-alert" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 预警</button>
             </div>
           </div>
@@ -296,6 +302,27 @@ ROX.register('/stock', async function(container, params) {
 function renderKline(candles, info) {
   const chartEl = document.getElementById('kline-chart');
   if (!chartEl) return;
+
+  if (window.LightweightCharts) {
+    if (_klineChart) _klineChart.remove();
+    chartEl.innerHTML = '';
+    _klineChart = LightweightCharts.createChart(chartEl, {
+      layout: { background: { color: 'transparent' }, textColor: '#86868b' },
+      grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } },
+      rightPriceScale: { borderColor: 'rgba(255,255,255,0.08)' },
+      timeScale: { borderColor: 'rgba(255,255,255,0.08)', timeVisible: false },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      handleScroll: true,
+      handleScale: true,
+    });
+    _klineSeries = _klineChart.addCandlestickSeries({
+      upColor: '#26A69A', downColor: '#EF5350', borderUpColor: '#26A69A', borderDownColor: '#EF5350', wickUpColor: '#26A69A', wickDownColor: '#EF5350',
+    });
+    _klineSeries.setData(candles.map(c => ({ time: c.date, open: c.open, high: c.high, low: c.low, close: c.close })));
+    _klineChart.timeScale().fitContent();
+    requestAnimationFrame(() => _klineChart && _klineChart.resize(chartEl.clientWidth, chartEl.clientHeight));
+    return;
+  }
 
   if (_klineChart) _klineChart.dispose();
   _klineChart = echarts.init(chartEl, 'dark');

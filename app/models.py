@@ -40,6 +40,7 @@ class JournalEntry(Base):
 
     id = mapped_column(Integer, primary_key=True)
     user_id = mapped_column(ForeignKey("users.id"), index=True)
+    research_card_id = mapped_column(ForeignKey("research_cards.id", ondelete="SET NULL"), nullable=True, index=True)
     date = mapped_column(String(10), index=True)
     stock = mapped_column(String(20))
     code = mapped_column(String(10))
@@ -59,6 +60,7 @@ class JournalEntry(Base):
     def to_dict(self):
         return {
             "id": self.id,
+            "research_card_id": self.research_card_id,
             "date": self.date,
             "stock": self.stock,
             "code": self.code,
@@ -73,6 +75,56 @@ class JournalEntry(Base):
             "result_pct": self.result_pct,
             "holding_days": self.holding_days,
             "review": self.review,
+        }
+
+
+class ResearchCard(Base):
+    """结构化研究卡：把事实、假设、反证和决策放在同一条证据链上。"""
+
+    __tablename__ = "research_cards"
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    title = mapped_column(String(120))
+    code = mapped_column(String(10), default="")
+    stock = mapped_column(String(30), default="")
+    question = mapped_column(Text, default="")
+    hypothesis = mapped_column(Text, default="")
+    facts_json = mapped_column(Text, default="[]")
+    counter_evidence = mapped_column(Text, default="")
+    invalidation = mapped_column(Text, default="")
+    action = mapped_column(String(10), default="观察")
+    position_plan = mapped_column(String(80), default="")
+    stop_loss = mapped_column(Float, nullable=True)
+    holding_period = mapped_column(String(30), default="")
+    status = mapped_column(String(20), default="draft")
+    created_at = mapped_column(DateTime, default=utcnow)
+    updated_at = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    def to_dict(self):
+        import json
+
+        try:
+            facts = json.loads(self.facts_json or "[]")
+        except (TypeError, ValueError):
+            facts = []
+        return {
+            "id": self.id,
+            "title": self.title,
+            "code": self.code,
+            "stock": self.stock,
+            "question": self.question,
+            "hypothesis": self.hypothesis,
+            "facts": facts,
+            "counter_evidence": self.counter_evidence,
+            "invalidation": self.invalidation,
+            "action": self.action,
+            "position_plan": self.position_plan,
+            "stop_loss": self.stop_loss,
+            "holding_period": self.holding_period,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 

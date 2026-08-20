@@ -87,6 +87,7 @@ const ROX = {
   routes: {},
   routePatterns: [
     { match: /^\/?$/,                    handler: '/',           title: '仪表盘' },
+    { match: /^\/research(\/\d+)?\/?$/, handler: '/research', title: '研究卡', extract: m => ({ id: m[1] ? m[1].slice(1) : null }) },
     { match: /^\/stock(\/(\d+))?\/?$/,   handler: '/stock',      title: '个股透视', extract: m => ({ code: m[2] }) },
     { match: /^\/journal/,               handler: '/journal',    title: '决策日志' },
     { match: /^\/framework/,             handler: '/framework',  title: '认知框架' },
@@ -128,9 +129,10 @@ const ROX = {
     const container = document.getElementById('view-container');
 
     // Resolve route via route map
-    const resolved = this.resolveRoute(path);
+    const url = new URL(path, window.location.origin);
+    const resolved = this.resolveRoute(url.pathname);
     const handler = resolved ? this.routes[resolved.handler] : null;
-    const params = resolved ? resolved.params : {};
+    const params = resolved ? { ...resolved.params, query: Object.fromEntries(url.searchParams.entries()) } : {};
 
     // Update nav active state
     document.querySelectorAll('.nav-item[data-route]').forEach(item => {
@@ -545,7 +547,19 @@ const ROX = {
           'close-settings': () => this.closeSettings(),
           'close-modal': () => this.closeModal(),
           'save-settings': () => this.saveSettings(),
-          'add-decision': () => this.showDecisionForm(),
+          'add-decision': () => this.showDecisionForm(actionEl.dataset.code, actionEl.dataset.name),
+          'record-card-decision': () => this.showDecisionForm(actionEl.dataset.code, actionEl.dataset.name, actionEl.dataset.cardId),
+          'create-research-card': async () => {
+            const query = new URLSearchParams({
+              code: actionEl.dataset.code || '',
+              stock: actionEl.dataset.name || '',
+              price: actionEl.dataset.price || '',
+              data_status: actionEl.dataset.dataStatus || '',
+              data_source: actionEl.dataset.dataSource || '',
+              as_of: actionEl.dataset.asOf || '',
+            });
+            this.navigate(`/research?${query.toString()}`);
+          },
           'submit-decision': () => this.submitDecision(),
           'cancel-decision': () => this.closeModal(),
           'generate-review': () => this.showReviewReport(),
@@ -630,7 +644,7 @@ const ROX = {
       if (!this.state.user) return; // not logged in
 
       const shortcuts = {
-        '1': '/', '2': '/stock', '3': '/journal', '4': '/framework',
+        '1': '/', '2': '/stock', '3': '/research', '4': '/journal', '5': '/framework',
         '5': '/intelligence', '6': '/screener', '7': '/backtest',
         '8': '/portfolio', '9': '/watchlist', '0': '/alerts',
       };
@@ -901,7 +915,7 @@ const ROX = {
   },
 
   // Decision form
-  showDecisionForm(stockCode, stockName) {
+  showDecisionForm(stockCode, stockName, researchCardId) {
     const html = `
       <div class="modal-header">
         <span class="modal-title">记录决策</span>
@@ -955,6 +969,7 @@ const ROX = {
           <label class="form-label">决策理由</label>
           <textarea class="form-textarea" id="dec-reason" placeholder="阐述本次决策的框架依据..."></textarea>
         </div>
+        ${researchCardId ? `<input type="hidden" id="dec-research-card-id" value="${ROX.escape(researchCardId)}"><div style="font-size:11px;color:var(--text-tertiary);">本次决策将关联研究卡 #${ROX.escape(researchCardId)}</div>` : ''}
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button class="btn btn-secondary" data-action="cancel-decision">取消</button>
           <button class="btn btn-primary" data-action="submit-decision">提交</button>
@@ -974,6 +989,7 @@ const ROX = {
       value_realization: parseInt(document.getElementById('dec-value').value),
       consistency_score: parseInt(document.getElementById('dec-score').value),
       reason: document.getElementById('dec-reason').value,
+      research_card_id: document.getElementById('dec-research-card-id')?.value ? Number(document.getElementById('dec-research-card-id').value) : null,
     };
     const res = await this.api.post('/api/journal/', data);
     if (res && res.success) {

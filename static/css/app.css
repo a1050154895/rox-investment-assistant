@@ -771,3 +771,59 @@ summary { cursor: pointer; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================
+   Research Card / ROX Loop
+   ============================================ */
+.eyebrow {
+  color: var(--ink-vermilion, #c4513b); font-size: 10px; letter-spacing: .14em;
+  font-family: var(--font-mono); text-transform: uppercase; margin-bottom: 5px;
+}
+.research-today-card { border-color: rgba(196,81,59,.24); }
+.research-today-card .card-header { align-items: flex-start; }
+.research-queue-loading, .research-queue-empty { color: var(--text-tertiary); font-size: 12px; padding: 18px 0; }
+.research-queue-empty { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.research-queue-empty strong { color: var(--text-primary); font-size:13px; }
+.research-queue-empty p { margin:5px 0 0; }
+.research-queue-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+.research-queue-item { min-width:0; padding:12px; background:var(--bg-secondary); border:1px solid var(--border-color-light); border-radius:var(--radius-md); cursor:pointer; transition: border-color .2s, transform .2s; }
+.research-queue-item:hover { border-color:var(--ink-vermilion); transform:translateY(-1px); }
+.research-queue-item-head { display:flex; justify-content:space-between; align-items:center; gap:5px; }
+.research-status { color:var(--text-tertiary); font-size:10px; }
+.research-status.ready { color:var(--ink-vermilion); }
+.research-queue-date { color:var(--text-muted); font-size:10px; }
+.research-queue-title { color:var(--text-primary); font-size:13px; line-height:1.5; margin:12px 0 7px; min-height:39px; }
+.research-queue-meta { color:var(--text-tertiary); font-size:11px; }
+.research-queue-progress { background:var(--border-color-light); height:3px; border-radius:3px; margin-top:14px; overflow:hidden; }
+.research-queue-progress span { display:block; height:100%; background:var(--ink-vermilion); border-radius:3px; }
+.research-pending-line { display:flex; justify-content:space-between; align-items:center; padding-top:12px; margin-top:12px; border-top:1px solid var(--border-color-light); color:var(--text-secondary); font-size:11px; }
+.research-page { max-width:980px; margin:0 auto; }
+.research-page-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:18px; }
+.research-page-title { margin:0; font-size:22px; font-weight:600; letter-spacing:-.02em; }
+.research-page-subtitle { color:var(--text-tertiary); font-size:12px; margin:7px 0 0; }
+.research-card-shell { padding:22px; }
+.research-form { display:flex; flex-direction:column; gap:15px; }
+.research-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; }
+.research-form-grid:has(select[name="action"]) { grid-template-columns:1.5fr 1fr 1fr 1fr; }
+.research-form .form-group { margin:0; }
+.research-form textarea { resize:vertical; line-height:1.6; }
+.research-form-actions { display:flex; justify-content:flex-end; gap:9px; padding-top:4px; }
+.research-risk-result { border-top:1px solid var(--border-color-light); padding-top:14px; color:var(--text-secondary); font-size:12px; }
+.research-risk-title { color:var(--ink-vermilion); font-weight:600; margin-bottom:8px; }
+.research-checks { display:flex; flex-wrap:wrap; gap:6px; }
+.research-check { padding:4px 8px; border-radius:999px; font-size:11px; }
+.research-check.passed { color:var(--color-up); background:var(--color-up-bg); }
+.research-check.failed { color:var(--ink-warn); background:rgba(255,159,10,.1); }
+.research-risk-message { color:var(--text-tertiary); margin-top:9px; }
+.research-decision-footer { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:18px; padding-top:16px; border-top:1px solid var(--border-color-light); }
+.research-decision-footer div { display:flex; flex-direction:column; gap:4px; }
+.research-decision-footer strong { color:var(--text-primary); font-size:13px; }
+.research-decision-footer span { color:var(--text-tertiary); font-size:11px; }
+@media (max-width: 760px) {
+  .research-queue-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .research-page-head { align-items:stretch; flex-direction:column; }
+  .research-form-grid, .research-form-grid:has(select[name="action"]) { grid-template-columns:1fr; }
+  .research-card-shell { padding:15px; }
+  .research-decision-footer { align-items:stretch; flex-direction:column; }
+}
+@media (max-width: 420px) { .research-queue-grid { grid-template-columns:1fr; } }
