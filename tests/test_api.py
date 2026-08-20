@@ -246,6 +246,32 @@ class TestReview:
         resp = client.get("/api/review/daily")
         assert resp.status_code in (200, 503)
 
+    def test_research_stats_requires_auth(self, client):
+        assert client.get("/api/review/research-stats").status_code == 401
+
+    def test_research_stats_counts_settled_decisions(self, client, auth_headers):
+        card = client.post("/api/research/", json={
+            "title": "复盘统计测试", "code": "600519", "stock": "贵州茅台",
+        }, headers=auth_headers).json()["card"]
+        payload = {
+            "stock": "贵州茅台", "code": "600519", "action": "买入", "stage": "试仓30%",
+            "research_card_id": card["id"], "consistency_score": 80,
+        }
+        first = client.post("/api/journal/", json=payload, headers=auth_headers).json()["id"]
+        second = client.post("/api/journal/", json={**payload, "action": "持有"}, headers=auth_headers).json()["id"]
+        client.put(f"/api/journal/{first}", json={"result": "盈", "result_pct": 8.5}, headers=auth_headers)
+        client.put(f"/api/journal/{second}", json={"result": "待观察"}, headers=auth_headers)
+
+        stats = client.get("/api/review/research-stats", headers=auth_headers)
+        assert stats.status_code == 200
+        data = stats.json()
+        assert data["cards"]["total"] == 1
+        assert data["decisions"] == {
+            "total": 2, "pending": 1, "settled": 1, "wins": 1, "losses": 0,
+            "win_rate": 100.0, "avg_consistency": 80.0, "avg_result_pct": 8.5,
+        }
+        assert data["coverage"] == {"linked_cards": 1, "unlinked_cards": 0}
+
 
 class TestDiscipline:
     def test_defaults(self, client):

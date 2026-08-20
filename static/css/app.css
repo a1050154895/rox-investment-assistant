@@ -819,11 +819,18 @@ summary { cursor: pointer; }
 .research-decision-footer div { display:flex; flex-direction:column; gap:4px; }
 .research-decision-footer strong { color:var(--text-primary); font-size:13px; }
 .research-decision-footer span { color:var(--text-tertiary); font-size:11px; }
+.research-review-card { border-color:rgba(196,81,59,.24); }
+.research-review-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.research-review-metrics > div { padding:12px; background:var(--bg-secondary); border-radius:var(--radius-md); }
+.research-review-metrics span, .research-review-metrics small { display:block; color:var(--text-tertiary); font-size:11px; }
+.research-review-metrics strong { display:block; margin:7px 0 5px; color:var(--text-primary); font-family:var(--font-mono); font-size:22px; font-weight:600; }
+.research-review-note { margin-top:13px; color:var(--text-tertiary); font-size:11px; line-height:1.6; }
 @media (max-width: 760px) {
   .research-queue-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
   .research-page-head { align-items:stretch; flex-direction:column; }
   .research-form-grid, .research-form-grid:has(select[name="action"]) { grid-template-columns:1fr; }
   .research-card-shell { padding:15px; }
   .research-decision-footer { align-items:stretch; flex-direction:column; }
+  .research-review-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 420px) { .research-queue-grid { grid-template-columns:1fr; } }
