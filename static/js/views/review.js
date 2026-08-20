@@ -23,7 +23,10 @@ ROX.register('/review', async function() {
 ROX.views = ROX.views || {};
 ROX.views.review = {
   async load() {
-    const data = await ROX.api.get('/api/review/daily');
+    const [data, researchStats] = await Promise.all([
+      ROX.api.get('/api/review/daily'),
+      ROX.api.get('/api/review/research-stats'),
+    ]);
     if (!data || data.error) {
       document.getElementById('review-content').innerHTML = `
         <div style="text-align:center;padding:40px;color:var(--text-secondary);">
@@ -31,10 +34,10 @@ ROX.views.review = {
         </div>`;
       return;
     }
-    this.render(data);
+    this.render(data, researchStats && !researchStats.error ? researchStats : null);
   },
 
-  render(data) {
+  render(data, researchStats) {
     const fmt = ROX.fmt;
     const esc = ROX.escape;
     let html = '';
@@ -52,6 +55,30 @@ ROX.views.review = {
         </div>
       </div>
     `;
+
+    if (researchStats) {
+      const cards = researchStats.cards || {};
+      const decisions = researchStats.decisions || {};
+      const coverage = researchStats.coverage || {};
+      const winRate = decisions.win_rate == null ? '--' : `${decisions.win_rate}%`;
+      const avgScore = decisions.avg_consistency == null ? '--' : decisions.avg_consistency;
+      const avgReturn = decisions.avg_result_pct == null ? '--' : `${decisions.avg_result_pct > 0 ? '+' : ''}${decisions.avg_result_pct}%`;
+      html += `
+        <div class="card research-review-card" style="margin-bottom:20px;padding:20px;">
+          <div class="card-header" style="margin-bottom:14px;">
+            <div><div class="eyebrow">ROX LOOP / REVIEW</div><div class="card-title">研究卡复盘</div><div class="card-subtitle">只统计已关联研究卡的决策；待观察样本不计入胜率。</div></div>
+            <span class="tag tag-gray">${coverage.linked_cards || 0}/${cards.total || 0} 张已产生决策</span>
+          </div>
+          <div class="research-review-metrics">
+            <div><span>研究卡</span><strong>${cards.total || 0}</strong><small>草稿 ${cards.draft || 0} · 待决策 ${cards.ready || 0}</small></div>
+            <div><span>关联决策</span><strong>${decisions.total || 0}</strong><small>待观察 ${decisions.pending || 0} · 已结算 ${decisions.settled || 0}</small></div>
+            <div><span>结算胜率</span><strong>${winRate}</strong><small>盈 ${decisions.wins || 0} · 亏 ${decisions.losses || 0}</small></div>
+            <div><span>平均一致性</span><strong>${avgScore}</strong><small>平均结果 ${avgReturn}</small></div>
+          </div>
+          <div class="research-review-note">未关联决策的研究卡：${coverage.unlinked_cards || 0} 张。先完成研究卡，再记录决策，复盘才有依据。</div>
+        </div>
+      `;
+    }
 
     // 情绪评分 + 指数概览
     const sentiment = data.sentiment || {};
