@@ -23,6 +23,7 @@ class DecisionCreate(BaseModel):
     value_realization: int = Field(50, ge=0, le=100)
     consistency_score: int = Field(50, ge=0, le=100)
     reason: str = Field("", max_length=500)
+    research_card_id: int | None = Field(None, ge=1)
 
 
 class DecisionUpdate(BaseModel):
@@ -98,6 +99,14 @@ async def create_decision(
     db: Session = Depends(get_db),
 ):
     """创建决策记录。"""
+    if decision.research_card_id:
+        from app.models import ResearchCard
+        card = db.query(ResearchCard).filter(
+            ResearchCard.id == decision.research_card_id,
+            ResearchCard.user_id == user.id,
+        ).first()
+        if not card:
+            raise HTTPException(status_code=404, detail="关联的研究卡不存在")
     entry = JournalEntry(
         user_id=user.id,
         date=datetime.now().strftime("%Y-%m-%d"),

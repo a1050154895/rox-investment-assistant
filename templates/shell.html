@@ -14,6 +14,7 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="stylesheet" href="/static/css/app.css?v={{ version }}">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="/static/vendor/lightweight-charts.standalone.production.js?v={{ version }}"></script>
 </head>
 <body>
 <div class="app-shell" id="app">
@@ -29,6 +30,12 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 </span>
                 <span class="nav-label">仪表盘</span>
+            </div>
+            <div class="nav-item" data-route="/research">
+                <span class="nav-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 5.5v16M8 7h8M8 11h8"/></svg>
+                </span>
+                <span class="nav-label">研究卡</span>
             </div>
             <div class="nav-item" data-route="/stock">
                 <span class="nav-icon">
@@ -218,6 +225,7 @@
 <!-- Scripts -->
 <script src="/static/js/app.js?v={{ version }}"></script>
 <script src="/static/js/views/dashboard.js?v={{ version }}"></script>
+<script src="/static/js/views/research.js?v={{ version }}"></script>
 <script src="/static/js/views/stock.js?v={{ version }}"></script>
 <script src="/static/js/views/journal.js?v={{ version }}"></script>
 <script src="/static/js/views/framework.js?v={{ version }}"></script>

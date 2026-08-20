@@ -19,6 +19,18 @@ ROX.register('/', async function(container) {
         <div style="font-size:13px;color:var(--text-primary);line-height:1.7;">${ROX.escape(data.research_chain?.summary || '宏观数据不足')}</div>
         <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">宏观定调 → 资本周期 → 矛盾分析 → 决策纪律，逐层传导、可追溯。</div>
       </div>
+      <!-- 今日研究队列：ROX Loop 的主入口 -->
+      <div class="card full-width research-today-card">
+        <div class="card-header">
+          <div>
+            <div class="eyebrow">ROX LOOP / TODAY</div>
+            <div class="card-title">今日先把哪一个判断想清楚？</div>
+            <div class="card-subtitle">研究卡把事实、假设、反证和风控连成一条可复盘的证据链。</div>
+          </div>
+          <button class="btn btn-primary btn-sm" data-route="/research">+ 新建研究卡</button>
+        </div>
+        <div id="research-today-body"><div class="research-queue-loading">正在加载你的研究队列…</div></div>
+      </div>
       <!-- 宏观指南针 -->
       <div class="card full-width">
         <div class="card-header">
@@ -175,6 +187,7 @@ ROX.register('/', async function(container) {
   loadWatchlistCard();
   loadStatsCard();
   loadDisciplineAssessment();
+  loadResearchToday();
 
   // 自动刷新：指数 ticker + 自选股 + 持仓卡片每 30s 更新
   ROX.startAutoRefresh(async () => {
@@ -183,6 +196,30 @@ ROX.register('/', async function(container) {
     loadPortfolioCard();
   }, 30000);
 });
+
+async function loadResearchToday() {
+  const body = document.getElementById('research-today-body');
+  if (!body) return;
+  const data = await ROX.api.get('/api/research/today');
+  if (!data || data.error) {
+    body.innerHTML = '<div class="research-queue-empty">登录后即可建立你的第一张研究卡。</div>';
+    return;
+  }
+  const cards = data.cards || [];
+  const reviews = data.pending_reviews || [];
+  body.innerHTML = cards.length ? `<div class="research-queue-grid">${cards.slice(0, 4).map(card => `
+    <div class="research-queue-item" data-route="/research/${card.id}">
+      <div class="research-queue-item-head"><span class="research-status ${card.status === 'ready' ? 'ready' : ''}">${card.status === 'ready' ? '待决策' : '草稿'}</span><span class="research-queue-date">${ROX.fmt.date(card.updated_at)}</span></div>
+      <div class="research-queue-title">${ROX.escape(card.title)}</div>
+      <div class="research-queue-meta">${ROX.escape(card.stock || card.code || '未绑定标的')} · ${ROX.escape(card.action || '观察')}</div>
+      <div class="research-queue-progress"><span style="width:${[card.question, card.hypothesis, (card.facts || []).length, card.counter_evidence, card.invalidation].filter(Boolean).length * 20}%"></span></div>
+    </div>`).join('')}</div>` : `<div class="research-queue-empty"><div><strong>还没有研究卡</strong><p>从一个具体问题开始，不要从“看一下市场”开始。</p></div><button class="btn btn-secondary btn-sm" data-route="/research">创建第一张</button></div>`;
+  if (reviews.length) {
+    body.innerHTML += `<div class="research-pending-line"><span>待复盘 ${reviews.length} 条决策</span><button class="btn btn-secondary btn-sm" data-route="/review">去复盘 →</button></div>`;
+  }
+  body.querySelectorAll('[data-route]').forEach(item => item.addEventListener('click', () => ROX.navigate(item.dataset.route)));
+  document.querySelectorAll('[data-route="/research"]').forEach(item => item.addEventListener('click', () => ROX.navigate('/research')));
+}
 
 async function loadDisciplineAssessment() {
   const body = document.getElementById('discipline-assessment-body');

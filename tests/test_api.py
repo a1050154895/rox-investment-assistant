@@ -289,6 +289,58 @@ class TestWatchlist:
         assert resp.status_code == 401
 
 
+class TestResearchCards:
+    def test_create_risk_check_and_update(self, client, auth_headers):
+        created = client.post("/api/research/", json={
+            "title": "研究卡测试", "code": "600519", "stock": "贵州茅台",
+            "question": "估值是否值得跟踪？", "hypothesis": "盈利保持稳定",
+            "facts": ["财报已披露"], "counter_evidence": "消费需求可能走弱",
+            "invalidation": "盈利预期下修", "action": "观察",
+        }, headers=auth_headers)
+        assert created.status_code == 200
+        card = created.json()["card"]
+        assert card["facts"] == ["财报已披露"]
+
+        risk = client.get(f"/api/research/{card['id']}/risk-check", headers=auth_headers)
+        assert risk.status_code == 200
+        assert risk.json()["status"] == "ready"
+        assert risk.json()["passed"] == risk.json()["total"]
+
+        updated = client.put(f"/api/research/{card['id']}", json={
+            **{key: card[key] for key in ("title", "code", "stock", "question", "hypothesis", "counter_evidence", "invalidation", "action", "position_plan", "holding_period", "status")},
+            "facts": ["财报已披露", "数据日期：测试"], "stop_loss": 1200,
+        }, headers=auth_headers)
+        assert updated.status_code == 200
+        assert updated.json()["card"]["stop_loss"] == 1200
+
+    def test_risk_check_reports_missing_evidence(self, client, auth_headers):
+        created = client.post("/api/research/", json={"title": "不完整研究卡"}, headers=auth_headers)
+        card_id = created.json()["card"]["id"]
+        risk = client.get(f"/api/research/{card_id}/risk-check", headers=auth_headers)
+        assert risk.json()["status"] == "incomplete"
+        assert risk.json()["passed"] == 0
+
+    def test_today_requires_auth(self, client):
+        assert client.get("/api/research/today").status_code == 401
+
+    def test_decision_can_link_research_card(self, client, auth_headers):
+        created = client.post("/api/research/", json={"title": "关联测试"}, headers=auth_headers)
+        card_id = created.json()["card"]["id"]
+        decision = client.post("/api/journal/", json={
+            "stock": "贵州茅台", "code": "600519", "action": "持有", "stage": "试仓30%",
+            "research_card_id": card_id,
+        }, headers=auth_headers)
+        assert decision.status_code == 200
+        assert decision.json()["decision"]["research_card_id"] == card_id
+
+    def test_decision_rejects_other_card(self, client, auth_headers):
+        decision = client.post("/api/journal/", json={
+            "stock": "贵州茅台", "code": "600519", "action": "持有", "stage": "试仓30%",
+            "research_card_id": 999999,
+        }, headers=auth_headers)
+        assert decision.status_code == 404
+
+
 class TestPortfolioUpdate:
     def test_update_position(self, client, auth_headers):
         add = client.post("/api/portfolio/", json={
