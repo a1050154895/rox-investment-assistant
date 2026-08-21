@@ -6,25 +6,37 @@ function researchCardForm(card = {}) {
   const facts = (card.facts || []).join('\n');
   return `
     <form id="research-card-form" class="research-form">
-      <div class="research-form-grid">
+      <div class="research-step" data-step="1">
+      <div class="research-step-label">1 / 4 · 先定义研究对象</div><div class="research-form-grid">
         <label class="form-group"><span class="form-label">研究标题 *</span><input class="form-input" name="title" required maxlength="120" value="${ROX.escape(card.title || '')}" placeholder="例如：宁德时代当前是否值得继续跟踪？"></label>
         <label class="form-group"><span class="form-label">股票代码</span><input class="form-input" name="code" maxlength="10" value="${ROX.escape(card.code || '')}" placeholder="如 300750"></label>
         <label class="form-group"><span class="form-label">股票名称</span><input class="form-input" name="stock" maxlength="30" value="${ROX.escape(card.stock || '')}" placeholder="如 宁德时代"></label>
         <label class="form-group"><span class="form-label">动作</span><select class="form-input" name="action"><option ${card.action === '观察' || !card.action ? 'selected' : ''}>观察</option><option ${card.action === '买入' ? 'selected' : ''}>买入</option><option ${card.action === '持有' ? 'selected' : ''}>持有</option><option ${card.action === '减仓' ? 'selected' : ''}>减仓</option><option ${card.action === '卖出' ? 'selected' : ''}>卖出</option></select></label>
       </div>
+      </div>
+      <div class="research-step" data-step="2">
+      <div class="research-step-label">2 / 4 · 写清你的判断</div>
       <label class="form-group"><span class="form-label">研究问题</span><textarea class="form-input" name="question" rows="2" placeholder="我现在到底要验证什么？">${ROX.escape(card.question || '')}</textarea></label>
       <label class="form-group"><span class="form-label">核心假设</span><textarea class="form-input" name="hypothesis" rows="3" placeholder="我认为……因为……">${ROX.escape(card.hypothesis || '')}</textarea></label>
       <label class="form-group"><span class="form-label">关键事实（每行一条，标注来源/日期）</span><textarea class="form-input" name="facts" rows="4" placeholder="公司公告：……（来源/日期）\n行情数据：……（数据日期）">${ROX.escape(facts)}</textarea></label>
+      </div>
+      <div class="research-step" data-step="3">
+      <div class="research-step-label">3 / 4 · 主动找反证</div>
       <div class="research-form-grid">
         <label class="form-group"><span class="form-label">反证</span><textarea class="form-input" name="counter_evidence" rows="3" placeholder="哪些事实不支持我的观点？">${ROX.escape(card.counter_evidence || '')}</textarea></label>
         <label class="form-group"><span class="form-label">失效条件</span><textarea class="form-input" name="invalidation" rows="3" placeholder="什么发生时，我必须承认判断失效？">${ROX.escape(card.invalidation || '')}</textarea></label>
       </div>
+      </div>
+      <div class="research-step" data-step="4">
+      <div class="research-step-label">4 / 4 · 设定纪律与状态</div>
       <div class="research-form-grid">
         <label class="form-group"><span class="form-label">仓位计划</span><input class="form-input" name="position_plan" value="${ROX.escape(card.position_plan || '')}" placeholder="如：试仓不超过总资产10%"></label>
         <label class="form-group"><span class="form-label">止损价（可选）</span><input class="form-input" type="number" step="0.01" name="stop_loss" value="${card.stop_loss ?? ''}" placeholder="仅作纪律记录"></label>
         <label class="form-group"><span class="form-label">持有周期</span><input class="form-input" name="holding_period" value="${ROX.escape(card.holding_period || '')}" placeholder="如：3-6个月"></label>
         <label class="form-group"><span class="form-label">状态</span><select class="form-input" name="status"><option value="draft" ${card.status !== 'ready' ? 'selected' : ''}>草稿</option><option value="ready" ${card.status === 'ready' ? 'selected' : ''}>待决策</option><option value="archived" ${card.status === 'archived' ? 'selected' : ''}>归档</option></select></label>
       </div>
+      </div>
+      <div class="research-step-actions"><button type="button" class="btn btn-secondary" id="research-step-prev">上一步</button><span id="research-step-status">第 1 步 / 4</span><button type="button" class="btn btn-primary" id="research-step-next">下一步</button></div>
       <div class="research-form-actions"><button type="button" class="btn btn-secondary" id="research-risk-check">先做风控检查</button><button type="submit" class="btn btn-primary">保存研究卡</button></div>
       <div id="research-risk-result" class="research-risk-result" aria-live="polite"></div>
     </form>`;
@@ -62,6 +74,22 @@ ROX.register('/research', async function(container, params) {
   const form = document.getElementById('research-card-form');
   const riskButton = document.getElementById('research-risk-check');
   const riskResult = document.getElementById('research-risk-result');
+  let currentStep = 1;
+  const steps = [...form.querySelectorAll('.research-step')];
+  const prevStep = document.getElementById('research-step-prev');
+  const nextStep = document.getElementById('research-step-next');
+  const stepStatus = document.getElementById('research-step-status');
+  function updateStep() {
+    const mobile = window.matchMedia('(max-width: 760px)').matches;
+    steps.forEach(step => { step.hidden = mobile && Number(step.dataset.step) !== currentStep; });
+    prevStep.disabled = currentStep === 1;
+    nextStep.textContent = currentStep === steps.length ? '完成检查' : '下一步';
+    stepStatus.textContent = `第 ${currentStep} 步 / ${steps.length}`;
+  }
+  prevStep?.addEventListener('click', () => { currentStep = Math.max(1, currentStep - 1); updateStep(); });
+  nextStep?.addEventListener('click', () => { currentStep = Math.min(steps.length, currentStep + 1); updateStep(); });
+  window.addEventListener('resize', updateStep, { once: true });
+  updateStep();
   riskButton?.addEventListener('click', async () => {
     const payload = researchPayload(form);
     if (!payload.title) { form.reportValidity(); return; }

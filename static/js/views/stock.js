@@ -34,11 +34,11 @@ ROX.register('/stock', async function(container, params) {
   ROX.state.currentStock = code;
 
   container.innerHTML = `
-    <div class="stock-detail-layout">
+    <div class="stock-detail-layout stock-page">
       <!-- Left: K-Line -->
       <div class="stock-main-column">
         <!-- Stock header -->
-        <div class="card stock-hero">
+        <div class="card stock-hero stock-summary-card">
           <div class="stock-hero-row">
             <div class="stock-identity">
               <h2 style="font-size:18px;font-weight:600;">${info.name}</h2>
@@ -46,12 +46,12 @@ ROX.register('/stock', async function(container, params) {
               <span class="tag tag-gray">${info.industry}</span>
               <span class="tag ${info.stale ? 'tag-amber' : 'tag-green'}">${info.stale ? `历史快照 ${info.as_of || ''}` : '实时数据'}</span>
             </div>
-            <div class="stock-hero-actions">
+            <div class="stock-hero-actions stock-action-bar">
               <div class="stock-live-price">
                 <span style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:${info.change_pct>=0?'var(--rox-up)':'var(--rox-down)'};">${ROX.fmt.num(info.price)}</span>
                 <span style="font-family:var(--font-mono);font-size:13px;color:${info.change_pct>=0?'var(--rox-up)':'var(--rox-down)'};">${ROX.fmt.pct(info.change_pct)}</span>
               </div>
-              <div class="stock-period-actions">
+              <div class="stock-period-actions stock-chart-periods">
                 <button class="btn btn-secondary btn-sm" data-period="daily" id="btn-daily">日线</button>
                 <button class="btn btn-secondary btn-sm" data-period="weekly" id="btn-weekly">周线</button>
               </div>
@@ -71,12 +71,12 @@ ROX.register('/stock', async function(container, params) {
         </div>
 
         <!-- K-Line Chart -->
-        <div class="card" style="flex:1;padding:12px;overflow:hidden;">
+        <div class="card stock-chart-card" style="flex:1;padding:12px;overflow:hidden;">
           ${kline?.data_status === 'unavailable' ? `<div class="empty-state"><p>${kline.message || 'K线数据暂不可用'}</p></div>` : `<div id="kline-chart" class="chart-container"></div>`}
         </div>
 
         <!-- Fund Flow -->
-        <div class="card" style="padding:12px;">
+        <div class="card stock-flow-card" style="padding:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <span style="font-size:12px;font-weight:500;">主力资金流向</span>
             <span style="font-family:var(--font-mono);font-size:13px;color:${analysis?.fund_flow?.main_inflow != null && analysis.fund_flow.main_inflow>=0?'var(--rox-up)':'var(--rox-down)'};">${analysis?.fund_flow?.main_inflow == null ? '数据不可用' : `${analysis.fund_flow.main_inflow>=0?'+':''}${ROX.fmt.num(analysis.fund_flow.main_inflow)} 亿`}</span>
@@ -86,7 +86,7 @@ ROX.register('/stock', async function(container, params) {
       </div>
 
       <!-- Right: Framework Panel -->
-      <aside class="stock-framework-panel">
+      <aside class="stock-framework-panel stock-analysis-column">
         ${analysis ? `
           <!-- Consistency Score -->
           <div class="card">

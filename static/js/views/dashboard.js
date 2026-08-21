@@ -10,9 +10,9 @@ ROX.register('/', async function(container) {
   }
 
   container.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="dashboard-page" style="display:flex;flex-direction:column;gap:16px;">
       <!-- 研究传导链 -->
-      <div class="card full-width" style="padding:16px 20px;">
+      <div class="card full-width dashboard-chain-card" style="padding:16px 20px;">
         <div class="card-header" style="margin-bottom:8px;">
           <div class="card-title">研究传导链</div>
         </div>
@@ -20,7 +20,7 @@ ROX.register('/', async function(container) {
         <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">宏观定调 → 资本周期 → 矛盾分析 → 决策纪律，逐层传导、可追溯。</div>
       </div>
       <!-- 今日研究队列：ROX Loop 的主入口 -->
-      <div class="card full-width research-today-card">
+      <div class="card full-width research-today-card dashboard-priority-card">
         <div class="card-header">
           <div>
             <div class="eyebrow">ROX LOOP / TODAY</div>
@@ -32,7 +32,7 @@ ROX.register('/', async function(container) {
         <div id="research-today-body"><div class="research-queue-loading">正在加载你的研究队列…</div></div>
       </div>
       <!-- 宏观指南针 -->
-      <div class="card full-width">
+      <div class="card full-width dashboard-macro-card">
         <div class="card-header">
           <div>
             <div class="card-title">宏观指南针</div>
@@ -72,7 +72,7 @@ ROX.register('/', async function(container) {
       </div>
 
       <!-- 资本周期 + 矛盾追踪 -->
-      <div class="grid-2">
+      <div class="grid-2 dashboard-secondary-grid">
         <!-- 资本周期 -->
         <div class="card">
           <div class="card-header">
@@ -115,7 +115,7 @@ ROX.register('/', async function(container) {
       </div>
 
       <!-- 334 纪律体检 + 自选股 -->
-      <div class="grid-2">
+      <div class="grid-2 dashboard-secondary-grid dashboard-risk-grid">
         <!-- 334 纪律体检（异步加载真实持仓 + 周期阶段） -->
         <div class="card" id="discipline-card">
           <div class="card-header">
@@ -139,7 +139,7 @@ ROX.register('/', async function(container) {
 
       <!-- 宏观资讯研判摘要 -->
       ${data.intelligence ? `
-      <div class="grid-2">
+      <div class="grid-2 dashboard-secondary-grid dashboard-intelligence-grid">
         <div class="card">
           <div class="card-header">
             <div><div class="card-title">政策与全球变量</div><div class="card-subtitle">先看传导路径，再看交易信号</div></div>
@@ -166,7 +166,7 @@ ROX.register('/', async function(container) {
       </div>` : ''}
 
       <!-- 最近决策 -->
-      <div class="card full-width">
+      <div class="card full-width dashboard-history-card">
         <div class="card-header">
           <div class="card-title">最近决策记录</div>
           <button class="btn btn-secondary btn-sm" data-action="add-decision">+ 记录决策</button>
