@@ -8,7 +8,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.8.1"
+        assert data["version"] == "4.8.2"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -358,6 +358,19 @@ class TestResearchCards:
         }, headers=auth_headers)
         assert decision.status_code == 200
         assert decision.json()["decision"]["research_card_id"] == card_id
+
+    def test_research_hypothesis_status_counts(self, client, auth_headers):
+        for status in ("成立", "失效"):
+            card = client.post("/api/research/", json={
+                "title": f"假设{status}", "hypothesis_status": status,
+            }, headers=auth_headers).json()["card"]
+            assert card["hypothesis_status"] == status
+
+        stats = client.get("/api/review/research-stats", headers=auth_headers).json()
+        counts = stats["cards"]["hypothesis_status"]
+        assert counts["成立"] == 1
+        assert counts["失效"] == 1
+        assert counts["未验证"] >= 0
 
     def test_decision_rejects_other_card(self, client, auth_headers):
         decision = client.post("/api/journal/", json={

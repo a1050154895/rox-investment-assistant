@@ -25,10 +25,12 @@ class ResearchCardIn(BaseModel):
     stop_loss: float | None = None
     holding_period: str = Field("", max_length=30)
     status: str = Field("draft", max_length=20)
+    hypothesis_status: str | None = Field(None, max_length=20)
 
 
 class ResearchCardUpdate(ResearchCardIn):
     title: str = Field(..., min_length=1, max_length=120)
+    hypothesis_status: str | None = Field(None, max_length=20)
 
 
 def _set_card(card: ResearchCard, data: ResearchCardIn) -> None:

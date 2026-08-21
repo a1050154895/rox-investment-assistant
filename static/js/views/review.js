@@ -60,6 +60,8 @@ ROX.views.review = {
       const cards = researchStats.cards || {};
       const decisions = researchStats.decisions || {};
       const coverage = researchStats.coverage || {};
+      const hs = (cards.hypothesis_status || {});
+      const validationRate = cards.hypothesis_validation_rate == null ? '--' : `${cards.hypothesis_validation_rate}%`;
       const winRate = decisions.win_rate == null ? '--' : `${decisions.win_rate}%`;
       const avgScore = decisions.avg_consistency == null ? '--' : decisions.avg_consistency;
       const avgReturn = decisions.avg_result_pct == null ? '--' : `${decisions.avg_result_pct > 0 ? '+' : ''}${decisions.avg_result_pct}%`;
@@ -74,6 +76,13 @@ ROX.views.review = {
             <div><span>关联决策</span><strong>${decisions.total || 0}</strong><small>待观察 ${decisions.pending || 0} · 已结算 ${decisions.settled || 0}</small></div>
             <div><span>结算胜率</span><strong>${winRate}</strong><small>盈 ${decisions.wins || 0} · 亏 ${decisions.losses || 0}</small></div>
             <div><span>平均一致性</span><strong>${avgScore}</strong><small>平均结果 ${avgReturn}</small></div>
+          </div>
+          <div class="research-hypothesis-row">
+            <span>假设成立 <strong>${hs['成立'] || 0}</strong></span>
+            <span>部分成立 <strong>${hs['部分成立'] || 0}</strong></span>
+            <span>失效 <strong>${hs['失效'] || 0}</strong></span>
+            <span>未验证 <strong>${hs['未验证'] || 0}</strong></span>
+            <span class="research-hypothesis-rate">假设验证率 ${validationRate}</span>
           </div>
           <div class="research-review-note">未关联决策的研究卡：${coverage.unlinked_cards || 0} 张。先完成研究卡，再记录决策，复盘才有依据。</div>
         </div>

@@ -481,7 +481,7 @@ const ROX = {
     this.state.onboardingSteps = steps;
     this.state.onboardingStep = 0;
     const overlay = document.getElementById('onboarding-overlay');
-    if (overlay) overlay.style.display = 'flex';
+    if (overlay) overlay.classList.add('onboarding-open');
     this.renderOnboardingStep();
   },
 
@@ -523,7 +523,7 @@ const ROX = {
   finishOnboarding() {
     localStorage.setItem('rox_onboarded', '1');
     const overlay = document.getElementById('onboarding-overlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) overlay.classList.remove('onboarding-open');
   },
 
   // Init

@@ -98,6 +98,7 @@ class ResearchCard(Base):
     stop_loss = mapped_column(Float, nullable=True)
     holding_period = mapped_column(String(30), default="")
     status = mapped_column(String(20), default="draft")
+    hypothesis_status = mapped_column(String(20), nullable=True)
     created_at = mapped_column(DateTime, default=utcnow)
     updated_at = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
@@ -123,6 +124,7 @@ class ResearchCard(Base):
             "stop_loss": self.stop_loss,
             "holding_period": self.holding_period,
             "status": self.status,
+            "hypothesis_status": self.hypothesis_status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
