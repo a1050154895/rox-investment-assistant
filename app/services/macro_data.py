@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import re
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -146,6 +147,33 @@ def _to_number(value: Any) -> float | None:
         return None
 
 
+def _period_age(period: str) -> int | None:
+    """Estimate observation age from a YYYY年MM月/ISO period label."""
+    text = str(period or "").strip()
+    try:
+        if "年" in text:
+            year, tail = text.split("年", 1)
+            quarter = re.search(r"第([1-4])季度", tail)
+            month = str((int(quarter.group(1)) - 1) * 3 + 2) if quarter else tail.split("月", 1)[0]
+            return max(0, (datetime.now().date() - datetime(int(year), int(month), 1).date()).days)
+        return max(0, (datetime.fromisoformat(text[:10]).date() - datetime.now().date()).days * -1)
+    except (TypeError, ValueError, IndexError):
+        return None
+
+
+def _freshness(period: str, status: str) -> dict[str, Any]:
+    age_days = _period_age(period)
+    if status == "unavailable":
+        label = "不可用"
+    elif age_days is None:
+        label = "日期未知"
+    elif age_days <= 45:
+        label = "较新"
+    elif age_days <= 90:
+        label = "偏旧"
+    else:
+        label = "过期"
+    return {"label": label, "age_days": age_days, "is_stale": label in ("偏旧", "过期")}
 def _find_column(columns: list[str], candidates: tuple[str, ...]) -> str | None:
     normalized = {str(column).replace(" ", ""): str(column) for column in columns}
     for candidate in candidates:
@@ -194,6 +222,7 @@ def parse_indicator_frame(frame: Any, spec: IndicatorSpec) -> dict[str, Any]:
             "key": spec.key, "label": spec.label, "value": round(value, 2), "unit": spec.unit,
             "period": period, "score": score, "status": "available", "publisher": spec.publisher,
             "data_source": f"AKShare / {spec.publisher}公开数据", "value_column": value_column,
+            "freshness": _freshness(period, "available"),
         }
     raise ValueError(f"近{cutoff_year}年后无有效数据")
 
@@ -217,10 +246,12 @@ async def _fetch_indicator(spec: IndicatorSpec) -> dict[str, Any]:
                 "status": "snapshot", "publisher": spec.publisher,
                 "data_source": f"公开数据快照 / {spec.publisher}",
                 "message": f"AKShare 不可用，使用最近已知值（{snapshot['period']}）",
+                "freshness": _freshness(snapshot["period"], "snapshot"),
             }
         return {
             "key": spec.key, "label": spec.label, "status": "unavailable", "publisher": spec.publisher,
             "data_source": f"AKShare / {spec.publisher}公开数据", "message": str(exc)[:180],
+            "freshness": _freshness("", "unavailable"),
         }
 
 
@@ -268,6 +299,12 @@ async def get_macro_matrix(force: bool = False) -> dict[str, Any]:
     value = _group_result(indicators, "value_realization", "价值实现条件")
     cell, action, advice = _matrix_conclusion(fiscal, value)
     available_count = sum(item.get("status") in ("available", "snapshot") for item in indicators)
+    stale_items = [item for item in indicators if item.get("freshness", {}).get("is_stale")]
+    missing_items = [item["label"] for item in indicators if item.get("status") == "unavailable"]
+    observed_periods = [
+        (item.get("freshness", {}).get("age_days"), item.get("period"))
+        for item in indicators if item.get("period") and item.get("freshness", {}).get("age_days") is not None
+    ]
     result = {
         "methodology": "财政信用条件 × 价值实现条件代理矩阵（不是主权信用评级）",
         "sovereign_credit": fiscal,
@@ -277,6 +314,13 @@ async def get_macro_matrix(force: bool = False) -> dict[str, Any]:
         "framework_advice": advice,
         "data_status": "available" if fiscal.get("score") and value.get("score") else "degraded",
         "coverage": {"available": available_count, "total": len(indicators)},
+        "data_quality": {
+            "status": "stale" if stale_items else "ok" if available_count == len(indicators) else "partial",
+            "stale_count": len(stale_items),
+            "missing": missing_items,
+            "latest_observation": min(observed_periods, key=lambda pair: pair[0])[1] if observed_periods else None,
+            "message": "部分指标日期偏旧，请结合原始来源复核" if stale_items else "每项指标均附带观察期与来源",
+        },
         "updated_at": datetime.now().isoformat(),
         "refresh_ttl_seconds": _CACHE_TTL,
         "disclaimer": "宏观矩阵是研究代理，不是信用评级、投资建议或仓位指令。",

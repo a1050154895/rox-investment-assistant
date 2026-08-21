@@ -3,6 +3,7 @@ import unittest
 
 from app.services.analysis_engine import build_analysis, calculate_indicators
 from app.services.market_data import get_fund_flow, get_kline, get_stock_quote, normalize_stock_code
+from app.services.intelligence_data import _dedup_news
 
 
 class TrustLayerTests(unittest.TestCase):
@@ -94,7 +95,6 @@ class TrustLayerTests(unittest.TestCase):
         self.assertEqual(len(result["all"]), 4)
 
     def test_news_dedup(self):
-        from app.services.intelligence_data import _dedup_news
         items = [
             {"title": "央行降息", "id": 1},
             {"title": "央行降息", "id": 2},
@@ -102,6 +102,11 @@ class TrustLayerTests(unittest.TestCase):
             {"title": "PMI数据公布", "id": 4},
         ]
         self.assertEqual(len(_dedup_news(items)), 2)
+
+    def test_macro_freshness_contract(self):
+        from app.services.macro_data import _freshness
+        self.assertIn(_freshness("2026年08月", "available")["label"], ("较新", "偏旧", "过期"))
+        self.assertEqual(_freshness("", "unavailable"), {"label": "不可用", "age_days": None, "is_stale": False})
 
 
 if __name__ == "__main__":

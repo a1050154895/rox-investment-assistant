@@ -53,8 +53,20 @@ function renderMethodology(data) {
             <span class="methodology-level">${layer.level}</span>
             <span class="tag tag-blue">${layer.name}</span>
           </div>
-          <div class="methodology-title">${layer.title}</div>
-          <div class="methodology-summary">${layer.summary}</div>
+          <div class="methodology-title">${ROX.escape(layer.title)}</div>
+          <div class="methodology-summary">${ROX.escape(layer.summary)}</div>
+          <details class="methodology-detail" style="margin-top:10px;">
+            <summary>展开完整框架</summary>
+            <div class="methodology-detail-body">
+              ${layer.rule ? `<div><strong>核心规则</strong><p>${ROX.escape(layer.rule)}</p></div>` : ''}
+              ${layer.observation_targets ? `<div><strong>观察目标</strong><div class="methodology-observations">${layer.observation_targets.map(item => `<span class="tag tag-gray">${ROX.escape(item)}</span>`).join('')}</div></div>` : ''}
+              ${layer.matrix ? `<div><strong>矩阵规则</strong><div class="methodology-rule-list">${layer.matrix.rules.map(item => `<div><b>${ROX.escape(item.cell)}</b><span>${ROX.escape(item.action)} · ${ROX.escape(item.desc)}</span></div>`).join('')}</div></div>` : ''}
+              ${layer.contradiction_types ? `<div><strong>矛盾类型</strong><div class="methodology-rule-list">${layer.contradiction_types.map(item => `<div><b>${ROX.escape(item.name)}</b><span>${ROX.escape(item.desc)} · 例：${ROX.escape(item.example)}</span></div>`).join('')}</div></div>` : ''}
+              ${layer.three_pools ? `<div><strong>三池分配</strong><div class="methodology-rule-list">${layer.three_pools.map(item => `<div><b>${ROX.escape(item.name)} ${ROX.escape(item.ratio)}</b><span>${ROX.escape(item.desc)} · ${ROX.escape(item.rule)}</span></div>`).join('')}</div></div>` : ''}
+              ${layer.position_334 ? `<div><strong>三段建仓</strong><div class="methodology-rule-list">${layer.position_334.map(item => `<div><b>${ROX.escape(item.name)} ${ROX.escape(item.ratio)}</b><span>${ROX.escape(item.trigger)} · ${ROX.escape(item.rule)}</span></div>`).join('')}</div></div>` : ''}
+              ${layer.dimensions ? `<div><strong>评分维度</strong><div class="methodology-rule-list">${layer.dimensions.map(item => `<div><b>${ROX.escape(item.name)} ${item.weight}%</b><span>${ROX.escape(item.desc)} · ${ROX.escape(item.scoring)}</span></div>`).join('')}</div></div>` : ''}
+            </div>
+          </details>
 
           ${layer.key_concepts ? `
             <div class="methodology-concepts">
@@ -130,7 +142,7 @@ function renderMethodology(data) {
           ` : ''}
 
           ${layer.skill ? `
-            <details style="margin-top:10px;">
+            <details class="methodology-skill" style="margin-top:10px;">
               <summary style="cursor:pointer;font-size:11px;color:var(--text-secondary);font-weight:500;">执行方法 · 触发 · 边界</summary>
               <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;font-size:11px;line-height:1.6;">
                 <div><span style="color:var(--text-tertiary);">触发：</span><span style="color:var(--text-primary);">${layer.skill.trigger}</span></div>

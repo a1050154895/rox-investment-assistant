@@ -48,6 +48,13 @@ def test_every_layer_has_distilled_skill_metadata():
         assert skill["boundary"]
 
 
+def test_every_layer_has_expandable_detail_metadata():
+    for layer in METHODOLOGY_LAYERS:
+        assert layer.get("summary")
+        assert layer.get("skill", {}).get("steps")
+        assert layer.get("skill", {}).get("boundary")
+
+
 def test_strategies_and_knowledge_non_empty():
     assert len(STRATEGIES) >= 1
     assert all(s["stage"] for s in STRATEGIES)

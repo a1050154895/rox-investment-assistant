@@ -69,6 +69,7 @@ ROX.register('/', async function(container) {
           ${data.macro_compass.framework_advice}
         </div>
         <div class="macro-meta">覆盖 ${data.macro_compass.coverage?.available ?? 0}/${data.macro_compass.coverage?.total ?? 0} 项 · ${data.macro_compass.disclaimer || ''}</div>
+        <div class="macro-quality-line">数据质量：${ROX.escape(data.macro_compass.data_quality?.status || '未标注')} · 最新观察期：${ROX.escape(data.macro_compass.data_quality?.latest_observation || '未知')} · ${ROX.escape(data.macro_compass.data_quality?.message || '')}</div>
       </div>
 
       <!-- 资本周期 + 矛盾追踪 -->

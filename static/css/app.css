@@ -900,6 +900,29 @@ summary { cursor: pointer; }
 .research-review-metrics span, .research-review-metrics small { display:block; color:var(--text-tertiary); font-size:11px; }
 .research-review-metrics strong { display:block; margin:7px 0 5px; color:var(--text-primary); font-family:var(--font-mono); font-size:22px; font-weight:600; }
 .research-review-note { margin-top:13px; color:var(--text-tertiary); font-size:11px; line-height:1.6; }
+.methodology-detail summary, .methodology-skill summary { min-height:44px; display:flex; align-items:center; color:var(--rox-primary); cursor:pointer; font-size:12px; }
+.methodology-detail-body { display:flex; flex-direction:column; gap:14px; margin-top:8px; padding-top:12px; border-top:1px solid var(--border-color-light); color:var(--text-secondary); font-size:12px; line-height:1.7; }
+.methodology-detail-body strong { display:block; color:var(--text-primary); margin-bottom:5px; }
+.methodology-detail-body p { margin:0; }
+.methodology-observations { display:flex; flex-wrap:wrap; gap:6px; }
+.methodology-rule-list { display:flex; flex-direction:column; gap:7px; }
+.methodology-rule-list > div { display:flex; flex-direction:column; gap:2px; padding:8px 10px; background:var(--bg-secondary); border-radius:var(--radius-md); }
+.methodology-rule-list b { color:var(--text-primary); font-weight:500; }
+.methodology-rule-list span { color:var(--text-tertiary); }
+.intelligence-map { display:grid; grid-template-columns:1fr auto 1fr auto 1fr auto 1fr; gap:8px; align-items:center; }
+.intelligence-map > div { min-height:70px; padding:12px; background:var(--bg-secondary); border-radius:var(--radius-md); display:flex; flex-direction:column; justify-content:center; gap:4px; }
+.intelligence-map b { color:var(--text-primary); font-size:13px; }
+.intelligence-map span { color:var(--text-tertiary); font-size:11px; line-height:1.5; }
+.intelligence-map i { color:var(--ink-vermilion); font-style:normal; font-size:18px; }
+.macro-quality-line { margin-top:8px; padding-top:8px; border-top:1px solid var(--border-color-light); color:var(--text-tertiary); font-size:11px; line-height:1.6; }
+@media (max-width: 760px) {
+  .methodology-detail-body { font-size:13px; }
+  .intelligence-map { grid-template-columns:1fr; gap:6px; }
+  .intelligence-map i { display:block; text-align:center; transform:rotate(90deg); }
+  .intelligence-section-grid { gap:12px; }
+  .intelligence-news-card { padding:14px; }
+  .macro-quality-line { font-size:12px; }
+}
 @media (max-width: 760px) {
   .research-queue-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
   .research-page-head { align-items:stretch; flex-direction:column; }

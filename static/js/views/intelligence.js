@@ -14,7 +14,7 @@ ROX.register('/intelligence', async function(container) {
   const flowClass = flow => flow === 'inflow' ? 'text-up' : 'text-down';
 
   container.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="intelligence-page" style="display:flex;flex-direction:column;gap:16px;">
       <div class="card intelligence-lead">
         <div class="card-header">
           <div>
@@ -27,7 +27,17 @@ ROX.register('/intelligence', async function(container) {
         <div style="margin-top:10px;font-size:11px;color:var(--text-tertiary);">数据状态：${data.source_status} · 更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}</div>
       </div>
 
-      <div class="grid-2">
+      <div class="card intelligence-map-card">
+        <div class="card-header"><div><div class="card-title">一条线看懂当前情报</div><div class="card-subtitle">事件 → 传导 → 行业 → 验证动作</div></div><span class="tag tag-gray">研究连接器</span></div>
+        <div class="intelligence-map">
+          <div><b>事实线索</b><span>政策、全球变量、资讯</span></div><i>→</i>
+          <div><b>传导路径</b><span>利率 / 汇率 / 能源 / 订单</span></div><i>→</i>
+          <div><b>行业影响</b><span>盈利、估值、资金流</span></div><i>→</i>
+          <div><b>验证动作</b><span>至少两项独立数据确认</span></div>
+        </div>
+      </div>
+
+      <div class="grid-2 intelligence-section-grid">
         <div class="card">
           <div class="card-header"><div class="card-title">全球宏观风险地图</div><span class="tag tag-amber">传导观察</span></div>
           <div class="risk-list">
@@ -55,7 +65,7 @@ ROX.register('/intelligence', async function(container) {
         </div>
       </div>
 
-      <div class="grid-2">
+      <div class="grid-2 intelligence-section-grid">
         <div class="card">
           <div class="card-header"><div class="card-title">行业资金与景气线索</div><span class="tag tag-gray">需交叉确认</span></div>
           <div style="display:flex;flex-direction:column;gap:2px;">
@@ -74,7 +84,7 @@ ROX.register('/intelligence', async function(container) {
         </div>
       </div>
 
-      <div class="card">
+      <div class="card intelligence-news-card">
         <div class="card-header"><div class="card-title">资讯与事件线索</div><span class="tag tag-blue">${data.news.length} 条</span></div>
         <div class="news-list">
           ${data.news.map(item => `
