@@ -44,7 +44,7 @@ ROX.views.review = {
 
     // 复盘摘要
     html += `
-      <div class="card" style="margin-bottom:20px;padding:20px;">
+      <div class="card review-summary-card" style="margin-bottom:20px;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
           <h2 style="font-size:16px;font-weight:600;margin:0;">复盘摘要</h2>
           <span style="font-size:12px;color:var(--text-secondary);">${esc(data.datetime || data.date || '')}</span>
@@ -64,7 +64,7 @@ ROX.views.review = {
       const avgScore = decisions.avg_consistency == null ? '--' : decisions.avg_consistency;
       const avgReturn = decisions.avg_result_pct == null ? '--' : `${decisions.avg_result_pct > 0 ? '+' : ''}${decisions.avg_result_pct}%`;
       html += `
-        <div class="card research-review-card" style="margin-bottom:20px;padding:20px;">
+        <div class="card research-review-card review-research-card" style="margin-bottom:20px;padding:20px;">
           <div class="card-header" style="margin-bottom:14px;">
             <div><div class="eyebrow">ROX LOOP / REVIEW</div><div class="card-title">研究卡复盘</div><div class="card-subtitle">只统计已关联研究卡的决策；待观察样本不计入胜率。</div></div>
             <span class="tag tag-gray">${coverage.linked_cards || 0}/${cards.total || 0} 张已产生决策</span>
@@ -84,7 +84,7 @@ ROX.views.review = {
     const sentiment = data.sentiment || {};
     const sentimentColor = sentiment.score >= 60 ? 'var(--color-up)' : sentiment.score >= 40 ? 'var(--text-secondary)' : 'var(--color-down)';
     html += `
-      <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:20px;" id="review-grid">
+      <div class="review-overview-grid" style="display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:20px;" id="review-grid">
         <div class="card" style="padding:20px;text-align:center;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">市场情绪</h3>
           <div style="font-size:36px;font-weight:700;color:${sentimentColor};margin-bottom:4px;">${fmt.num(sentiment.score, 0)}</div>
@@ -112,7 +112,7 @@ ROX.views.review = {
     // 涨跌统计
     const br = data.breadth || {};
     html += `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+      <div class="review-breadth-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
         <div class="card" style="padding:20px;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">涨跌统计（样本池 ${br.total_stocks || 0} 只）</h3>
           <div style="display:flex;gap:16px;margin-bottom:16px;">
@@ -167,7 +167,7 @@ ROX.views.review = {
     // 板块资金流
     const sectors = data.sectors || [];
     html += `
-      <div class="card" style="padding:20px;margin-bottom:20px;">
+      <div class="card review-sector-card" style="padding:20px;margin-bottom:20px;">
         <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">板块资金流向（近5日）</h3>
         <div style="overflow-x:auto;" class="review-table-wrap">
           <table style="width:100%;border-collapse:collapse;font-size:13px;">

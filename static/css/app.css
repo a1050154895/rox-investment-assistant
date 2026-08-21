@@ -590,14 +590,68 @@ summary { cursor: pointer; }
   .stock-identity { width: 100%; gap: 8px; }
   .stock-identity h2 { font-size: 17px !important; }
   .stock-hero-actions { width: 100%; justify-content: flex-start; }
+  .stock-action-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stock-action-bar .stock-live-price { grid-column: 1 / -1; }
+  .stock-action-bar .stock-chart-periods { grid-column: 1 / -1; display: flex; gap: 8px; }
+  .stock-action-bar .stock-chart-periods .btn { flex: 1; justify-content: center; }
+  .stock-action-bar > .btn { width: 100%; justify-content: center; }
+  .stock-summary-card .stock-identity { padding-bottom: 4px; }
+  .stock-summary-card .stock-metrics { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color-light); }
   .stock-live-price { width: 100%; justify-content: flex-start; }
-  .stock-period-actions { flex: 1; }
-  .stock-period-actions .btn { flex: 1; justify-content: center; }
   .stock-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
   #kline-chart { height: 300px; }
+  .stock-chart-card { padding: 8px !important; }
+  .stock-chart-card .chart-container { min-height: 300px; }
   #flow-chart { height: 96px; }
   .card { min-width: 0; padding: 14px; }
   .card-header { align-items: flex-start; gap: 10px; }
+  .stock-analysis-column { gap: 10px; }
+  .stock-analysis-column .card { padding: 14px; }
+  .stock-analysis-column .card-title { font-size: 15px; }
+  .journal-page { gap: 12px !important; }
+  .journal-filters { display: grid !important; grid-template-columns: 1fr 1fr; align-items: stretch !important; }
+  .journal-filters #journal-search { grid-column: 1 / -1; width: 100%; max-width: none !important; }
+  .journal-filters #journal-stage, .journal-filters #journal-date-from, .journal-filters #journal-date-to, .journal-filters #journal-search-btn { width: 100%; max-width: none !important; }
+  .journal-filters > span { display: none; }
+  .journal-action-bar { align-items: stretch !important; flex-direction: column; gap: 10px; }
+  .journal-action-buttons { display: grid !important; grid-template-columns: 1fr 1fr; }
+  .journal-action-buttons .btn { justify-content: center; width: 100%; }
+  .journal-action-buttons .btn-primary { grid-column: 1 / -1; }
+  .journal-page .tabs { width: 100%; overflow-x: auto; justify-content: flex-start; }
+  .journal-page .tab { min-height: 44px; padding: 12px 14px; white-space: nowrap; }
+  .journal-timeline { padding-left: 16px; }
+  .journal-timeline::before { left: 3px; }
+  .journal-timeline .timeline-item::before { left: -17px; }
+  .journal-timeline .decision-card { padding: 14px; }
+  .journal-timeline .decision-header { align-items: flex-start; gap: 8px; }
+  .journal-timeline .decision-header > div:first-child { flex-wrap: wrap; gap: 6px !important; }
+  .journal-timeline .decision-header > div:last-child { flex-shrink: 0; }
+  .journal-timeline .decision-card > div:nth-child(2) { display: grid !important; grid-template-columns: 1fr 1fr; gap: 5px !important; line-height: 1.5; }
+  .journal-timeline .decision-card > div:last-child { align-items: stretch !important; flex-direction: column; gap: 10px; }
+  .journal-timeline .decision-card > div:last-child > div:last-child { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+  .journal-timeline .decision-card > div:last-child .btn { justify-content: center; width: 100%; }
+  .review-summary-card, .review-research-card, .review-sector-card { padding: 14px !important; }
+  .review-overview-grid, .review-breadth-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .review-research-card .card-header { flex-direction: column; }
+  .review-research-card .tag { align-self: flex-start; }
+  .review-sector-card .review-table-wrap { margin: 0 -4px; }
+  .dashboard-page { gap: 12px !important; }
+  .dashboard-page > .dashboard-chain-card { order: 2; }
+  .dashboard-page > .dashboard-priority-card { order: 1; }
+  .dashboard-page > .dashboard-macro-card { order: 3; }
+  .dashboard-page > .dashboard-risk-grid { order: 4; }
+  .dashboard-page > .dashboard-secondary-grid:not(.dashboard-risk-grid):not(.dashboard-intelligence-grid) { order: 5; }
+  .dashboard-page > .dashboard-intelligence-grid { order: 6; }
+  .dashboard-page > .dashboard-history-card { order: 7; }
+  .dashboard-priority-card .card-header { flex-direction: column; }
+  .dashboard-priority-card .card-header .btn { width: 100%; justify-content: center; }
+  .dashboard-chain-card { padding: 14px !important; }
+  .dashboard-chain-card .card-title { font-size: 15px; }
+  .dashboard-macro-card .macro-evidence-grid { grid-template-columns: 1fr; }
+  .dashboard-macro-card .macro-evidence { min-height: 52px; }
+  .dashboard-page .dashboard-secondary-grid { gap: 12px; }
+  .dashboard-history-card > div[style*="overflow-x:auto"] { margin: 0 -4px; padding: 0 4px 6px !important; }
+  .dashboard-history-card .decision-card { min-width: min(82vw, 300px); padding: 14px; }
   .discipline-bar { height: auto; min-height: 34px; }
   .discipline-segment { min-width: 0; padding: 4px 2px; font-size: 9px; }
   .coach-input-row { grid-template-columns: 1fr; }
@@ -821,6 +875,9 @@ summary { cursor: pointer; }
 .research-page-subtitle { color:var(--text-tertiary); font-size:12px; margin:7px 0 0; }
 .research-card-shell { padding:22px; }
 .research-form { display:flex; flex-direction:column; gap:15px; }
+.research-step-label { display:none; color:var(--ink-vermilion); font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; margin-bottom:10px; text-transform:uppercase; }
+.research-step-actions { display:none; align-items:center; justify-content:space-between; gap:10px; color:var(--text-tertiary); font-size:11px; }
+.research-step-actions .btn { min-width:88px; justify-content:center; }
 .research-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; }
 .research-form-grid:has(select[name="action"]) { grid-template-columns:1.5fr 1fr 1fr 1fr; }
 .research-form .form-group { margin:0; }
@@ -848,6 +905,10 @@ summary { cursor: pointer; }
   .research-page-head { align-items:stretch; flex-direction:column; }
   .research-form-grid, .research-form-grid:has(select[name="action"]) { grid-template-columns:1fr; }
   .research-card-shell { padding:15px; }
+  .research-step-label { display:block; }
+  .research-step-actions { display:flex; }
+  .research-form-actions { flex-direction:column-reverse; }
+  .research-form-actions .btn { width:100%; justify-content:center; }
   .research-decision-footer { align-items:stretch; flex-direction:column; }
   .research-review-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
