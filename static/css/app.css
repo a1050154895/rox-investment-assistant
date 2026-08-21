@@ -563,7 +563,25 @@ summary { cursor: pointer; }
   .topbar-right { min-width: 0; flex: 1; justify-content: flex-end; }
   .search-box { width: min(210px, 58vw); min-width: 0; }
   .settings-panel { width: 100vw; }
-  .modal { width: calc(100% - 24px); max-height: calc(100dvh - 32px); padding: 16px; }
+  .modal { width: calc(100% - 20px); max-height: calc(100dvh - 24px); padding: 16px; overflow-y: auto; overscroll-behavior: contain; }
+  .modal-header { min-height: 44px; margin-bottom: 14px; }
+  .modal-close { width: 44px; height: 44px; margin: -6px -8px -6px 0; }
+  .modal-title { font-size: 17px; }
+
+  /* 手机端触控与可读性基线：不改变桌面端密度。 */
+  .btn, .btn-sm { min-height: 44px; padding: 10px 14px; font-size: 13px; }
+  .btn-sm { padding: 10px 12px; }
+  .form-label { font-size: 13px; line-height: 1.45; }
+  .form-input, .form-select, .form-textarea { min-height: 44px; padding: 10px 12px; font-size: 16px; }
+  .form-textarea { min-height: 112px; }
+  input[type="date"], input[type="number"] { font-size: 16px; }
+  input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--brand-blue); }
+  input[type="range"]::-webkit-slider-runnable-track { height: 8px; border-radius: 8px; background: var(--bg-raised); }
+  input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -10px; border: 2px solid var(--bg-page); border-radius: 50%; background: var(--brand-blue); -webkit-appearance: none; }
+  input[type="range"]::-moz-range-track { height: 8px; border-radius: 8px; background: var(--bg-raised); }
+  input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; border: 2px solid var(--bg-page); border-radius: 50%; background: var(--brand-blue); }
+  .card-subtitle { font-size: 12px; line-height: 1.6; }
+  .stock-row, .research-queue-item, .mobile-nav-item { min-height: 44px; }
 
   .stock-detail-layout { display: flex; flex-direction: column; min-height: 0; height: auto; gap: 12px; }
   .stock-main-column, .stock-framework-panel { width: 100%; min-width: 0; overflow: visible; }
