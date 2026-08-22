@@ -49,6 +49,25 @@ class TrustLayerTests(unittest.TestCase):
             self.assertIn("as_of", idx)
             self.assertIn("stale", idx)
 
+    def test_market_indices_prefer_live_tencent_quotes(self):
+        from app.services import market_data as md
+
+        async def live_quotes(codes, is_index=False):
+            return {
+                code: {"price": 4000 + index, "change": 10, "change_pct": 0.25, "as_of": "10:01:00"}
+                for index, code in enumerate(codes)
+            }
+
+        original = md.fetch_quotes
+        md.fetch_quotes = live_quotes
+        try:
+            indices = asyncio.run(md.get_market_indices())
+        finally:
+            md.fetch_quotes = original
+        self.assertEqual(len(indices), 4)
+        self.assertTrue(all(item["data_status"] == "realtime" for item in indices))
+        self.assertTrue(all(item["stale"] is False for item in indices))
+
     def test_capital_cycle_classification(self):
         from app.services.review_engine import classify_capital_cycle
         self.assertEqual(classify_capital_cycle(70, 70, 5, 0, 5, 2, 1.0), "流转")
