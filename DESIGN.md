@@ -11,6 +11,8 @@ ROX is an evidence-first investment research workspace. The interface should hel
 
 The visual language is **Strategic Studio**: a calm research room with the information density of a terminal and the restraint of an editorial notebook.
 
+ROX is not a trading terminal or a prediction feed. Reference products such as GlobalPulse are useful for studying topic timelines, heat ordering, alerts, and multi-source organization, but ROX converts those inputs into evidence and verification actions instead of copying prediction scores or high-intensity HUD visuals.
+
 ## Visual Principles
 
 - Evidence before decoration.
@@ -53,6 +55,7 @@ Chinese market price colors remain red-up/green-down inside market-specific comp
 - Mobile: single-column task flow, 12px page gutter, 44px minimum touch targets.
 - Primary task first: Today -> Research -> Decision -> Review.
 - Details are disclosed through native disclosure, drawers, and progressive steps.
+- Mobile is a companion terminal: quick changes, alerts, evidence capture, and status updates. Desktop is the full research and review workspace.
 
 ## Core Components
 
@@ -62,6 +65,8 @@ Chinese market price colors remain red-up/green-down inside market-specific comp
 - `StatusTag`: text plus color plus shape; never color alone.
 - `MetricBlock`: value, label, time context, and source state.
 - `EvidenceDrawer`: source, transmission path, affected industry, and next validation action.
+- `ResearchCard`: object, question, hypothesis, facts, counter-evidence, invalidation, decision, and review.
+- `AIAction`: summarize, challenge, or classify evidence; never a buy/sell command.
 
 ## Acceptance
 
@@ -71,3 +76,10 @@ Chinese market price colors remain red-up/green-down inside market-specific comp
 - Loading, empty, stale, unavailable, and error states are explicit.
 - Lighthouse mobile accessibility >= 0.85 and best practices >= 0.85.
 - Playwright covers registration -> research card -> review.
+
+## AI Boundary
+
+- Core research, risk checks, data states, and review work without AI.
+- Platform AI may summarize, separate fact from opinion, rewrite a research question, suggest counter-evidence, and summarize review patterns.
+- BYOK is an optional advanced mode for OpenAI-compatible endpoints, DeepSeek, Claude, Gemini, Ollama, or enterprise models.
+- AI output is always labeled as model assistance and links back to source evidence.
