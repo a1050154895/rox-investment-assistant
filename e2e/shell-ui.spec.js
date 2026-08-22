@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 async function register(page) {
-  const username = `e2e_${Date.now()}`;
+  const username = `e2e_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   await page.goto('/');
   await page.getByText('注册', { exact: true }).click();
   await page.getByLabel('用户名', { exact: true }).fill(username);

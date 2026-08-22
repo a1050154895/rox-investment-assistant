@@ -15,6 +15,7 @@ const ROX = {
     refreshTimer: null,
     onboardingSteps: [],
     onboardingStep: 0,
+    overviewPromise: null,
   },
 
   // API client（自动携带 JWT；非 2xx 返回含 error/status/detail，便于前端提示）
@@ -818,7 +819,7 @@ const ROX = {
         this.applyTheme(res.theme || 'dark');
       }
     });
-    this.loadIndexTicker();
+    this.loadIndexTicker(true);
     this.startAlertPolling();
     this.render(location.pathname);
     // Show keyboard shortcut hint (once per session)
@@ -832,8 +833,8 @@ const ROX = {
     }
   },
 
-  async loadIndexTicker() {
-    const data = await this.api.get('/api/dashboard/overview');
+  async loadIndexTicker(force = false) {
+    const data = await this.getDashboardOverview(force);
     if (!data || !data.market_indices) return;
     const ticker = document.getElementById('index-ticker');
     if (!ticker) return;
@@ -845,6 +846,13 @@ const ROX = {
         <span class="index-status ${idx.stale ? 'is-stale' : 'is-live'}">${idx.stale ? '快照' : '实时'}</span>
       </div>
     `).join('');
+  },
+
+  getDashboardOverview(force = false) {
+    if (force || !this.state.overviewPromise) {
+      this.state.overviewPromise = this.api.get('/api/dashboard/overview');
+    }
+    return this.state.overviewPromise;
   },
 
   async searchStocks(query) {

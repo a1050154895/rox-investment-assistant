@@ -49,7 +49,7 @@ function macroCardHTML(mc) {
 }
 
 ROX.register('/', async function(container) {
-  const data = await ROX.api.get('/api/dashboard/overview');
+  const data = await ROX.getDashboardOverview();
   if (!data) {
     container.innerHTML = '<div class="empty-state"><p>数据加载失败，请检查网络连接</p></div>';
     return;
@@ -205,11 +205,12 @@ ROX.register('/', async function(container) {
   // 首屏分级：非关键卡片延迟到浏览器空闲时加载
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 350));
   idle(() => { loadPortfolioCard(); loadAlertsCard(); loadStatsCard(); loadDisciplineAssessment(); loadDataHealthCard(); });
-  loadSlowOverview();
+  const idleSlow = window.requestIdleCallback || (fn => setTimeout(fn, 350));
+  idleSlow(() => setTimeout(loadSlowOverview, 800));
 
   // 自动刷新：指数 ticker + 自选股 + 持仓卡片每 30s 更新
   ROX.startAutoRefresh(async () => {
-    ROX.loadIndexTicker();
+    ROX.loadIndexTicker(true);
     loadWatchlistCard();
     loadPortfolioCard();
   }, 30000);
