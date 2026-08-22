@@ -397,7 +397,7 @@ summary { cursor: pointer; }
 .fund-price-card em { font-family:var(--font-mono); font-size:14px; font-style:normal; }
 .fund-price-card small, .fund-meta-card small { color:var(--text-muted); font-size:11px; }
 .fund-meta-card strong { color:var(--text-primary); font-size:20px; }
-.fund-chart-card, .fund-disclosure-card { margin-bottom:12px; }
+.fund-chart-card, .fund-disclosure-card, .fund-coverage-card { margin-bottom:12px; }
 .fund-kline { height:320px; }
 .fund-risk-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color-light); }
 .fund-risk-metrics > div { display:flex; flex-direction:column; gap:4px; padding:10px; background:var(--bg-secondary); border-radius:var(--radius-md); }
@@ -409,10 +409,18 @@ summary { cursor: pointer; }
 .fund-disclosure-list > div { display:flex; flex-direction:column; gap:5px; padding:12px; background:var(--bg-secondary); border-radius:var(--radius-md); }
 .fund-disclosure-list strong { color:var(--text-primary); font-size:12px; }
 .fund-disclosure-list span { color:var(--text-tertiary); font-size:11px; line-height:1.5; }
+.fund-coverage-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.fund-coverage-grid > div { display:flex; flex-direction:column; gap:6px; padding:12px; border-left:2px solid var(--border-color); background:var(--bg-secondary); }
+.fund-coverage-grid > div.covered { border-left-color:#8fae94; }
+.fund-coverage-grid > div.missing { border-left-color:var(--text-muted); }
+.fund-coverage-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.fund-coverage-head strong { color:var(--text-primary); font-size:12px; }
+.fund-coverage-msg { color:var(--text-secondary); font-size:11px; line-height:1.5; }
+.fund-coverage-meta { color:var(--text-muted); font-size:10px; line-height:1.4; }
 @media (max-width:760px) {
   .fund-page-head { align-items:stretch; flex-direction:column; }
   .fund-page-head .btn { width:100%; justify-content:center; }
-  .fund-summary-grid, .fund-disclosure-list { grid-template-columns:1fr; }
+  .fund-summary-grid, .fund-disclosure-list, .fund-coverage-grid { grid-template-columns:1fr; }
   .fund-kline { height:260px; }
   .fund-risk-metrics { grid-template-columns:repeat(2,1fr); }
   .fund-decision-bar { align-items:stretch; flex-direction:column; }

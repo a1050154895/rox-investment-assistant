@@ -15,6 +15,9 @@ ROX.register('/funds', async function(container, params) {
     return;
   }
   const q = fund.quote || {};
+  const coverage = fund.evidence_coverage || {};
+  const coverageList = Object.entries(coverage);
+  const coverageAvailable = coverageList.filter(([, item]) => item.status && item.status !== 'unavailable').length;
   container.innerHTML = `
     <div class="fund-page">
       <div class="fund-page-head"><div><div class="eyebrow">ROX / FUND RESEARCH</div><h2>${ROX.escape(fund.name)}</h2><p>${ROX.escape(fund.code)} · ${ROX.escape(fund.category)} · 跟踪 ${ROX.escape(fund.tracking)}</p></div><button class="btn btn-primary" data-action="create-research-card" data-code="${fund.code}" data-name="${ROX.escape(fund.name)}" data-price="${q.price ?? ''}" data-data-status="${ROX.escape(fund.data_status || '')}" data-data-source="${ROX.escape(fund.data_source || '')}" data-as-of="${ROX.escape(fund.as_of || '')}">开始研究</button></div>
@@ -24,7 +27,7 @@ ROX.register('/funds', async function(container, params) {
         <div class="card fund-meta-card"><span>跟踪标的</span><strong>${ROX.escape(fund.tracking)}</strong><small>${ROX.escape(fund.fund_type)} · ${ROX.escape(fund.category)}</small><small>跟踪误差：暂不可用</small></div>
       </div>
       <div class="card fund-chart-card"><div class="card-header"><div><div class="card-title">价格观察</div><div class="card-subtitle">用于观察交易价格波动，不替代净值分析</div></div><span class="tag ${fund.stale ? 'tag-amber' : 'tag-green'}">${fund.stale ? '快照' : '实时'}</span></div><div id="fund-kline" class="fund-kline"></div>${kline?.metrics ? `<div class="fund-risk-metrics"><div><span>区间收益</span><strong>${ROX.fmt.pct(kline.metrics.period_return_pct)}</strong></div><div><span>最大回撤</span><strong>${ROX.fmt.pct(kline.metrics.max_drawdown_pct)}</strong></div><div><span>波动代理</span><strong>${ROX.fmt.num(kline.metrics.volatility_proxy_pct)}%</strong></div><div><span>样本</span><strong>${kline.metrics.sample_count}根</strong></div></div><div class="fund-metric-note">${ROX.escape(kline.metrics.note)}</div>` : ''}</div>
-      <div class="card fund-disclosure-card"><div class="card-header"><div class="card-title">还需要补齐的基金证据</div><span class="tag tag-gray">不虚构</span></div><div class="fund-disclosure-list">${Object.entries(fund.disclosures || {}).map(([key, item]) => `<div><strong>${key === 'nav' ? '基金净值' : key === 'holdings' ? '持仓披露' : '跟踪误差'}</strong><span>${ROX.escape(item.message)}</span></div>`).join('')}</div></div>
+      <div class="card fund-coverage-card"><div class="card-header"><div><div class="card-title">数据覆盖矩阵</div><div class="card-subtitle">每个字段都标注来源、时间和状态；缺失不伪造，不把价格冒充净值。</div></div><span class="tag tag-gray">已覆盖 ${coverageAvailable}/${coverageList.length}</span></div><div class="fund-coverage-grid">${coverageList.map(([key, item]) => `<div class="${item.status && item.status !== 'unavailable' ? 'covered' : 'missing'}"><div class="fund-coverage-head"><strong>${({market_price:'场内价格', kline:'价格K线', nav:'基金净值', iopv:'IOPV/参考净值', premium_discount:'折溢价', holdings:'持仓披露', tracking_error:'跟踪误差'}[key] || key)}</strong><span class="tag ${item.status && item.status !== 'unavailable' ? 'tag-green' : 'tag-gray'}">${item.status === 'available' ? '可用' : item.status === 'snapshot' ? '快照' : '不可用'}</span></div><span class="fund-coverage-msg">${ROX.escape(item.message || '')}</span><span class="fund-coverage-meta">来源 ${ROX.escape(item.source || '未接入')} · ${ROX.escape(item.as_of || '无时间')}</span></div>`).join('')}</div></div>
       <div class="fund-decision-bar"><button class="btn btn-secondary" data-action="add-decision" data-code="${fund.code}" data-name="${ROX.escape(fund.name)}">记录关联决策</button><span>研究卡保存后，再据此记录买卖或持有决策</span></div>
     </div>`;
   if (kline?.candles?.length && window.LightweightCharts) {
