@@ -48,6 +48,7 @@ ROX.register('/intelligence', async function(container) {
                   <div style="display:flex;justify-content:space-between;gap:8px;"><span class="risk-factor">${item.factor}</span><span class="tag ${directionClass(item.direction)}">${item.status}</span></div>
                   <div class="risk-transmission">${item.transmission}</div>
                   <div class="risk-watch">观察：${item.watch}</div>
+                  <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(item.factor)}" data-content="${ROX.escape(`${item.factor}：${item.transmission}（观察：${item.watch}）`)}" data-source="${ROX.escape(data.source_status || '宏观情报')}" data-as-of="${ROX.escape(new Date(data.updated_at).toLocaleString('zh-CN'))}">＋ 加入研究卡</button>
                 </div>
               </div>`).join('')}
           </div>
@@ -60,6 +61,7 @@ ROX.register('/intelligence', async function(container) {
                 <div style="display:flex;justify-content:space-between;gap:8px;"><span class="policy-topic">${item.topic}</span><span class="tag ${item.signal === '正向' ? 'tag-red' : 'tag-amber'}">${item.stage}</span></div>
                 <div class="policy-affected">影响行业：${item.affected.join('、')}</div>
                 <div class="policy-method">研判方法：${item.method}</div>
+                <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(item.topic)}" data-content="${ROX.escape(`政策线索：${item.topic}（${item.stage}，影响行业：${item.affected.join('、')}）`)}" data-source="${ROX.escape(data.source_status || '政策跟踪')}" data-as-of="${ROX.escape(new Date(data.updated_at).toLocaleString('zh-CN'))}">＋ 加入研究卡</button>
               </div>`).join('')}
           </div>
         </div>
@@ -72,7 +74,10 @@ ROX.register('/intelligence', async function(container) {
             ${data.sector_flow.map(item => `
               <div class="sector-flow-row">
                 <div><div class="stock-name">${item.sector}</div><div class="stock-code">${item.driver}</div></div>
-                <div class="${flowClass(item.trend)}" style="font-family:var(--font-mono);font-weight:600;">${item.flow > 0 ? '+' : ''}${item.flow.toFixed(1)} 亿</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="${flowClass(item.trend)}" style="font-family:var(--font-mono);font-weight:600;">${item.flow > 0 ? '+' : ''}${item.flow.toFixed(1)} 亿</div>
+                  <button class="evidence-add-btn" style="margin-top:0;" data-action="open-evidence-drawer" data-title="${ROX.escape(item.sector)}" data-content="${ROX.escape(`行业资金流：${item.sector} ${item.flow > 0 ? '+' : ''}${item.flow.toFixed(1)} 亿（驱动：${item.driver}）`)}" data-source="${ROX.escape(data.source_status || '行业资金流')}" data-as-of="${ROX.escape(new Date(data.updated_at).toLocaleString('zh-CN'))}">＋</button>
+                </div>
               </div>`).join('')}
           </div>
         </div>
@@ -93,6 +98,7 @@ ROX.register('/intelligence', async function(container) {
               <div class="news-title">${item.title}</div>
               <div class="news-detail">传导方向：${item.channels.join('、')} · ${item.evidence}</div>
               <div class="news-source">${item.source} · ${new Date(item.published_at).toLocaleString('zh-CN')}</div>
+              <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(item.title)}" data-content="${ROX.escape(`${item.title}（${item.fact_or_view}；传导：${item.channels.join('、')}）`)}" data-source="${ROX.escape(item.source || '')}" data-as-of="${ROX.escape(new Date(item.published_at).toLocaleString('zh-CN'))}">＋ 加入研究卡（事实/反证/待验证）</button>
             </article>`).join('')}
         </div>
       </div>

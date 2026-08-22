@@ -63,6 +63,7 @@ ROX.register('/', async function(container) {
             <div class="macro-evidence ${item.status === 'available' || item.status === 'snapshot' ? 'available' : 'unavailable'}">
               <div><strong>${item.label}</strong><span>${item.publisher || ''}</span></div>
               <div class="macro-value">${item.status === 'available' || item.status === 'snapshot' ? `${item.value}${item.unit} · ${item.period}` : '暂不可用'}</div>
+              ${item.status === 'available' || item.status === 'snapshot' ? `<button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(`宏观：${item.label}`)}" data-content="${ROX.escape(`宏观数据：${item.label} ${item.value}${item.unit}（${item.period}）`)}" data-source="${ROX.escape(item.publisher || '宏观指南针')}" data-as-of="${ROX.escape(item.period || '')}">＋ 研究卡</button>` : ''}
             </div>`).join('')}
         </div>
         <div style="margin-top:12px;padding:12px 14px;background:var(--ink-vermilion-glow);border-left:2px solid var(--ink-vermilion);font-size:12px;color:var(--ink-vermilion-soft);">
@@ -70,6 +71,7 @@ ROX.register('/', async function(container) {
         </div>
         <div class="macro-meta">覆盖 ${data.macro_compass.coverage?.available ?? 0}/${data.macro_compass.coverage?.total ?? 0} 项 · ${data.macro_compass.disclaimer || ''}</div>
         <div class="macro-quality-line">数据质量：${ROX.escape(data.macro_compass.data_quality?.status || '未标注')} · 最新观察期：${ROX.escape(data.macro_compass.data_quality?.latest_observation || '未知')} · ${ROX.escape(data.macro_compass.data_quality?.message || '')}</div>
+        <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="宏观指南针快照" data-content="${ROX.escape(`宏观指南针：主权信用 ${data.macro_compass.sovereign_credit.score}（${data.macro_compass.sovereign_credit.detail}）；价值实现 ${data.macro_compass.value_realization.score}（${data.macro_compass.value_realization.detail}）`)}" data-source="宏观指南针矩阵" data-as-of="${ROX.escape(data.macro_compass.data_quality?.latest_observation || '')}">＋ 把宏观状态加入研究卡</button>
       </div>
 
       <!-- 资本周期 + 矛盾追踪 -->

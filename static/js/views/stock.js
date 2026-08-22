@@ -57,6 +57,7 @@ ROX.register('/stock', async function(container, params) {
               </div>
               <button class="btn btn-secondary btn-sm" id="btn-add-watch" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 自选</button>
               <button class="btn btn-primary btn-sm" data-action="create-research-card" data-code="${info.code}" data-name="${ROX.escape(info.name)}" data-price="${info.price ?? ''}" data-data-status="${ROX.escape(info.data_status || '')}" data-data-source="${ROX.escape(info.data_source || '')}" data-as-of="${ROX.escape(info.as_of || '')}">开始研究</button>
+              <button class="btn btn-secondary btn-sm" data-action="open-evidence-drawer" data-title="${ROX.escape(info.name)}" data-content="${ROX.escape(`行情：${info.name} ${ROX.fmt.num(info.price)}（${ROX.fmt.pct(info.change_pct)}）`)}" data-source="${ROX.escape(info.data_source || '')}" data-as-of="${ROX.escape(info.as_of || '')}" data-code="${info.code}" data-stock="${ROX.escape(info.name)}">存为证据</button>
               <button class="btn btn-secondary btn-sm" data-action="add-decision" data-code="${info.code}" data-name="${ROX.escape(info.name)}">记录决策</button>
               <button class="btn btn-secondary btn-sm" id="btn-add-alert" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 预警</button>
             </div>

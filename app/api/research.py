@@ -118,6 +118,47 @@ async def update_card(
     return {"success": True, "card": card.to_dict()}
 
 
+class EvidenceIn(BaseModel):
+    """跨页面证据抽屉提交的一条证据。"""
+    evidence_type: str = Field(..., pattern="^(fact|counter|to_verify)$")
+    content: str = Field(..., min_length=1, max_length=500)
+    source: str = Field("", max_length=120)
+    as_of: str = Field("", max_length=40)
+
+
+@router.post("/{card_id}/evidence")
+async def add_evidence(
+    card_id: int,
+    data: EvidenceIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """把情报/行情/宏观数据追加进已有研究卡：fact=事实，counter=反证，to_verify=待验证。"""
+    card = db.query(ResearchCard).filter(ResearchCard.id == card_id, ResearchCard.user_id == user.id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="研究卡不存在")
+
+    meta = "（来源：" + " · ".join(p for p in (data.source, data.as_of) if p) + "）" if (data.source or data.as_of) else ""
+    entry = f"{data.content}{meta}"
+
+    if data.evidence_type == "counter":
+        new_text = "\n".join(part for part in (card.counter_evidence.strip(), f"[反证] {entry}") if part)
+        if len(new_text) > 2000:
+            raise HTTPException(status_code=400, detail="反证内容已满，请先整理后再添加")
+        card.counter_evidence = new_text
+    else:
+        prefix = "[待验证] " if data.evidence_type == "to_verify" else "[事实] "
+        facts = json.loads(card.facts_json or "[]")
+        if len(facts) >= 20:
+            raise HTTPException(status_code=400, detail="事实条目已满（最多 20 条），请先整理后再添加")
+        facts.append(prefix + entry)
+        card.facts_json = json.dumps(facts, ensure_ascii=False)
+    card.updated_at = utcnow()
+    db.commit()
+    db.refresh(card)
+    return {"success": True, "card": card.to_dict()}
+
+
 @router.get("/{card_id}/risk-check")
 async def risk_check(card_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     card = db.query(ResearchCard).filter(ResearchCard.id == card_id, ResearchCard.user_id == user.id).first()

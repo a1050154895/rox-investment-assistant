@@ -562,6 +562,16 @@ const ROX = {
             });
             this.navigate(`/research?${query.toString()}`);
           },
+          'open-evidence-drawer': () => ROX.EvidenceDrawer.open({
+            title: actionEl.dataset.title || '',
+            content: actionEl.dataset.content || '',
+            source: actionEl.dataset.source || '',
+            asOf: actionEl.dataset.asOf || '',
+            code: actionEl.dataset.code || '',
+            stock: actionEl.dataset.stock || '',
+          }),
+          'close-evidence-drawer': () => ROX.EvidenceDrawer.close(),
+          'submit-evidence': () => ROX.EvidenceDrawer.submit(),
           'submit-decision': () => this.submitDecision(),
           'cancel-decision': () => this.closeModal(),
           'generate-review': () => this.showReviewReport(),

@@ -8,7 +8,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.8.2"
+        assert data["version"] == "4.9.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -348,6 +348,51 @@ class TestResearchCards:
 
     def test_today_requires_auth(self, client):
         assert client.get("/api/research/today").status_code == 401
+
+    def test_add_evidence_fact_counter_and_to_verify(self, client, auth_headers):
+        created = client.post("/api/research/", json={"title": "证据抽屉测试"}, headers=auth_headers)
+        card_id = created.json()["card"]["id"]
+
+        fact = client.post(f"/api/research/{card_id}/evidence", json={
+            "evidence_type": "fact", "content": "行业资金流净流入 12.3 亿",
+            "source": "宏观情报", "as_of": "2026-08-22 10:00",
+        }, headers=auth_headers)
+        assert fact.status_code == 200
+        assert fact.json()["card"]["facts"] == ["[事实] 行业资金流净流入 12.3 亿（来源：宏观情报 · 2026-08-22 10:00）"]
+
+        to_verify = client.post(f"/api/research/{card_id}/evidence", json={
+            "evidence_type": "to_verify", "content": "政策落地节奏待确认", "source": "政策跟踪",
+        }, headers=auth_headers)
+        assert to_verify.status_code == 200
+        assert to_verify.json()["card"]["facts"][-1].startswith("[待验证] 政策落地节奏待确认")
+
+        counter = client.post(f"/api/research/{card_id}/evidence", json={
+            "evidence_type": "counter", "content": "需求端数据走弱", "source": "宏观情报",
+        }, headers=auth_headers)
+        assert counter.status_code == 200
+        assert "[反证] 需求端数据走弱" in counter.json()["card"]["counter_evidence"]
+
+    def test_add_evidence_rejects_bad_input(self, client, auth_headers):
+        created = client.post("/api/research/", json={"title": "校验测试"}, headers=auth_headers)
+        card_id = created.json()["card"]["id"]
+        bad_type = client.post(f"/api/research/{card_id}/evidence", json={
+            "evidence_type": "hypothesis", "content": "非法类型",
+        }, headers=auth_headers)
+        assert bad_type.status_code == 422
+        missing = client.post(f"/api/research/{card_id}/evidence", json={
+            "evidence_type": "fact", "content": "",
+        }, headers=auth_headers)
+        assert missing.status_code == 422
+        not_found = client.post("/api/research/99999/evidence", json={
+            "evidence_type": "fact", "content": "不存在的研究卡",
+        }, headers=auth_headers)
+        assert not_found.status_code == 404
+
+    def test_add_evidence_requires_auth(self, client):
+        resp = client.post("/api/research/1/evidence", json={
+            "evidence_type": "fact", "content": "未登录",
+        })
+        assert resp.status_code == 401
 
 
 class TestFunds:
