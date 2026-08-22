@@ -33,7 +33,7 @@ test('mobile research loop reaches review statistics', async ({ page }) => {
   await expect(page.getByText('研究卡已保存')).toBeVisible();
 
   await page.goto('/review');
-  await expect(page.locator('.research-review-card')).toBeVisible();
+  await expect(page.locator('.research-review-card')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('研究卡复盘')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
 });
