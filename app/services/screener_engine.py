@@ -248,6 +248,8 @@ async def run_scan(
         "results": results,
         "industries": industries,
         "pool_size": len(STOCK_POOL),
-        "data_source": "腾讯自选股公开行情接口",
-        "disclaimer": "选股结果仅为条件筛选，不构成投资建议。须结合个股透视、334纪律与宏观矩阵交叉验证。",
+        "data_status": "realtime",
+        "as_of": max((q.get("as_of") or "" for q in results), default=""),
+        "data_source": "腾讯自选股公开行情接口 × 内置股票池",
+        "disclaimer": "选股仅为内置池（约80只热门标的，非全市场）上的条件筛选，不构成投资建议；须结合个股透视、334纪律与宏观矩阵交叉验证。",
     }

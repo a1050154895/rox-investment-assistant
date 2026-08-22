@@ -472,7 +472,8 @@ async def execute_backtest(
         "strategy_name": next((s["name"] for s in STRATEGIES if s["id"] == strategy_id), strategy_id),
         "params": params,
         "period": period,
+        "kline_source": "腾讯前复权日/周K线（公开接口）",
         **result,
-        "disclaimer": "回测结果仅用于框架验证和经验沉淀，不代表未来收益。历史表现不构成投资建议。",
+        "disclaimer": "回测基于公开前复权K线与费用模型（佣金/印花税/滑点），仅用于框架验证和经验沉淀，不代表未来收益。",
         "run_at": datetime.now().isoformat(),
     }

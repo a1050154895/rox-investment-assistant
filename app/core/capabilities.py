@@ -8,17 +8,18 @@ from __future__ import annotations
 from typing import Any
 
 CAPABILITIES: dict[str, dict[str, Any]] = {
+    # 腾讯实时行情/前复权K线接入后重新启用；结果均携带数据状态与来源标注。
     "backtest": {
-        "status": "disabled",
-        "reason": "回测需要授权历史行情才能保证结果可信；当前公共数据不满足回测精度，为避免误导已暂停。",
+        "status": "enabled",
+        "note": "K线为腾讯前复权公开数据，费用模型含佣金/印花税/滑点；结果仅用于框架验证。",
     },
     "screener": {
-        "status": "disabled",
-        "reason": "选股扫描需要授权实时行情；当前快照数据可能过期，排名会误导，已暂停。",
+        "status": "enabled",
+        "note": "行情为腾讯实时接口；股票池为内置 ~80 只热门标的，非全市场，结果须结合个股透视复核。",
     },
     "alerts": {
-        "status": "disabled",
-        "reason": "价格预警需要稳定实时行情才能可靠触发；当前数据源不满足，已暂停。",
+        "status": "enabled",
+        "note": "触发检测基于腾讯实时行情快照，刷新页面时检查；非推送式监控。",
     },
 }
 

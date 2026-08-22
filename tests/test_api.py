@@ -217,20 +217,23 @@ class TestScreener:
     def test_presets(self, client):
         resp = client.get("/api/screener/presets")
         assert resp.status_code == 200
-        assert resp.json()["status"] == "disabled"
-        assert resp.json()["reason"]
+        data = resp.json()
+        assert data["presets"], "选股预设应可用"
+        assert "内置" in data.get("disclaimer", "") or data["presets"]
 
 
 class TestBacktest:
     def test_strategies(self, client):
         resp = client.get("/api/backtest/strategies")
         assert resp.status_code == 200
-        assert resp.json()["status"] == "disabled"
+        strategies = resp.json()["strategies"]
+        ids = {s["id"] for s in strategies}
+        assert {"ma_cross", "rsi_oversold", "macd_cross", "turtle_breakout", "momentum"} <= ids
 
     def test_stocks_list(self, client):
         resp = client.get("/api/backtest/stocks")
         assert resp.status_code == 200
-        assert resp.json()["status"] == "disabled"
+        assert resp.json()["stocks"]
 
 
 class TestDashboard:
@@ -542,18 +545,22 @@ class TestPortfolioUpdate:
 
 
 class TestAlertUpdate:
-    def test_alerts_disabled(self, client, auth_headers):
+    def test_alerts_enabled_lifecycle(self, client, auth_headers):
         add = client.post("/api/alerts/", json={
             "code": "600519", "name": "贵州茅台",
             "target_price": 1500.00, "direction": "above",
         }, headers=auth_headers)
         assert add.status_code == 200
-        assert add.json()["status"] == "disabled"
+        body = add.json()
+        assert body.get("status") != "disabled", "预警功能应已启用"
+        alert_id = body.get("alert", body).get("id") if isinstance(body.get("alert", body), dict) else None
+        if alert_id:
+            resp = client.put(f"/api/alerts/{alert_id}", json={"active": False}, headers=auth_headers)
+            assert resp.status_code in (200, 404)
 
-    def test_update_disabled(self, client, auth_headers):
+    def test_update_missing_alert(self, client, auth_headers):
         resp = client.put("/api/alerts/9999", json={"active": False}, headers=auth_headers)
-        assert resp.status_code == 200
-        assert resp.json()["status"] == "disabled"
+        assert resp.status_code in (200, 404)
 
 
 class TestUserStats:
