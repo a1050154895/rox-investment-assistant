@@ -17,7 +17,7 @@ ROX.register('/journal', async function(container) {
     <div class="journal-page" style="display:flex;flex-direction:column;gap:16px;">
       <!-- Stats Overview -->
       ${stats ? `
-      <div class="grid-4">
+      <div class="grid-4 journal-stats-grid">
         <div class="card">
           <div class="stat-item">
             <span class="stat-label">平均一致性评分</span>
@@ -50,7 +50,7 @@ ROX.register('/journal', async function(container) {
       ` : ''}
 
       <!-- Search Bar -->
-      <div class="journal-filters" style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="journal-filters journal-evidence-filter" style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <input type="text" class="form-input" id="journal-search" placeholder="搜索股票名/代码..." style="max-width:240px;flex:1;border-radius:var(--radius-full);padding:8px 14px;font-size:13px;">
         <select class="form-select" id="journal-stage" style="border-radius:var(--radius-full);padding:8px 12px;font-size:13px;background:var(--bg-input);border:0.5px solid var(--border-color);color:var(--text-secondary);">
           <option value="">全部阶段</option><option value="试仓30%">试仓30%</option><option value="确认30%">确认30%</option><option value="主力40%">主力40%</option>
@@ -62,7 +62,7 @@ ROX.register('/journal', async function(container) {
       </div>
 
       <!-- Action Bar -->
-      <div class="journal-action-bar" style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="journal-action-bar journal-decision-toolbar" style="display:flex;justify-content:space-between;align-items:center;">
         <div class="tabs" style="border:none;margin:0;">
           <div class="tab active" data-journal-filter="" id="filter-all">全部 (${decisions.total})</div>
           <div class="tab" data-journal-filter="买入" id="filter-buy">买入</div>

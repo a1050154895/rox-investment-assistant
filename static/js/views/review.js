@@ -93,7 +93,7 @@ ROX.views.review = {
     const sentiment = data.sentiment || {};
     const sentimentColor = sentiment.score >= 60 ? 'var(--color-up)' : sentiment.score >= 40 ? 'var(--text-secondary)' : 'var(--color-down)';
     html += `
-      <div class="review-overview-grid" style="display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:20px;" id="review-grid">
+      <div class="review-overview-grid review-market-snapshot" style="display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:20px;" id="review-grid">
         <div class="card" style="padding:20px;text-align:center;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">市场情绪</h3>
           <div style="font-size:36px;font-weight:700;color:${sentimentColor};margin-bottom:4px;">${fmt.num(sentiment.score, 0)}</div>
@@ -121,7 +121,7 @@ ROX.views.review = {
     // 涨跌统计
     const br = data.breadth || {};
     html += `
-      <div class="review-breadth-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+      <div class="review-breadth-grid review-market-evidence" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
         <div class="card" style="padding:20px;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">涨跌统计（样本池 ${br.total_stocks || 0} 只）</h3>
           <div style="display:flex;gap:16px;margin-bottom:16px;">
