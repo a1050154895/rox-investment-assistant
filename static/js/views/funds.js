@@ -32,7 +32,8 @@ ROX.register('/funds', async function(container, params) {
     </div>`;
   if (kline?.candles?.length && window.LightweightCharts) {
     const el = document.getElementById('fund-kline');
-    _fundChart = LightweightCharts.createChart(el, { layout:{background:{color:'transparent'},textColor:'#948d83'}, grid:{vertLines:{color:'rgba(224,211,191,.06)'},horzLines:{color:'rgba(224,211,191,.06)'}}, rightPriceScale:{borderColor:'rgba(224,211,191,.1)'}, timeScale:{borderColor:'rgba(224,211,191,.1)'} });
+    const ct = ROX.chartTheme();
+    _fundChart = LightweightCharts.createChart(el, { layout:{background:{color:'transparent'},textColor:ct.text}, grid:{vertLines:{color:ct.grid},horzLines:{color:ct.grid}}, rightPriceScale:{borderColor:ct.border}, timeScale:{borderColor:ct.border} });
     const series = _fundChart.addAreaSeries({ lineColor:'#c65a43', topColor:'rgba(198,90,67,.24)', bottomColor:'rgba(198,90,67,0)' });
     series.setData(kline.candles.map(c => ({time:c.date,value:c.close})));
     _fundChart.timeScale().fitContent();

@@ -277,6 +277,19 @@ ROX.register('/backtest', async function(container) {
         </div>
       </div>
 
+      ${res.overfit ? `
+      <div class="card" style="margin-bottom:12px;">
+        <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">过拟合检查 <span class="tag ${res.overfit.sensitivity.cliff || (res.overfit.oos.decay_pct != null && res.overfit.oos.oos_sample_return < res.overfit.oos.in_sample_return * 0.4) ? 'tag-red' : 'tag-green'}">${res.overfit.sensitivity.cliff ? '参数敏感' : '未发现悬崖'}</span></h4>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.8;">
+          <div>① ${ROX.escape(res.overfit.sensitivity.verdict)}</div>
+          <table class="data-table" style="width:100%;font-size:11px;margin:8px 0;">
+            <thead><tr><th style="text-align:left;">参数</th><th style="text-align:right;">基准</th><th style="text-align:right;">变体</th><th style="text-align:right;">变体收益%</th><th style="text-align:right;">差值pp</th></tr></thead>
+            <tbody>${(res.overfit.sensitivity.rows || []).map(r => `<tr><td>${ROX.escape(r.param)}</td><td style="text-align:right;font-family:var(--font-mono);">${r.base_value}</td><td style="text-align:right;font-family:var(--font-mono);">${r.variant_value}</td><td style="text-align:right;font-family:var(--font-mono);">${r.variant_return ?? '--'}</td><td style="text-align:right;font-family:var(--font-mono);" class="${r.delta_pct != null && r.delta_pct < 0 ? 'text-down' : ''}">${r.delta_pct ?? '--'}</td></tr>`).join('')}</tbody>
+          </table>
+          <div>② ${ROX.escape(res.overfit.oos.verdict)}（样本内 ${res.overfit.oos.in_sample_return}% → 样本外 ${res.overfit.oos.oos_sample_return}%）</div>
+          <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px;">${ROX.escape(res.overfit.oos.note)}</div>
+        </div>
+      </div>` : ''}
       <p style="font-size:11px;color:var(--text-tertiary);margin-top:8px;">${res.disclaimer}</p>
       <p style="font-size:11px;color:var(--text-tertiary);">回测区间: ${res.start_date} 至 ${res.end_date} ｜ K线根数: ${res.candle_count}</p>
     `;
@@ -287,8 +300,8 @@ ROX.register('/backtest', async function(container) {
       _equityChart = echarts.init(chartEl);
       _equityChart.setOption({
         tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>权益: ¥${p[0].data.toLocaleString()}` },
-        xAxis: { type: 'category', data: res.equity_curve.map(e => e.date), axisLabel: { fontSize: 10, rotate: 30 } },
-        yAxis: { type: 'value', axisLabel: { fontSize: 10, formatter: v => (v / 10000).toFixed(0) + '万' } },
+        xAxis: { type: 'category', data: res.equity_curve.map(e => e.date), axisLabel: { color: ROX.chartTheme().text, fontSize: 10, rotate: 30 } },
+        yAxis: { type: 'value', axisLabel: { color: ROX.chartTheme().text, fontSize: 10, formatter: v => (v / 10000).toFixed(0) + '万' } },
         series: [{
           type: 'line', data: res.equity_curve.map(e => e.equity),
           smooth: true, symbol: 'none',

@@ -308,10 +308,10 @@ function renderKline(candles, info) {
     if (_klineChart) _klineChart.remove();
     chartEl.innerHTML = '';
     _klineChart = LightweightCharts.createChart(chartEl, {
-      layout: { background: { color: 'transparent' }, textColor: '#86868b' },
-      grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } },
-      rightPriceScale: { borderColor: 'rgba(255,255,255,0.08)' },
-      timeScale: { borderColor: 'rgba(255,255,255,0.08)', timeVisible: false },
+      layout: { background: { color: 'transparent' }, textColor: ROX.chartTheme().text },
+      grid: { vertLines: { color: ROX.chartTheme().grid }, horzLines: { color: ROX.chartTheme().grid } },
+      rightPriceScale: { borderColor: ROX.chartTheme().border },
+      timeScale: { borderColor: ROX.chartTheme().border, timeVisible: false },
       crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
       handleScroll: true,
       handleScale: true,
@@ -342,11 +342,11 @@ function renderKline(candles, info) {
       { left: '8%', right: '3%', top: '72%', height: '18%' }
     ],
     xAxis: [
-      { type: 'category', data: dates, gridIndex: 0, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }, axisLabel: { color: '#86868b', fontSize: 10 } },
+      { type: 'category', data: dates, gridIndex: 0, axisLine: { lineStyle: { color: ROX.chartTheme().border } }, axisLabel: { color: ROX.chartTheme().text, fontSize: 10 } },
       { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false } }
     ],
     yAxis: [
-      { scale: true, gridIndex: 0, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }, axisLabel: { color: '#86868b', fontSize: 10 } },
+      { scale: true, gridIndex: 0, splitLine: { lineStyle: { color: ROX.chartTheme().grid } }, axisLabel: { color: ROX.chartTheme().text, fontSize: 10 } },
       { gridIndex: 1, splitLine: { show: false }, axisLabel: { show: false } }
     ],
     dataZoom: [

@@ -267,6 +267,56 @@ async function renderKnowledge() {
     toggle.textContent = isOpen ? '阅读全文 ▾' : '收起全文 ▴';
   });
 
+  // 本地知识库检索（用户自供 txt/md/docx，不进 git、不外发）
+  const kbMount = document.createElement('div');
+  kbMount.innerHTML = `
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">
+        <div><div class="card-title">本地知识库检索</div><div class="card-subtitle">检索你自己放入 data/knowledge/ 的书籍与策略文本 · 文件不入 git、默认不发送给 AI</div></div>
+        <span class="tag tag-gray" id="kb-doc-count">未加载</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <input class="form-input" id="kb-query" placeholder="输入关键词，如：止损纪律 / 债务周期" style="flex:1;">
+        <button class="btn btn-primary" id="kb-search-btn">检索</button>
+        <button class="btn btn-secondary" id="kb-rebuild-btn" title="放入新文件后重建索引">重建索引</button>
+      </div>
+      <div id="kb-results" style="margin-top:12px;"></div>
+    </div>`;
+  const knowledgeList = document.getElementById('knowledge-list');
+  knowledgeList.closest('.card')?.after(kbMount) || el.appendChild(kbMount);
+
+  const kbResults = kbMount.querySelector('#kb-results');
+  const kbSearch = async () => {
+    const q = kbMount.querySelector('#kb-query').value.trim();
+    if (!q) { ROX.toast('请输入检索关键词', 'warn'); return; }
+    kbResults.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    const data = await ROX.api.get(`/api/knowledge/search?q=${encodeURIComponent(q)}`);
+    if (!data || data.error) { kbResults.innerHTML = '<div style="font-size:12px;color:var(--text-tertiary);">检索失败，请稍后重试。</div>'; return; }
+    kbMount.querySelector('#kb-doc-count').textContent = `${data.doc_count} 份文档`;
+    kbResults.innerHTML = data.results.length ? data.results.map(r => `
+      <div style="border:1px solid var(--border-default);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+          <strong style="font-size:13px;">${ROX.escape(r.title || r.filename)}</strong>
+          <span class="tag tag-gray">${r.hits} 处命中 · ${ROX.escape(r.filename)}</span>
+        </div>
+        ${r.snippets.map(sn => `<div style="font-size:12px;color:var(--text-secondary);line-height:1.8;margin-top:6px;border-left:2px solid var(--border-accent);padding-left:8px;">${ROX.escape(sn)}</div>`).join('')}
+        <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(r.title || r.filename)}" data-content="${ROX.escape(`知识库线索：《${r.title || r.filename}》命中“${q}” ${r.hits} 处，片段：${(r.snippets[0] || '').slice(0, 120)}`)}" data-source="本地知识库 · ${ROX.escape(r.filename)}">＋ 加入研究卡</button>
+      </div>`).join('') + `<div style="font-size:10px;color:var(--text-tertiary);margin-top:4px;">${ROX.escape(data.method)}</div>`
+      : '<div style="font-size:12px;color:var(--text-tertiary);">没有命中。可尝试更换关键词，或把 txt/md/docx 文件放入 data/knowledge/ 后点「重建索引」。</div>';
+  };
+  kbMount.querySelector('#kb-search-btn').addEventListener('click', kbSearch);
+  kbMount.querySelector('#kb-query').addEventListener('keydown', e => { if (e.key === 'Enter') kbSearch(); });
+  kbMount.querySelector('#kb-rebuild-btn').addEventListener('click', async () => {
+    const res = await ROX.api.post('/api/knowledge/rebuild');
+    if (res && !res.error) {
+      kbMount.querySelector('#kb-doc-count').textContent = `${res.doc_count} 份文档`;
+      ROX.toast(`索引已重建：${res.doc_count} 份文档`, 'success');
+    } else { ROX.toast('重建失败', 'error'); }
+  });
+  ROX.api.get('/api/knowledge/status').then(st => {
+    if (st && !st.error) kbMount.querySelector('#kb-doc-count').textContent = `${st.doc_count} 份文档`;
+  });
+
   el.querySelectorAll('.fw-cat-filter').forEach(btn => {
     btn.addEventListener('click', async () => {
       el.querySelectorAll('.fw-cat-filter').forEach(b => b.classList.remove('active'));

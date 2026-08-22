@@ -74,8 +74,22 @@ const ROX = {
   // 深浅模式：立即应用并本地缓存（避免刷新闪回深色）
   applyTheme(theme) {
     const mode = theme === 'light' ? 'light' : 'dark';
+    const changed = document.documentElement.dataset.theme !== mode;
     document.documentElement.dataset.theme = mode;
     try { localStorage.setItem('rox-theme', mode); } catch (_) { /* 忽略 */ }
+    // 图表配色在初始化时读取主题，切换后重渲染当前页以重着色
+    if (changed && this.state.user && this.state.currentRoute) {
+      this.render(this.state.currentRoute);
+      this.loadIndexTicker();
+    }
+  },
+
+  // 图表主题配色（K线/副图坐标轴与网格随深浅模式取色）
+  chartTheme() {
+    const light = document.documentElement.dataset.theme === 'light';
+    return light
+      ? { text: '#7a7263', grid: 'rgba(60,50,35,0.08)', border: 'rgba(60,50,35,0.16)' }
+      : { text: '#86868b', grid: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.08)' };
   },
 
   // Auto-refresh timer management

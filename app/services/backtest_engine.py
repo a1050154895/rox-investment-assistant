@@ -451,19 +451,29 @@ async def execute_backtest(
         }
 
     signals = generate_signals(strategy_id, candles, params)
-    result = run_backtest(
-        candles, signals,
-        initial_capital=initial_capital,
-        commission_rate=commission_rate,
-        slippage_rate=slippage_rate,
-        stamp_duty_rate=stamp_duty_rate,
-        min_commission=min_commission,
-        position_pct=position_pct,
-        stop_loss_pct=stop_loss_pct,
-        take_profit_pct=take_profit_pct,
-    )
+    run_kwargs = {
+        "initial_capital": initial_capital,
+        "commission_rate": commission_rate,
+        "slippage_rate": slippage_rate,
+        "stamp_duty_rate": stamp_duty_rate,
+        "min_commission": min_commission,
+        "position_pct": position_pct,
+        "stop_loss_pct": stop_loss_pct,
+        "take_profit_pct": take_profit_pct,
+    }
+    result = run_backtest(candles, signals, **run_kwargs)
     if "error" in result:
         return {**result, "code": code, "name": name}
+
+    # 过拟合检查：参数敏感性 + 样本内外对比（默认开启，纯计算无额外请求）
+    overfit = None
+    if len(candles) >= 80:
+        try:
+            from app.services.overfitting import full_check
+            overfit = full_check(candles, strategy_id, params, run_kwargs)
+        except Exception as exc:  # noqa: BLE001 — 检查失败不影响回测结果
+            logger.warning("过拟合检查失败: %s", exc)
+            overfit = None
 
     return {
         "code": code,
@@ -473,6 +483,7 @@ async def execute_backtest(
         "params": params,
         "period": period,
         "kline_source": "腾讯前复权日/周K线（公开接口）",
+        "overfit": overfit,
         **result,
         "disclaimer": "回测基于公开前复权K线与费用模型（佣金/印花税/滑点），仅用于框架验证和经验沉淀，不代表未来收益。",
         "run_at": datetime.now().isoformat(),
