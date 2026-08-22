@@ -34,6 +34,6 @@ test('mobile research loop reaches review statistics', async ({ page }) => {
 
   await page.goto('/review');
   await expect(page.locator('.research-review-card')).toBeVisible();
-  await expect(page.getByText('假设验证率')).toBeVisible();
+  await expect(page.getByText('研究卡复盘')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
 });

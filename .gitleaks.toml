@@ -1,0 +1,4 @@
+[allowlist]
+description = "E2E uses an injected test-only environment variable; no credential is committed."
+paths = ["playwright.config.js"]
+commits = ["a329bf340bd0405e9da87164a91f6bb0fe150c4a"]
