@@ -921,6 +921,16 @@ summary { cursor: pointer; }
 .research-hypothesis-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px 16px; margin-top:13px; padding-top:12px; border-top:1px solid var(--border-color-light); color:var(--text-secondary); font-size:12px; }
 .research-hypothesis-row strong { color:var(--text-primary); font-family:var(--font-mono); font-size:14px; margin-left:4px; }
 .research-hypothesis-row .research-hypothesis-rate { margin-left:auto; color:var(--ink-vermilion); font-family:var(--font-mono); font-size:12px; }
+.journal-stats-grid .card { border-top:2px solid var(--border-color); }
+.journal-stats-grid .card:nth-child(1) { border-top-color:var(--ink-indigo); }
+.journal-stats-grid .card:nth-child(2) { border-top-color:var(--ink-vermilion); }
+.journal-stats-grid .card:nth-child(3) { border-top-color:#8fae94; }
+.journal-stats-grid .card:nth-child(4) { border-top-color:var(--color-warn); }
+.journal-evidence-filter { padding:12px; background:var(--bg-surface); border:1px solid var(--border-color); }
+.journal-decision-toolbar { padding-bottom:4px; border-bottom:1px solid var(--border-color); }
+.review-market-snapshot .card:first-child { border-top:2px solid var(--ink-vermilion); }
+.review-market-snapshot .card:last-child { border-top:2px solid var(--ink-indigo); }
+.review-market-evidence .card { border-top:2px solid var(--border-color); }
 .methodology-detail summary, .methodology-skill summary { min-height:44px; display:flex; align-items:center; color:var(--rox-primary); cursor:pointer; font-size:12px; }
 .framework-path { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 16px; border:1px solid var(--border-color); border-left:2px solid var(--ink-indigo); background:var(--bg-surface); }
 .framework-path-lead { display:flex; align-items:center; gap:10px; min-width:240px; }
