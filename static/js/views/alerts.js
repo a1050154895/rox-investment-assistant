@@ -36,9 +36,10 @@ ROX.views.alerts = {
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
         <div>
           <h1 style="font-size:24px;font-weight:590;margin:0;">价格预警</h1>
-          <p style="color:var(--text-secondary);font-size:13px;margin:4px 0 0;">触发检测 · 激活暂停 · 实时监控</p>
+          <p style="color:var(--text-secondary);font-size:13px;margin:4px 0 0;">触发检测 · 激活暂停 · 在线每 60 秒自动检查（非推送式监控）</p>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-secondary btn-sm" data-action="enable-alert-notify" title="开启浏览器通知">🔔 通知</button>
           <button class="btn btn-secondary btn-sm" data-action="refresh-alerts">刷新</button>
           <button class="btn btn-primary" data-action="add-alert">+ 新建预警</button>
         </div>

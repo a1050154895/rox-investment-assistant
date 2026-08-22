@@ -84,6 +84,39 @@ const ROX = {
     }
   },
 
+  // 预警准实时检查：仅在线时每 60 秒轮询一次，新触发弹通知（诚实标注非推送）
+  startAlertPolling() {
+    this.stopAlertPolling();
+    this.state.alertTimer = setInterval(async () => {
+      const data = await this.api.get('/api/alerts/');
+      if (!data || data.error || !Array.isArray(data.alerts)) return;
+      let seen = [];
+      try { seen = JSON.parse(localStorage.getItem('rox-seen-alerts') || '[]'); } catch (_) { seen = []; }
+      const triggered = data.alerts.filter(a => a.triggered);
+      const fresh = triggered.filter(a => !seen.includes(a.id));
+      if (fresh.length) {
+        for (const a of fresh.slice(0, 3)) {
+          const msg = `${a.price_name || a.name} ${a.direction === 'above' ? '↑≥' : '↓≤'}${a.target_price}（现价 ${a.current_price ?? '--'}）`;
+          this.toast(`预警触发：${msg}`, 'warn', 6000);
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            try { new Notification('ROX 价格预警', { body: msg }); } catch (_) { /* 忽略 */ }
+          }
+        }
+        localStorage.setItem('rox-seen-alerts', JSON.stringify(triggered.map(a => a.id)));
+      }
+    }, 60000);
+  },
+
+  stopAlertPolling() {
+    if (this.state.alertTimer) { clearInterval(this.state.alertTimer); this.state.alertTimer = null; }
+  },
+
+  async enableAlertNotify() {
+    if (typeof Notification === 'undefined') { this.toast('当前浏览器不支持通知', 'warn'); return; }
+    const perm = await Notification.requestPermission();
+    this.toast(perm === 'granted' ? '已开启浏览器通知（仅在线时检查）' : '未获通知权限，仍会在页面内提示', perm === 'granted' ? 'success' : 'info');
+  },
+
   // 图表主题配色（K线/副图坐标轴与网格随深浅模式取色）
   chartTheme() {
     const light = document.documentElement.dataset.theme === 'light';
@@ -515,6 +548,7 @@ const ROX = {
     this.state.settings = null;
     this.state.membership = null;
     localStorage.removeItem('rox-discipline-profile');
+    this.stopAlertPolling();
     this.showAuthGate();
   },
 
@@ -610,6 +644,7 @@ const ROX = {
             open ? this.closeNav() : this.openNav();
           },
           'close-nav': () => this.closeNav(),
+          'enable-alert-notify': () => this.enableAlertNotify(),
           'delete-ai-key': async () => {
             const res = await this.api.delete('/api/settings/ai-key');
             if (res && res.success) {
@@ -784,6 +819,7 @@ const ROX = {
       }
     });
     this.loadIndexTicker();
+    this.startAlertPolling();
     this.render(location.pathname);
     // Show keyboard shortcut hint (once per session)
     if (!sessionStorage.getItem('kbd-hint-shown')) {

@@ -28,7 +28,7 @@ test('mobile research loop reaches review statistics', async ({ page }) => {
   await page.getByLabel('反证').fill('需求可能低于预期');
   await page.getByLabel('失效条件').fill('盈利预期下修');
   await page.getByRole('button', { name: '下一步', exact: true }).click();
-  await page.getByLabel('状态').selectOption('ready');
+  await page.locator('select[name="status"]').selectOption('ready');
   await page.getByRole('button', { name: '保存研究卡', exact: true }).click();
   await expect(page.getByText('研究卡已保存')).toBeVisible();
 
