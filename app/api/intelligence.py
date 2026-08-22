@@ -61,6 +61,16 @@ async def intelligence_feed(
     )
 
 
+@router.get("/concentration")
+async def market_concentration(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """成交额集中度风险温度计（当日实时 + 自建历史快照）。"""
+    from app.services.market_concentration import get_concentration
+    return await get_concentration(db)
+
+
 @router.get("/stock/{code}")
 async def stock_intelligence(code: str):
     """个股所在行业与宏观资讯的传导路径。"""

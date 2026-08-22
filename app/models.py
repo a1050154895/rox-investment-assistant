@@ -240,3 +240,17 @@ class DecisionContext(Base):
             "cycle_stage": self.cycle_stage,
             "primary_contradiction": self.primary_contradiction,
         }
+
+
+class MarketConcentration(Base):
+    """全市场成交额集中度每日快照（自建历史，不伪造外部数据）。"""
+
+    __tablename__ = "market_concentration"
+
+    id = mapped_column(Integer, primary_key=True)
+    date = mapped_column(String(10), unique=True, index=True)
+    top5_pct = mapped_column(Float)
+    top10_pct = mapped_column(Float)
+    total_amount_yi = mapped_column(Float)
+    stock_count = mapped_column(Integer)
+    created_at = mapped_column(DateTime, default=utcnow)

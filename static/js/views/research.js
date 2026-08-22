@@ -110,16 +110,32 @@ ROX.register('/research', async function(container, params) {
     card = data?.card || null;
   }
   const query = params.query || {};
-  const seed = card || (query.code ? {
+  let seed = card || (query.code ? {
     title: `${query.stock || query.code}：是否值得继续研究？`,
     code: query.code,
     stock: query.stock,
     question: `${query.stock || query.code} 当前是否满足我的研究条件？`,
     facts: [`行情：${query.price || '--'}；数据状态：${query.data_status || '未标注'}；来源：${query.data_source || '未标注'}；截至：${query.as_of || '未标注'}`],
   } : {});
-  container.innerHTML = `<div class="research-page"><div class="research-page-head"><div><div class="eyebrow">ROX LOOP / RESEARCH</div><h2 class="research-page-title">${card ? '继续完善研究卡' : '把一个想法变成可验证判断'}</h2><p class="research-page-subtitle">先写清事实、假设和反证，再决定是否行动。</p></div><button class="btn btn-secondary" data-route="/">回到今日</button></div><div class="research-context-strip"><span class="research-context-mark">证</span><div><strong>这不是荐股表单</strong><span>把一个判断拆成证据、假设、反证和纪律，留下可复盘的依据。</span></div></div><div id="research-archive-mount"></div><div class="card research-card-shell">${researchCardForm(seed)}${cardId ? `<div class="research-decision-footer"><div><strong>研究链已保存</strong><span>准备好后再记录正式决策，决策会保留这张研究卡的关联。</span></div><button class="btn btn-primary" data-action="record-card-decision" data-card-id="${cardId}" data-code="${ROX.escape(card.code || '')}" data-name="${ROX.escape(card.stock || '')}">记录关联决策</button></div>` : ''}</div></div>`;
+  const templateLoader = async () => {
+    if (card || !query.template) return;
+    const res = await ROX.api.get(`/api/research/templates/${encodeURIComponent(query.template)}`);
+    if (!res || res.error || !res.seed) return;
+    const form = document.getElementById('research-card-form');
+    if (!form) return;
+    const seedData = res.seed;
+    for (const [key, value] of Object.entries(seedData)) {
+      const el = form.querySelector(`[name="${key}"]`);
+      if (!el) continue;
+      if (key === 'facts') el.value = (value || []).join('\n');
+      else el.value = String(value || '');
+    }
+    ROX.toast(`已套用模板：${res.name}`, 'info');
+  };
+  container.innerHTML = `<div class="research-page"><div class="research-page-head"><div><div class="eyebrow">ROX LOOP / RESEARCH</div><h2 class="research-page-title">${card ? '继续完善研究卡' : '把一个想法变成可验证判断'}</h2><p class="research-page-subtitle">先写清事实、假设和反证，再决定是否行动。</p></div><button class="btn btn-secondary" data-route="/research?template=serenity_chain">产业链三问模板</button><button class="btn btn-secondary" data-route="/research?template=discipline_guard">反模式自查模板</button><button class="btn btn-secondary" data-route="/">回到今日</button></div><div class="research-context-strip"><span class="research-context-mark">证</span><div><strong>这不是荐股表单</strong><span>把一个判断拆成证据、假设、反证和纪律，留下可复盘的依据。</span></div></div><div id="research-archive-mount"></div><div class="card research-card-shell">${researchCardForm(seed)}${cardId ? `<div class="research-decision-footer"><div><strong>研究链已保存</strong><span>准备好后再记录正式决策，决策会保留这张研究卡的关联。</span></div><button class="btn btn-primary" data-action="record-card-decision" data-card-id="${cardId}" data-code="${ROX.escape(card.code || '')}" data-name="${ROX.escape(card.stock || '')}">记录关联决策</button></div>` : ''}</div></div>`;
 
   const form = document.getElementById('research-card-form');
+  templateLoader();
   const archiveMount = document.getElementById('research-archive-mount');
   if (cardId) loadCardArchive(cardId, archiveMount);
   const riskButton = document.getElementById('research-risk-check');

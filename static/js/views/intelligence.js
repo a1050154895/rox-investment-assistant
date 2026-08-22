@@ -120,6 +120,14 @@ ROX.register('/intelligence', async function(container) {
         </div>
       </div>
 
+      <div class="card intelligence-concentration-card" id="concentration-card">
+        <div class="card-header">
+          <div><div class="card-title">成交额集中度 · 市场风险温度计</div><div class="card-subtitle">前 5% 股票占全市场成交额比例，越高越扎堆、越需警惕</div></div>
+          <span class="tag tag-amber">风险观察</span>
+        </div>
+        <div id="concentration-body"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
       <div class="card intelligence-news-card">
         <div class="card-header"><div><div class="card-title">资讯与事件线索</div><div class="card-subtitle">原始标题只生成假设，不直接生成结论 · 突发=36小时内命中关键事件词，仅提示核对</div></div><span class="tag tag-blue">${data.news.length} 条</span></div>
         <div class="news-list">
@@ -138,4 +146,28 @@ ROX.register('/intelligence', async function(container) {
         </div>
       </div>
     </div>`;
+
+  // Async: 成交额集中度温度计
+  (async () => {
+    const body = document.getElementById('concentration-body');
+    if (!body) return;
+    const data = await ROX.api.get('/api/intelligence/concentration');
+    if (!data || data.error || data.data_status === 'unavailable') {
+      body.innerHTML = `<div style="font-size:12px;color:var(--text-tertiary);">${ROX.escape(data?.message || '集中度数据暂不可用，不生成估计值。')}</div>`;
+      return;
+    }
+    const hist = data.history || [];
+    const maxH = Math.max(...hist.map(h => h.top5_pct || 0), data.top5_pct || 0, 1);
+    const bars = hist.slice(-60).map(h => `<span style="flex:1;min-width:3px;height:${Math.round((h.top5_pct / maxH) * 56)}px;background:${h.top5_pct >= 43 ? 'var(--color-down)' : 'var(--ink-warn, #ff9f0a)'};border-radius:2px 2px 0 0;" title="${h.date}: ${h.top5_pct}%"></span>`).join('');
+    body.innerHTML = `
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+        <div><div style="font-size:11px;color:var(--text-tertiary);">当前前5%集中度</div><div style="font-size:30px;font-family:var(--font-mono);font-weight:700;color:${data.top5_pct >= 43 ? 'var(--color-down)' : 'var(--text-primary)'};">${data.top5_pct}%</div></div>
+        <div><div style="font-size:11px;color:var(--text-tertiary);">前10%集中度</div><div style="font-size:20px;font-family:var(--font-mono);">${data.top10_pct}%</div></div>
+        <div><div style="font-size:11px;color:var(--text-tertiary);">全市场成交额</div><div style="font-size:16px;font-family:var(--font-mono);">${(data.total_amount_yi / 10000).toFixed(1)} 万亿</div></div>
+        <div><div style="font-size:11px;color:var(--text-tertiary);">样本</div><div style="font-size:16px;font-family:var(--font-mono);">${data.stock_count} 只</div></div>
+      </div>
+      ${hist.length > 1 ? `<div style="display:flex;align-items:flex-end;gap:1px;height:60px;margin-top:12px;">${bars}</div><div style="font-size:10px;color:var(--text-tertiary);">自建历史 ${data.history_days} 天（逐日快照积累中）· 红色≥43%外部参考线</div>` : `<div style="font-size:10px;color:var(--text-tertiary);margin-top:8px;">历史快照从今天开始积累（${data.history_days} 天）</div>`}
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;line-height:1.6;">${ROX.escape(data.method)}。${ROX.escape(data.external_reference)}</div>
+      <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="成交额集中度" data-content="${ROX.escape(`市场温度计：前5%股票成交额占比 ${data.top5_pct}%（前10% ${data.top10_pct}%，全市场 ${data.stock_count} 只）`)}" data-source="AKShare全市场快照×集中度计算" data-as-of="${ROX.escape(data.as_of || '')}">＋ 加入研究卡</button>`;
+  })();
 });

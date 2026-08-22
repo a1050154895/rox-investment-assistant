@@ -95,6 +95,26 @@ def _risk_checks(card: ResearchCard) -> list[dict]:
     ]
 
 
+@router.get("/templates")
+async def list_templates():
+    """研究卡模板：只给问法和证据清单，不给结论。"""
+    from app.services.research_templates import RESEARCH_TEMPLATES
+    return {"templates": [
+        {"id": tid, "name": t["name"], "description": t["description"]}
+        for tid, t in RESEARCH_TEMPLATES.items()
+    ]}
+
+
+@router.get("/templates/{template_id}")
+async def get_template(template_id: str):
+    """获取研究卡模板预填内容（仅问法与证据清单，无结论）。"""
+    from app.services.research_templates import RESEARCH_TEMPLATES
+    tpl = RESEARCH_TEMPLATES.get(template_id)
+    if not tpl:
+        raise HTTPException(status_code=404, detail="模板不存在")
+    return {"id": template_id, "name": tpl["name"], "seed": tpl["seed"]}
+
+
 @router.get("/today")
 async def today(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """今日研究队列：未完成研究卡、待复盘决策和下一步动作。"""
