@@ -40,7 +40,7 @@ ROX.views.watchlist = {
       return;
     }
 
-    let html = '<div class="card" style="padding:8px 12px;"><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">';
+    let html = '<div class="card" style="padding:8px 12px;"><div style="overflow-x:auto;"><table class="table-cards" style="width:100%;border-collapse:collapse;font-size:13px;">';
     html += `<thead><tr style="border-bottom:1px solid var(--border-color);">
       <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:500;">股票</th>
       <th style="text-align:right;padding:8px 12px;color:var(--text-secondary);font-weight:500;">现价</th>
@@ -52,10 +52,10 @@ ROX.views.watchlist = {
       const up = (w.change_pct || 0) >= 0;
       const c = up ? 'var(--rox-up)' : 'var(--rox-down)';
       html += `<tr style="border-bottom:1px solid var(--border-color-light);cursor:pointer;" data-action="view-stock" data-code="${ROX.escape(w.code)}">
-        <td style="padding:8px 12px;font-weight:500;">${ROX.escape(w.price_name || w.name)} <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">${ROX.escape(w.code)}</span></td>
-        <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${c};">${w.price != null ? ROX.fmt.num(w.price) : '--'}</td>
-        <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${c};">${w.change_pct != null ? ROX.fmt.pct(w.change_pct) : '--'}</td>
-        <td style="text-align:center;padding:8px 12px;white-space:nowrap;">
+        <td data-label="股票" style="padding:8px 12px;font-weight:500;">${ROX.escape(w.price_name || w.name)} <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">${ROX.escape(w.code)}</span></td>
+        <td data-label="现价" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${c};">${w.price != null ? ROX.fmt.num(w.price) : '--'}</td>
+        <td data-label="涨跌幅" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${c};">${w.change_pct != null ? ROX.fmt.pct(w.change_pct) : '--'}</td>
+        <td data-label="" style="text-align:center;padding:8px 12px;white-space:nowrap;">
           <button class="btn btn-sm btn-ghost" data-action="watch-up" data-id="${w.id}" ${i === 0 ? 'disabled' : ''} style="margin-right:2px;" title="上移">↑</button>
           <button class="btn btn-sm btn-ghost" data-action="watch-down" data-id="${w.id}" ${i === list.length - 1 ? 'disabled' : ''} style="margin-right:8px;" title="下移">↓</button>
           <button class="btn btn-sm btn-ghost" data-action="watch-remove" data-id="${w.id}" style="color:var(--rox-down);font-size:12px;">移除</button>

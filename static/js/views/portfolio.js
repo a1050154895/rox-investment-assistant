@@ -51,22 +51,22 @@ ROX.views.portfolio = {
     if (positions.length === 0) {
       html += '<div class="card" style="padding:40px;text-align:center;color:var(--text-tertiary);"><p>暂无持仓，点击"添加持仓"开始记录</p></div>';
     } else {
-      html += '<div class="card" style="padding:20px;"><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="border-bottom:1px solid var(--border-color);">';
+      html += '<div class="card" style="padding:20px;"><div style="overflow-x:auto;"><table class="table-cards" style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="border-bottom:1px solid var(--border-color);">';
       ['股票','股数','成本价','现价','成本','市值','盈亏','盈亏%','建仓日',''].forEach(h => html += `<th style="text-align:${h==='股票'?'left':'right'};padding:8px 12px;color:var(--text-secondary);font-weight:500;">${h}</th>`);
       html += '</tr></thead><tbody>';
       positions.forEach(p => {
         const cp = p.pnl >= 0 ? 'var(--color-up)' : 'var(--color-down)';
         html += `<tr style="border-bottom:1px solid var(--border-color-light);cursor:pointer;" data-action="view-stock" data-code="${esc(p.code)}">
-          <td style="padding:8px 12px;font-weight:500;">${esc(p.name)} <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">${esc(p.code)}</span></td>
-          <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);">${p.shares}</td>
-          <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);">${fmt.num(p.cost_price)}</td>
-          <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);">${p.price != null ? fmt.num(p.price) : '--'}</td>
-          <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:var(--text-tertiary);">${fmt.num(p.cost)}</td>
-          <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);">${fmt.num(p.market)}</td>
-          <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${cp};font-weight:500;">${fmt.num(p.pnl)}</td>
-          <td style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${cp};">${fmt.pct(p.pnl_pct)}</td>
-          <td style="text-align:right;padding:8px 12px;font-size:12px;color:var(--text-tertiary);">${esc(p.date)}</td>
-          <td style="text-align:right;padding:8px 12px;white-space:nowrap;"><button class="btn btn-sm btn-ghost" data-action="edit-position" data-id="${p.id}" data-code="${esc(p.code)}" data-name="${esc(p.name)}" data-shares="${p.shares}" data-cost="${p.cost_price}" data-date="${esc(p.date)}" data-notes="${esc(p.notes||'')}" style="font-size:11px;">编辑</button><button class="btn btn-sm btn-ghost" data-action="delete-position" data-id="${p.id}" style="font-size:11px;color:var(--color-up);margin-left:4px;">删除</button></td>
+          <td data-label="股票" style="padding:8px 12px;font-weight:500;">${esc(p.name)} <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">${esc(p.code)}</span></td>
+          <td data-label="股数" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);">${p.shares}</td>
+          <td data-label="成本价" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);">${fmt.num(p.cost_price)}</td>
+          <td data-label="现价" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);">${p.price != null ? fmt.num(p.price) : '--'}</td>
+          <td data-label="成本" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:var(--text-tertiary);">${fmt.num(p.cost)}</td>
+          <td data-label="市值" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);">${fmt.num(p.market)}</td>
+          <td data-label="盈亏" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${cp};font-weight:500;">${fmt.num(p.pnl)}</td>
+          <td data-label="盈亏%" style="text-align:right;padding:8px 12px;font-family:var(--font-mono);color:${cp};">${fmt.pct(p.pnl_pct)}</td>
+          <td data-label="建仓日" style="text-align:right;padding:8px 12px;font-size:12px;color:var(--text-tertiary);">${esc(p.date)}</td>
+          <td data-label="" style="text-align:right;padding:8px 12px;white-space:nowrap;"><button class="btn btn-sm btn-ghost" data-action="edit-position" data-id="${p.id}" data-code="${esc(p.code)}" data-name="${esc(p.name)}" data-shares="${p.shares}" data-cost="${p.cost_price}" data-date="${esc(p.date)}" data-notes="${esc(p.notes||'')}" style="font-size:11px;">编辑</button><button class="btn btn-sm btn-ghost" data-action="delete-position" data-id="${p.id}" style="font-size:11px;color:var(--color-up);margin-left:4px;">删除</button></td>
         </tr>`;
       });
       html += '</tbody></table></div></div>';

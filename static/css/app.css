@@ -1107,3 +1107,26 @@ summary { cursor: pointer; }
 .intelligence-theme-time { flex: none; font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary); padding-top: 2px; }
 .intelligence-theme-verify { font-size: 11px; color: var(--ink-warn, #ff9f0a); padding: 8px 10px; border-radius: 8px; background: rgba(255,159,10,.07); line-height: 1.6; }
 .news-row.news-breaking { border-left: 2px solid var(--color-down, #d34f42); padding-left: 10px; }
+
+/* 移动端表格卡片化（持仓/自选等宽表） */
+@media (max-width: 768px) {
+  table.table-cards thead { display: none; }
+  table.table-cards, table.table-cards tbody { display: block; width: 100%; }
+  table.table-cards tr {
+    display: block; border: 1px solid var(--border-default, rgba(224,211,191,.14));
+    border-radius: 10px; margin-bottom: 10px; padding: 6px 12px;
+    background: var(--ink-surface, rgba(224,211,191,.03));
+  }
+  table.table-cards td {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 7px 0; border: none !important; text-align: right !important; font-size: 13px;
+  }
+  table.table-cards td::before {
+    content: attr(data-label); color: var(--text-tertiary); font-size: 11px; text-align: left; flex: none;
+  }
+  table.table-cards td[data-label=""]::before { content: none; }
+  table.table-cards td .btn { min-height: 38px; padding: 6px 14px; }
+  .page-header { flex-wrap: wrap; gap: 10px; }
+  .settings-tabs { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .settings-tab { flex: none; }
+}
