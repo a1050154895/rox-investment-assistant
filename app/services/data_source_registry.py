@@ -44,6 +44,7 @@ _SOURCE_ALIASES = {
     "腾讯自选股公开接口": "tencent_quote",
     "腾讯实时行情": "tencent_quote",
     "新浪财经公开接口": "sina_quote",
+    "新浪K线直连": "sina_kline",
     "AKShare/东方财富公开接口": "akshare_eastmoney",
     "东方财富公开接口": "akshare_eastmoney",
     "NeoData 历史快照": "neodata_snapshot",
@@ -64,6 +65,8 @@ _register(DataSource("tencent_quote", "腾讯实时行情", "腾讯自选股公�
                      ["个股行情", "指数行情", "ETF场内行情"], True, "公开接口，未商用授权", degrade_to="sina_quote"))
 _register(DataSource("sina_quote", "新浪实时行情", "新浪财经公开接口",
                      ["个股行情"], True, "公开接口，未商用授权", degrade_to="akshare_eastmoney"))
+_register(DataSource("sina_kline", "新浪K线直连", "新浪财经公开K线接口",
+                     ["K线"], False, "公开接口，未商用授权", degrade_to="neodata_snapshot"))
 _register(DataSource("akshare_eastmoney", "AKShare/东方财富", "AKShare · 东方财富公开接口",
                      ["个股行情", "K线", "资金流", "股票列表"], False, "开源库聚合，未商用授权",
                      degrade_to="neodata_snapshot"))

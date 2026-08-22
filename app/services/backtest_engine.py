@@ -55,6 +55,24 @@ STRATEGIES: list[dict[str, Any]] = [
             {"key": "signal", "label": "信号线周期", "default": 9, "min": 3, "max": 20},
         ],
     },
+    {
+        "id": "turtle_breakout",
+        "name": "海龟突破（Donchian 通道）",
+        "description": "收盘价突破前 N 日最高价买入，跌破前 M 日最低价卖出。趋势跟踪经典（策略知识重写自 ROX3 书籍策略库）。",
+        "params": [
+            {"key": "entry_period", "label": "入场通道天数", "default": 20, "min": 5, "max": 60},
+            {"key": "exit_period", "label": "出场通道天数", "default": 10, "min": 3, "max": 40},
+        ],
+    },
+    {
+        "id": "momentum",
+        "name": "动量策略",
+        "description": "N 日收益率动量超过阈值买入，动量转负卖出。ETF 轮动的单标的动量内核（重写自 ROX3 轮动策略思想）。",
+        "params": [
+            {"key": "lookback", "label": "动量回看天数", "default": 20, "min": 5, "max": 120},
+            {"key": "threshold_pct", "label": "入场动量阈值%", "default": 5, "min": 0, "max": 30},
+        ],
+    },
 ]
 
 
@@ -200,6 +218,36 @@ def generate_signals(strategy_id: str, candles: list[dict], params: dict) -> lis
                 signals[i] = 1
             # 死叉
             elif macd[i - 1]["dif"] >= macd[i - 1]["dea"] and macd[i]["dif"] < macd[i]["dea"]:
+                signals[i] = -1
+
+    elif strategy_id == "turtle_breakout":
+        entry_p = int(params.get("entry_period", 20))
+        exit_p = int(params.get("exit_period", 10))
+        highs = [c["high"] if c.get("high") is not None else c["close"] for c in candles]
+        lows = [c["low"] if c.get("low") is not None else c["close"] for c in candles]
+        for i in range(entry_p, n):
+            channel_high = max(highs[i - entry_p:i])
+            channel_low = min(lows[i - exit_p:i]) if i >= exit_p else None
+            # 突破前 N 日最高价（不含当日）入场
+            if closes[i] > channel_high and closes[i - 1] <= max(highs[i - 1 - entry_p:i - 1]):
+                signals[i] = 1
+            # 跌破前 M 日最低价离场
+            elif channel_low is not None and closes[i] < channel_low:
+                signals[i] = -1
+
+    elif strategy_id == "momentum":
+        lookback = int(params.get("lookback", 20))
+        threshold = float(params.get("threshold_pct", 5))
+        for i in range(lookback, n):
+            if closes[i - lookback] <= 0:
+                continue
+            momentum = (closes[i] / closes[i - lookback] - 1) * 100
+            prev_ref = closes[i - 1 - lookback] if i - 1 - lookback >= 0 else None
+            prev_momentum = (closes[i - 1] / prev_ref - 1) * 100 if prev_ref else None
+            # 动量上穿阈值入场；动量转负离场
+            if prev_momentum is not None and prev_momentum <= threshold < momentum:
+                signals[i] = 1
+            elif momentum < 0:
                 signals[i] = -1
 
     return signals

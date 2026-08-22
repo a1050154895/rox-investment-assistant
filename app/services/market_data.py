@@ -330,6 +330,17 @@ async def _get_kline_raw(code: str, period: str = "daily", limit: int = 120) -> 
         except Exception as e:
             logger.warning(f"AKShare K线获取失败: {e}")
 
+    # 再次：新浪财经K线直连（ROX3 降级链吸收）
+    try:
+        from app.services.sina_data import fetch_sina_kline
+        candles = await fetch_sina_kline(code, period, limit)
+        if candles:
+            return {"code": code, "name": REAL_QUOTES.get(code, {}).get("name", code),
+                    "period": period, "candles": candles, "data_status": "realtime",
+                    "data_source": "新浪K线直连", "stale": False}
+    except Exception as e:
+        logger.warning(f"新浪K线回退: {e}")
+
     return {
         "code": code, "name": REAL_QUOTES.get(code, {}).get("name", code), "period": period,
         "candles": [], "data_status": "unavailable", "data_source": None, "as_of": None, "stale": True,

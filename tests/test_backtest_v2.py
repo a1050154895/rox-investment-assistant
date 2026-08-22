@@ -1,5 +1,5 @@
 """回测引擎 v2：费用模型、止损止盈与绩效指标测试。"""
-from app.services.backtest_engine import run_backtest
+from app.services.backtest_engine import generate_signals, run_backtest
 
 
 def _candle(date, close, high=None, low=None):
@@ -117,3 +117,44 @@ class TestMetrics:
         result = run_backtest(candles, [1, -1], initial_capital=10000,
                               commission_rate=0, slippage_rate=0, stamp_duty_rate=0, min_commission=0)
         assert result["avg_holding_days"] == 4.0
+
+
+class TestAbsorbedStrategies:
+    # 海龟突破：横盘后放量突破
+    def _candles_from_closes(self, closes):
+        return [{"date": f"2026-{1 + i // 28:02d}-{1 + i % 28:02d}", "open": c, "high": c * 1.01,
+                 "low": c * 0.99, "close": c, "volume": 1000} for i, c in enumerate(closes)]
+
+    def test_turtle_breakout_buys_on_channel_high(self):
+        closes = [10] * 25 + [11.5]
+        signals = generate_signals(
+            "turtle_breakout", self._candles_from_closes(closes), {"entry_period": 20, "exit_period": 10})
+        assert signals[25] == 1  # 突破前20日高点
+
+    def test_turtle_exits_on_channel_low(self):
+        closes = [10] * 25 + [11.5] + [11.0] * 5 + [9.0]
+        signals = generate_signals(
+            "turtle_breakout", self._candles_from_closes(closes), {"entry_period": 20, "exit_period": 5})
+        assert 1 in signals
+        assert signals[-1] == -1  # 跌破近5日低点
+
+    def test_turtle_no_signal_in_flat_range(self):
+        closes = [10] * 30
+        signals = generate_signals(
+            "turtle_breakout", self._candles_from_closes(closes), {"entry_period": 20, "exit_period": 10})
+        assert signals == [0] * 30
+
+    def test_momentum_enters_above_threshold(self):
+        closes = [10] * 21 + [10.6]  # 20日动量 6% > 5%
+        signals = generate_signals("momentum", self._candles_from_closes(closes), {"lookback": 20, "threshold_pct": 5})
+        assert signals[-1] == 1
+
+    def test_momentum_exits_when_negative(self):
+        closes = [11] * 21 + [10.5]  # 20日动量 (10.5/11-1) = -4.5% 转负
+        signals = generate_signals("momentum", self._candles_from_closes(closes), {"lookback": 20, "threshold_pct": 5})
+        assert signals[-1] == -1
+
+    def test_momentum_flat_no_signal(self):
+        closes = [10] * 25
+        signals = generate_signals("momentum", self._candles_from_closes(closes), {"lookback": 20, "threshold_pct": 5})
+        assert not any(signals)
