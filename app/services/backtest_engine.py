@@ -207,67 +207,116 @@ def generate_signals(strategy_id: str, candles: list[dict], params: dict) -> lis
 
 # ============ 回测执行 ============
 
+def _parse_date(text: str) -> datetime | None:
+    try:
+        return datetime.strptime(str(text)[:10], "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
 def run_backtest(
     candles: list[dict],
     signals: list[int],
     initial_capital: float = 100000.0,
     commission_rate: float = 0.001,
+    slippage_rate: float = 0.0001,
+    stamp_duty_rate: float = 0.0005,
+    min_commission: float = 5.0,
+    position_pct: float = 1.0,
+    stop_loss_pct: float | None = None,
+    take_profit_pct: float | None = None,
+    risk_free_rate: float = 0.02,
 ) -> dict[str, Any]:
-    """执行回测，返回收益统计与交易记录。"""
+    """执行回测，返回收益统计与交易记录。
+
+    费用模型（吸收自 ROX3.0 回测引擎）：佣金双边、卖出印花税、
+    滑点按不利方向计入成交价、最低佣金；支持盘中止损/止盈（触发价成交）。
+    """
     n = len(candles)
     if n < 2:
         return {"error": "K线数据不足"}
 
     capital = initial_capital
     position = 0  # 持有股数
-    entry_price = 0.0
+    entry_price = 0.0  # 含滑点的买入成交价
+    entry_commission = 0.0
+    entry_date = None
     trades: list[dict] = []
     equity_curve: list[dict] = []
     max_equity = initial_capital
     max_drawdown = 0.0
-    win_count = 0
-    loss_count = 0
+    closed: list[dict] = []  # 已配对交易（含净盈亏）
+    total_fees = 0.0
+
+    def _sell(i: int, raw_price: float, reason: str) -> None:
+        """按成交价平仓：滑点、佣金、印花税一次算清。"""
+        nonlocal capital, position, entry_price, entry_commission, entry_date, total_fees
+        fill = raw_price * (1 - slippage_rate)
+        commission = max(position * raw_price * commission_rate, min_commission)
+        stamp = position * raw_price * stamp_duty_rate
+        revenue = position * fill - commission - stamp
+        capital += revenue
+        fees = entry_commission + commission + stamp
+        total_fees += commission + stamp  # 买入佣金在开仓时已计入
+        pnl = (fill - entry_price) * position - fees
+        entry_cost = entry_price * position + entry_commission
+        start = _parse_date(entry_date) if entry_date else None
+        end = _parse_date(candles[i]["date"])
+        holding_days = (end - start).days if start and end else None
+        trades.append({
+            "date": candles[i]["date"], "action": reason, "price": round(raw_price, 2),
+            "shares": position, "revenue": round(revenue, 2),
+            "capital": round(capital, 2), "pnl": round(pnl, 2),
+            "pnl_pct": round(pnl / entry_cost * 100, 2) if entry_cost > 0 else 0,
+            "fees": round(fees, 2), "holding_days": holding_days,
+        })
+        closed.append(trades[-1])
+        position = 0
+        entry_price = 0.0
+        entry_commission = 0.0
+        entry_date = None
 
     for i in range(n):
-        date = candles[i]["date"]
         close = candles[i]["close"]
+        high = candles[i].get("high", close)
+        low = candles[i].get("low", close)
+
+        # 盘中风控优先于信号：先止损（保守），再止盈
+        if position > 0 and stop_loss_pct:
+            stop_price = entry_price * (1 - stop_loss_pct)
+            if low <= stop_price:
+                _sell(i, stop_price, "止损卖出")
+        if position > 0 and take_profit_pct:
+            tp_price = entry_price * (1 + take_profit_pct)
+            if high >= tp_price:
+                _sell(i, tp_price, "止盈卖出")
+
         signal = signals[i]
-
-        # 执行信号
         if signal == 1 and position == 0:
-            # 买入（全仓）
-            shares = int(capital / (close * (1 + commission_rate)) / 100) * 100
-            if shares > 0:
-                cost = shares * close * (1 + commission_rate)
-                capital -= cost
-                position = shares
-                entry_price = close
-                trades.append({
-                    "date": date, "action": "买入", "price": round(close, 2),
-                    "shares": shares, "cost": round(cost, 2), "capital": round(capital, 2),
-                })
-
+            fill = close * (1 + slippage_rate)
+            budget = capital * min(max(position_pct, 0.01), 1.0)
+            shares = int(budget / (fill * (1 + commission_rate)) / 100) * 100
+            if shares >= 100:
+                commission = max(shares * close * commission_rate, min_commission)
+                cost = shares * fill + commission
+                if cost <= capital:
+                    capital -= cost
+                    total_fees += commission
+                    position = shares
+                    entry_price = fill
+                    entry_commission = commission
+                    entry_date = candles[i]["date"]
+                    trades.append({
+                        "date": candles[i]["date"], "action": "买入", "price": round(fill, 2),
+                        "shares": shares, "cost": round(cost, 2), "capital": round(capital, 2),
+                        "fees": round(commission, 2),
+                    })
         elif signal == -1 and position > 0:
-            # 卖出
-            revenue = position * close * (1 - commission_rate)
-            capital += revenue
-            pnl = (close - entry_price) * position - position * close * commission_rate * 2
-            if pnl > 0:
-                win_count += 1
-            else:
-                loss_count += 1
-            trades.append({
-                "date": date, "action": "卖出", "price": round(close, 2),
-                "shares": position, "revenue": round(revenue, 2),
-                "capital": round(capital, 2), "pnl": round(pnl, 2),
-                "pnl_pct": round(pnl / (entry_price * position) * 100, 2) if entry_price > 0 else 0,
-            })
-            position = 0
-            entry_price = 0.0
+            _sell(i, close, "卖出")
 
         # 记录每日权益
         equity = capital + position * close
-        equity_curve.append({"date": date, "equity": round(equity, 2)})
+        equity_curve.append({"date": candles[i]["date"], "equity": round(equity, 2)})
         if equity > max_equity:
             max_equity = equity
         dd = (max_equity - equity) / max_equity * 100 if max_equity > 0 else 0
@@ -276,25 +325,32 @@ def run_backtest(
 
     # 末尾平仓
     if position > 0:
-        close = candles[-1]["close"]
-        revenue = position * close * (1 - commission_rate)
-        capital += revenue
-        pnl = (close - entry_price) * position - position * close * commission_rate * 2
-        if pnl > 0:
-            win_count += 1
-        else:
-            loss_count += 1
-        trades.append({
-            "date": candles[-1]["date"], "action": "期末平仓", "price": round(close, 2),
-            "shares": position, "revenue": round(revenue, 2),
-            "capital": round(capital, 2), "pnl": round(pnl, 2),
-            "pnl_pct": round(pnl / (entry_price * position) * 100, 2) if entry_price > 0 else 0,
-        })
+        _sell(n - 1, candles[-1]["close"], "期末平仓")
 
     final_equity = capital
     total_return = (final_equity - initial_capital) / initial_capital * 100
-    total_trades = win_count + loss_count
-    win_rate = win_count / total_trades * 100 if total_trades > 0 else 0
+    win_trades = [t for t in closed if t["pnl"] > 0]
+    loss_trades = [t for t in closed if t["pnl"] <= 0]
+    total_trades = len(closed)
+    win_rate = len(win_trades) / total_trades * 100 if total_trades > 0 else 0
+    gross_win = sum(t["pnl"] for t in win_trades)
+    gross_loss = sum(abs(t["pnl"]) for t in loss_trades)
+    profit_factor = round(gross_win / gross_loss, 2) if gross_loss > 0 else None
+    holding_days_list = [t["holding_days"] for t in closed if t["holding_days"] is not None]
+    avg_holding = round(sum(holding_days_list) / len(holding_days_list), 1) if holding_days_list else None
+
+    # 夏普比率：日收益年化（净值序列），减无风险日利率
+    sharpe = None
+    if len(equity_curve) > 20:
+        values = [e["equity"] for e in equity_curve]
+        rets = [(values[i] / values[i - 1] - 1) for i in range(1, len(values)) if values[i - 1] > 0]
+        if len(rets) > 20:
+            mean_ret = sum(rets) / len(rets)
+            variance = sum((r - mean_ret) ** 2 for r in rets) / len(rets)
+            std = variance ** 0.5
+            if std > 0:
+                sharpe = round((mean_ret - risk_free_rate / 252) / std * (252 ** 0.5), 2)
+
     buy_hold_return = (candles[-1]["close"] - candles[0]["close"]) / candles[0]["close"] * 100
 
     return {
@@ -304,9 +360,15 @@ def run_backtest(
         "buy_hold_return": round(buy_hold_return, 2),
         "excess_return": round(total_return - buy_hold_return, 2),
         "max_drawdown": round(max_drawdown, 2),
+        "sharpe_ratio": sharpe,
+        "profit_factor": profit_factor,
+        "avg_win": round(gross_win / len(win_trades), 2) if win_trades else None,
+        "avg_loss": round(-gross_loss / len(loss_trades), 2) if loss_trades else None,
+        "avg_holding_days": avg_holding,
+        "total_fees": round(total_fees, 2),
         "total_trades": total_trades,
-        "win_count": win_count,
-        "loss_count": loss_count,
+        "win_count": len(win_trades),
+        "loss_count": len(loss_trades),
         "win_rate": round(win_rate, 1),
         "trades": trades,
         "equity_curve": equity_curve,
@@ -325,6 +387,12 @@ async def execute_backtest(
     kline_limit: int = 250,
     initial_capital: float = 100000.0,
     commission_rate: float = 0.001,
+    slippage_rate: float = 0.0001,
+    stamp_duty_rate: float = 0.0005,
+    min_commission: float = 5.0,
+    position_pct: float = 1.0,
+    stop_loss_pct: float | None = None,
+    take_profit_pct: float | None = None,
 ) -> dict[str, Any]:
     """完整回测流程：获取K线 → 生成信号 → 执行回测。"""
     candles = await fetch_kline(code, period=period, limit=kline_limit)
@@ -335,7 +403,17 @@ async def execute_backtest(
         }
 
     signals = generate_signals(strategy_id, candles, params)
-    result = run_backtest(candles, signals, initial_capital, commission_rate)
+    result = run_backtest(
+        candles, signals,
+        initial_capital=initial_capital,
+        commission_rate=commission_rate,
+        slippage_rate=slippage_rate,
+        stamp_duty_rate=stamp_duty_rate,
+        min_commission=min_commission,
+        position_pct=position_pct,
+        stop_loss_pct=stop_loss_pct,
+        take_profit_pct=take_profit_pct,
+    )
     if "error" in result:
         return {**result, "code": code, "name": name}
 

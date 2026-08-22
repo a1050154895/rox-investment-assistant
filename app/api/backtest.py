@@ -1,5 +1,5 @@
 """回测引擎 API。"""
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -17,7 +17,13 @@ class BacktestRequest(BaseModel):
     period: str = Field("day", description="K线周期: day/week")
     kline_limit: int = Field(250, ge=60, le=500, description="K线根数")
     initial_capital: float = Field(100000, ge=10000, description="初始资金")
-    commission_rate: float = Field(0.001, ge=0, le=0.01, description="手续费率")
+    commission_rate: float = Field(0.001, ge=0, le=0.01, description="佣金率（双边）")
+    slippage_rate: float = Field(0.0001, ge=0, le=0.01, description="滑点率（按不利方向）")
+    stamp_duty_rate: float = Field(0.0005, ge=0, le=0.01, description="印花税率（仅卖出）")
+    min_commission: float = Field(5.0, ge=0, le=100, description="最低佣金（元）")
+    position_pct: float = Field(1.0, gt=0, le=1.0, description="单次开仓仓位比例")
+    stop_loss_pct: Optional[float] = Field(None, gt=0, le=0.5, description="止损比例（如 0.08）")
+    take_profit_pct: Optional[float] = Field(None, gt=0, le=1.0, description="止盈比例（如 0.2）")
 
 
 @router.get("/strategies")
@@ -55,4 +61,10 @@ async def run(req: BacktestRequest):
         kline_limit=req.kline_limit,
         initial_capital=req.initial_capital,
         commission_rate=req.commission_rate,
+        slippage_rate=req.slippage_rate,
+        stamp_duty_rate=req.stamp_duty_rate,
+        min_commission=req.min_commission,
+        position_pct=req.position_pct,
+        stop_loss_pct=req.stop_loss_pct,
+        take_profit_pct=req.take_profit_pct,
     )

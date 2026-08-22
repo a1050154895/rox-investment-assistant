@@ -66,10 +66,22 @@ ROX.register('/backtest', async function(container) {
             <input class="form-input" type="number" id="bt-capital" value="100000" step="10000">
           </div>
           <div class="form-group">
-            <label class="form-label">手续费率</label>
-            <input class="form-input" type="number" id="bt-commission" value="0.001" step="0.0005">
+            <label class="form-label">仓位比例</label>
+            <input class="form-input" type="number" id="bt-position" value="1" min="0.1" max="1" step="0.1">
           </div>
         </div>
+
+        <details class="backtest-advanced" style="margin-bottom:12px;">
+          <summary style="font-size:12px;color:var(--text-secondary);cursor:pointer;">费用与风控（高级）</summary>
+          <div class="filter-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+            <div class="form-group"><label class="form-label">佣金率</label><input class="form-input" type="number" id="bt-commission" value="0.001" step="0.0005"></div>
+            <div class="form-group"><label class="form-label">滑点率</label><input class="form-input" type="number" id="bt-slippage" value="0.0001" step="0.0005"></div>
+            <div class="form-group"><label class="form-label">印花税(卖)</label><input class="form-input" type="number" id="bt-stamp" value="0.0005" step="0.0005"></div>
+            <div class="form-group"><label class="form-label">最低佣金</label><input class="form-input" type="number" id="bt-mincomm" value="5" step="1"></div>
+            <div class="form-group"><label class="form-label">止损 %（0=关）</label><input class="form-input" type="number" id="bt-stoploss" value="0" min="0" max="50" step="1"></div>
+            <div class="form-group"><label class="form-label">止盈 %（0=关）</label><input class="form-input" type="number" id="bt-takeprofit" value="0" min="0" max="100" step="1"></div>
+          </div>
+        </details>
 
         <button class="btn btn-primary" id="bt-run" data-action="run-backtest" style="width:100%;">运行回测</button>
       </div>
@@ -115,6 +127,12 @@ ROX.register('/backtest', async function(container) {
     const klineLimit = parseInt(document.getElementById('bt-limit')?.value || '250');
     const capital = parseFloat(document.getElementById('bt-capital')?.value || '100000');
     const commission = parseFloat(document.getElementById('bt-commission')?.value || '0.001');
+    const slippage = parseFloat(document.getElementById('bt-slippage')?.value || '0');
+    const stamp = parseFloat(document.getElementById('bt-stamp')?.value || '0');
+    const minComm = parseFloat(document.getElementById('bt-mincomm')?.value || '0');
+    const positionPct = parseFloat(document.getElementById('bt-position')?.value || '1');
+    const slRaw = parseFloat(document.getElementById('bt-stoploss')?.value || '0');
+    const tpRaw = parseFloat(document.getElementById('bt-takeprofit')?.value || '0');
 
     const params = {};
     document.querySelectorAll('.bt-param').forEach(el => {
@@ -125,6 +143,10 @@ ROX.register('/backtest', async function(container) {
       code, strategy, params,
       period, kline_limit: klineLimit,
       initial_capital: capital, commission_rate: commission,
+      slippage_rate: slippage, stamp_duty_rate: stamp, min_commission: minComm,
+      position_pct: Math.min(Math.max(positionPct || 1, 0.1), 1),
+      stop_loss_pct: slRaw > 0 ? slRaw / 100 : null,
+      take_profit_pct: tpRaw > 0 ? tpRaw / 100 : null,
     });
 
     runBtn.disabled = false;
@@ -192,6 +214,29 @@ ROX.register('/backtest', async function(container) {
             <div class="stat-label">胜率</div>
             <div class="stat-value" style="font-size:14px;font-weight:600;">${res.win_rate}%</div>
           </div>
+          <div class="stat-box">
+            <div class="stat-label">夏普比率</div>
+            <div class="stat-value" style="font-size:14px;font-weight:600;">${res.sharpe_ratio != null ? res.sharpe_ratio : '--'}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">盈亏因子</div>
+            <div class="stat-value" style="font-size:14px;font-weight:600;">${res.profit_factor != null ? res.profit_factor : '--'}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">总费用</div>
+            <div class="stat-value" style="font-size:14px;font-weight:600;">¥${(res.total_fees || 0).toLocaleString()}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">平均持仓</div>
+            <div class="stat-value" style="font-size:14px;font-weight:600;">${res.avg_holding_days != null ? res.avg_holding_days + ' 天' : '--'}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">平均盈/亏</div>
+            <div class="stat-value" style="font-size:12px;font-weight:600;">${res.avg_win != null ? '+' + res.avg_win.toLocaleString() : '--'} / ${res.avg_loss != null ? res.avg_loss.toLocaleString() : '--'}</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(`回测：${res.name}`)}" data-content="${ROX.escape(`回测证据：${res.name} ${res.strategy_name}（${res.start_date}~${res.end_date}，${res.candle_count}根K线）——策略收益 ${res.total_return}% / 买入持有 ${res.buy_hold_return}% / 最大回撤 ${res.max_drawdown}% / 胜率 ${res.win_rate}%（${res.total_trades}笔）/ 夏普 ${res.sharpe_ratio ?? '--'} / 总费用 ¥${res.total_fees}`)}" data-source="ROX 回测引擎（费用含佣金+滑点+印花税）" data-as-of="${ROX.escape(res.end_date)}" data-code="${res.code}" data-stock="${ROX.escape(res.name)}">＋ 把回测结论加入研究卡</button>
         </div>
       </div>
 
