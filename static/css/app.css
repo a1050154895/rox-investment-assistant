@@ -1130,3 +1130,10 @@ summary { cursor: pointer; }
   .settings-tabs { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .settings-tab { flex: none; }
 }
+
+/* 研究卡 AI 辅助条 */
+.research-ai-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.research-ai-label { font-size: 11px; color: var(--text-tertiary); }
+.research-ai-result { font-size: 12px; }
+.research-ai-output { padding: 10px 12px; border-radius: 8px; background: var(--ink-surface, rgba(224,211,191,.05)); color: var(--text-secondary); line-height: 1.8; white-space: pre-wrap; }
+.research-ai-note { font-size: 10px; color: var(--text-tertiary); margin-top: 6px; }

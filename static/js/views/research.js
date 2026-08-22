@@ -29,6 +29,13 @@ function researchCardForm(card = {}) {
       </div>
       <div class="research-step" data-step="3">
       <div class="research-step-label">3 / 4 · 主动找反证</div>
+      <div class="research-ai-bar">
+        <span class="research-ai-label">AI 辅助</span>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="ai-assist" data-kind="question">改写研究问题</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="ai-assist" data-kind="counter">反证提示</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="ai-assist" data-kind="classify">事实/观点拆分</button>
+      </div>
+      <div id="research-ai-result" class="research-ai-result" aria-live="polite"></div>
       <div class="research-form-grid">
         <label class="form-group"><span class="form-label">反证</span><textarea class="form-input" name="counter_evidence" rows="3" placeholder="哪些事实不支持我的观点？">${ROX.escape(card.counter_evidence || '')}</textarea></label>
         <label class="form-group"><span class="form-label">失效条件</span><textarea class="form-input" name="invalidation" rows="3" placeholder="什么发生时，我必须承认判断失效？">${ROX.escape(card.invalidation || '')}</textarea></label>

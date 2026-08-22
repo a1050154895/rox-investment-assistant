@@ -87,6 +87,68 @@ class ChatIn(BaseModel):
     context: str | None = Field(None, max_length=4000, description="可选上下文（如纪律评估结果）")
 
 
+# AI 研究流程应用：只做整理/追问/拆分，不做结论。输出必须回链用户自己的内容。
+RESEARCH_ASSIST_ACTIONS = {
+    "question": (
+        "把下面的研究问题改写成一个【可验证、可证伪】的研究问题："
+        "明确验证对象、时间范围、判断标准和失效条件。输出改写后的问题和一句理由，不要给出多空结论。"
+    ),
+    "counter": (
+        "针对下面的研究判断，列出 3-5 条【应该主动寻找的反证角度】，"
+        "每条注明可用什么公开数据/事件来检验。只提供检验角度，不要下结论。"
+    ),
+    "classify": (
+        "把下面的文本拆分为三类：【事实】（有来源可核验）、【观点/推断】（作者判断）、"
+        "【待验证】（需要查证）。逐条标注，不确定的归入待验证，不要编造来源。"
+    ),
+}
+
+
+class ResearchAssistIn(BaseModel):
+    action: str = Field(..., description="question=改写研究问题, counter=反证提示, classify=事实观点拆分")
+    content: str = Field(..., min_length=1, max_length=2000)
+    title: str | None = Field(None, max_length=120)
+
+
+@router.post("/research-assist")
+async def research_assist(
+    body: ResearchAssistIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """AI 研究流程辅助：改写问题 / 反证提示 / 事实-观点拆分。
+
+    遵守三层模式与 BYOK failover；输出仅为建议，不自动写入研究卡，
+    也不代表事实——用户需自行核验并回链原始证据。
+    """
+    instruction = RESEARCH_ASSIST_ACTIONS.get(body.action)
+    if not instruction:
+        raise HTTPException(status_code=422, detail=f"action 必须是 {sorted(RESEARCH_ASSIST_ACTIONS)} 之一")
+    cfg = _resolve_or_raise(db, user.id)
+
+    user_content = f"[研究对象]\n{body.title or '未提供'}\n\n[内容]\n{body.content}"
+    fallback = resolve_fallback_config(_load_user_settings(db, user.id))
+    try:
+        answer, provider_used = await chat_with_fallback(
+            f"{SYSTEM_PROMPT}\n本次任务：{instruction}",
+            [{"role": "user", "content": user_content}],
+            cfg, fallback,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "AI_CALL_FAILED", "message": "AI 研究辅助调用失败，请检查配置或稍后重试。"},
+        ) from exc
+    return {
+        "action": body.action,
+        "output": answer,
+        "provider_used": provider_used,
+        "ai_note": "模型辅助建议，不是事实来源；采纳前请自行核验并回链原始证据。",
+    }
+
+
 @router.post("/chat")
 async def chat_endpoint(
     body: ChatIn,

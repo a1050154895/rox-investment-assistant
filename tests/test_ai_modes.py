@@ -69,3 +69,24 @@ class TestAIModes:
     def test_status_note_present(self, client, auth_headers):
         status = client.get("/api/ai/status", headers=auth_headers).json()
         assert "模型辅助" in status["note"]
+
+
+class TestResearchAssist:
+    def test_requires_auth(self, client):
+        resp = client.post("/api/ai/research-assist", json={"action": "question", "content": "x"})
+        assert resp.status_code == 401
+
+    def test_invalid_action_rejected(self, client, auth_headers):
+        resp = client.post("/api/ai/research-assist", json={"action": "predict", "content": "明天涨吗"}, headers=auth_headers)
+        assert resp.status_code == 422
+
+    def test_off_mode_disabled(self, client, auth_headers):
+        client.put("/api/settings/", json={"ai_mode": "off"}, headers=auth_headers)
+        resp = client.post("/api/ai/research-assist", json={"action": "counter", "content": "我认为消费会复苏"}, headers=auth_headers)
+        assert resp.status_code == 503
+        assert resp.json()["detail"]["code"] == "AI_DISABLED"
+
+    def test_unconfigured_returns_503(self, client, auth_headers):
+        resp = client.post("/api/ai/research-assist", json={"action": "classify", "content": "某公司业绩大增"}, headers=auth_headers)
+        assert resp.status_code == 503
+        assert resp.json()["detail"]["code"] == "AI_NOT_CONFIGURED"

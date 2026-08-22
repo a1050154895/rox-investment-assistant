@@ -616,6 +616,26 @@ const ROX = {
           }),
           'close-evidence-drawer': () => ROX.EvidenceDrawer.close(),
           'submit-evidence': () => ROX.EvidenceDrawer.submit(),
+          'ai-assist': async () => {
+            const kind = actionEl.dataset.kind;
+            const form = document.getElementById('research-card-form');
+            const box = document.getElementById('research-ai-result');
+            if (!form || !box) return;
+            const get = name => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+            const content = kind === 'counter' ? `${get('hypothesis') || get('question')}` : (get('question') || get('facts'));
+            if (!content) { ROX.toast('请先填写研究问题或假设，AI 才有输入', 'warn'); return; }
+            box.innerHTML = '<div class="loading"><div class="spinner"></div></div><span style="font-size:11px;color:var(--text-tertiary);">AI 生成中…输出为模型辅助，不会自动写入表单</span>';
+            const res = await ROX.api.post('/api/ai/research-assist', {
+              action: kind, content, title: get('title') || undefined,
+            });
+            if (res && res.output) {
+              box.innerHTML = `<div class="research-ai-output">${ROX.escape(res.output).replace(/\n/g, '<br>')}</div><div class="research-ai-note">${ROX.escape(res.ai_note || '')}${res.provider_used === 'fallback' ? ' · 经备用端点' : ''}</div>`;
+            } else {
+              const detail = res?.detail;
+              const msg = typeof detail === 'string' ? detail : detail?.message || 'AI 辅助不可用（可能处于无 AI 模式或未配置）';
+              box.innerHTML = `<div class="research-ai-note">${ROX.escape(msg)}</div>`;
+            }
+          },
           'submit-decision': () => this.submitDecision(),
           'cancel-decision': () => this.closeModal(),
           'generate-review': () => this.showReviewReport(),
