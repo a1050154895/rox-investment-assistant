@@ -8,7 +8,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.17.0"
+        assert data["version"] == "4.18.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -239,6 +239,19 @@ class TestDashboard:
         assert resp.status_code == 200
         data = resp.json()
         assert "macro_compass" in data
+
+    def test_overview_fast_layer_excludes_slow_sources(self, client):
+        data = client.get("/api/dashboard/overview").json()
+        # 首屏快层不等待宏观/情报慢源
+        assert data["macro_compass"] is None
+        assert data["intelligence"] is None
+        assert data["capital_cycle"]
+        assert data["market_indices"] is not None
+
+    def test_overview_slow_layer_returns_macro_and_intel(self, client):
+        data = client.get("/api/dashboard/overview/slow").json()
+        assert data["macro_compass"] is not None
+        assert "research_chain_macro" in data
 
 
 class TestReview:

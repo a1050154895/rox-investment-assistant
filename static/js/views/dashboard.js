@@ -2,6 +2,52 @@
    视图1 · 仪表盘
    ============================================ */
 
+
+function macroCardHTML(mc) {
+  return `
+      <div class="card full-width dashboard-macro-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">宏观指南针</div>
+            <div class="card-subtitle">${mc.methodology || '财政信用条件 × 价值实现条件代理矩阵'}</div>
+          </div>
+          <span class="tag tag-amber">${mc.sovereign_credit.status}</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12px;color:var(--text-secondary);">主权信用状态</span>
+              <span style="font-size:12px;font-family:var(--font-mono);">${mc.sovereign_credit.score}</span>
+            </div>
+            <div class="progress"><div class="progress-fill amber" style="width:${mc.sovereign_credit.score}%"></div></div>
+            <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">${mc.sovereign_credit.detail}</div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12px;color:var(--text-secondary);">价值实现度</span>
+              <span style="font-size:12px;font-family:var(--font-mono);">${mc.value_realization.score}</span>
+            </div>
+            <div class="progress"><div class="progress-fill blue" style="width:${mc.value_realization.score}%"></div></div>
+            <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">${mc.value_realization.detail}</div>
+          </div>
+        </div>
+        <div class="macro-evidence-grid">
+          ${[...(mc.sovereign_credit.indicators || []), ...(mc.value_realization.indicators || [])].map(item => `
+            <div class="macro-evidence ${item.status === 'available' || item.status === 'snapshot' ? 'available' : 'unavailable'}">
+              <div><strong>${item.label}</strong><span>${item.publisher || ''}</span></div>
+              <div class="macro-value">${item.status === 'available' || item.status === 'snapshot' ? `${item.value}${item.unit} · ${item.period}` : '暂不可用'}</div>
+              ${item.status === 'available' || item.status === 'snapshot' ? `<button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(`宏观：${item.label}`)}" data-content="${ROX.escape(`宏观数据：${item.label} ${item.value}${item.unit}（${item.period}）`)}" data-source="${ROX.escape(item.publisher || '宏观指南针')}" data-as-of="${ROX.escape(item.period || '')}">＋ 研究卡</button>` : ''}
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:var(--ink-vermilion-glow);border-left:2px solid var(--ink-vermilion);font-size:12px;color:var(--ink-vermilion-soft);">
+          ${mc.framework_advice}
+        </div>
+        <div class="macro-meta">覆盖 ${mc.coverage?.available ?? 0}/${mc.coverage?.total ?? 0} 项 · ${mc.disclaimer || ''}</div>
+        <div class="macro-quality-line">数据质量：${ROX.escape(mc.data_quality?.status || '未标注')} · 最新观察期：${ROX.escape(mc.data_quality?.latest_observation || '未知')} · ${ROX.escape(mc.data_quality?.message || '')}</div>
+        <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="宏观指南针快照" data-content="${ROX.escape(`宏观指南针：主权信用 ${mc.sovereign_credit.score}（${mc.sovereign_credit.detail}）；价值实现 ${mc.value_realization.score}（${mc.value_realization.detail}）`)}" data-source="宏观指南针矩阵" data-as-of="${ROX.escape(mc.data_quality?.latest_observation || '')}">＋ 把宏观状态加入研究卡</button>
+      </div>`;
+}
+
 ROX.register('/', async function(container) {
   const data = await ROX.api.get('/api/dashboard/overview');
   if (!data) {
@@ -9,6 +55,7 @@ ROX.register('/', async function(container) {
     return;
   }
 
+  ROX.state.chainBase = `资本周期「${data.capital_cycle?.stage_name || '未评估'}」 → 主要矛盾「${data.contradictions?.primary?.name || '未评估'}」`;
   container.innerHTML = `
     <div class="dashboard-page" style="display:flex;flex-direction:column;gap:16px;">
       <!-- 研究传导链 -->
@@ -16,7 +63,7 @@ ROX.register('/', async function(container) {
         <div class="card-header" style="margin-bottom:8px;">
           <div class="card-title">研究传导链</div>
         </div>
-        <div style="font-size:13px;color:var(--text-primary);line-height:1.7;">${ROX.escape(data.research_chain?.summary || '宏观数据不足')}</div>
+        <div id="chain-summary" style="font-size:13px;color:var(--text-primary);line-height:1.7;">${ROX.escape(data.research_chain?.summary || '宏观数据不足')}</div>
         <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">宏观定调 → 资本周期 → 矛盾分析 → 决策纪律，逐层传导、可追溯。</div>
       </div>
       <!-- 今日研究队列：ROX Loop 的主入口 -->
@@ -31,48 +78,7 @@ ROX.register('/', async function(container) {
         </div>
         <div id="research-today-body"><div class="research-queue-loading">正在加载你的研究队列…</div></div>
       </div>
-      <!-- 宏观指南针 -->
-      <div class="card full-width dashboard-macro-card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">宏观指南针</div>
-            <div class="card-subtitle">${data.macro_compass.methodology || '财政信用条件 × 价值实现条件代理矩阵'}</div>
-          </div>
-          <span class="tag tag-amber">${data.macro_compass.sovereign_credit.status}</span>
-        </div>
-        <div class="grid-2">
-          <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;color:var(--text-secondary);">主权信用状态</span>
-              <span style="font-size:12px;font-family:var(--font-mono);">${data.macro_compass.sovereign_credit.score}</span>
-            </div>
-            <div class="progress"><div class="progress-fill amber" style="width:${data.macro_compass.sovereign_credit.score}%"></div></div>
-            <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">${data.macro_compass.sovereign_credit.detail}</div>
-          </div>
-          <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;color:var(--text-secondary);">价值实现度</span>
-              <span style="font-size:12px;font-family:var(--font-mono);">${data.macro_compass.value_realization.score}</span>
-            </div>
-            <div class="progress"><div class="progress-fill blue" style="width:${data.macro_compass.value_realization.score}%"></div></div>
-            <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">${data.macro_compass.value_realization.detail}</div>
-          </div>
-        </div>
-        <div class="macro-evidence-grid">
-          ${[...(data.macro_compass.sovereign_credit.indicators || []), ...(data.macro_compass.value_realization.indicators || [])].map(item => `
-            <div class="macro-evidence ${item.status === 'available' || item.status === 'snapshot' ? 'available' : 'unavailable'}">
-              <div><strong>${item.label}</strong><span>${item.publisher || ''}</span></div>
-              <div class="macro-value">${item.status === 'available' || item.status === 'snapshot' ? `${item.value}${item.unit} · ${item.period}` : '暂不可用'}</div>
-              ${item.status === 'available' || item.status === 'snapshot' ? `<button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(`宏观：${item.label}`)}" data-content="${ROX.escape(`宏观数据：${item.label} ${item.value}${item.unit}（${item.period}）`)}" data-source="${ROX.escape(item.publisher || '宏观指南针')}" data-as-of="${ROX.escape(item.period || '')}">＋ 研究卡</button>` : ''}
-            </div>`).join('')}
-        </div>
-        <div style="margin-top:12px;padding:12px 14px;background:var(--ink-vermilion-glow);border-left:2px solid var(--ink-vermilion);font-size:12px;color:var(--ink-vermilion-soft);">
-          ${data.macro_compass.framework_advice}
-        </div>
-        <div class="macro-meta">覆盖 ${data.macro_compass.coverage?.available ?? 0}/${data.macro_compass.coverage?.total ?? 0} 项 · ${data.macro_compass.disclaimer || ''}</div>
-        <div class="macro-quality-line">数据质量：${ROX.escape(data.macro_compass.data_quality?.status || '未标注')} · 最新观察期：${ROX.escape(data.macro_compass.data_quality?.latest_observation || '未知')} · ${ROX.escape(data.macro_compass.data_quality?.message || '')}</div>
-        <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="宏观指南针快照" data-content="${ROX.escape(`宏观指南针：主权信用 ${data.macro_compass.sovereign_credit.score}（${data.macro_compass.sovereign_credit.detail}）；价值实现 ${data.macro_compass.value_realization.score}（${data.macro_compass.value_realization.detail}）`)}" data-source="宏观指南针矩阵" data-as-of="${ROX.escape(data.macro_compass.data_quality?.latest_observation || '')}">＋ 把宏观状态加入研究卡</button>
-      </div>
+      <div id="macro-card-slot"><div class="card full-width dashboard-macro-card"><div class="loading"><div class="spinner"></div></div><div style="font-size:12px;color:var(--text-tertiary);text-align:center;padding-bottom:12px;">宏观矩阵加载中…（慢层独立降级，不阻塞首屏）</div></div></div>
 
       <!-- 数据源健康面板：DataSourceRegistry 真实埋点 -->
       <div class="card full-width" id="data-health-card">
@@ -149,8 +155,8 @@ ROX.register('/', async function(container) {
         </div>
       </div>
 
-      <!-- 宏观资讯研判摘要 -->
-      ${data.intelligence ? `
+      <!-- 宏观资讯研判摘要（慢层填充） -->
+      <div id="intel-slot">${data.intelligence ? `
       <div class="grid-2 dashboard-secondary-grid dashboard-intelligence-grid">
         <div class="card">
           <div class="card-header">
@@ -175,7 +181,7 @@ ROX.register('/', async function(container) {
               </div>`).join('')}
           </div>
         </div>
-      </div>` : ''}
+      </div>` : '<div class="card full-width"><div class="loading"><div class="spinner"></div></div><div style="font-size:12px;color:var(--text-tertiary);text-align:center;padding-bottom:12px;">资讯线索加载中…</div></div>'}</div>
 
       <!-- 最近决策 -->
       <div class="card full-width dashboard-history-card">
@@ -194,13 +200,12 @@ ROX.register('/', async function(container) {
   `;
 
   // Async: 持仓概览卡片
-  loadPortfolioCard();
-  loadAlertsCard();
   loadWatchlistCard();
-  loadStatsCard();
-  loadDisciplineAssessment();
   loadResearchToday();
-  loadDataHealthCard();
+  // 首屏分级：非关键卡片延迟到浏览器空闲时加载
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 350));
+  idle(() => { loadPortfolioCard(); loadAlertsCard(); loadStatsCard(); loadDisciplineAssessment(); loadDataHealthCard(); });
+  loadSlowOverview();
 
   // 自动刷新：指数 ticker + 自选股 + 持仓卡片每 30s 更新
   ROX.startAutoRefresh(async () => {
@@ -209,6 +214,52 @@ ROX.register('/', async function(container) {
     loadPortfolioCard();
   }, 30000);
 });
+
+async function loadSlowOverview() {
+  const macroSlot = document.getElementById('macro-card-slot');
+  const intelSlot = document.getElementById('intel-slot');
+  const chain = document.getElementById('chain-summary');
+  if (!macroSlot && !intelSlot) return;
+  const data = await ROX.api.get('/api/dashboard/overview/slow');
+  if (!data || data.error) {
+    if (macroSlot) macroSlot.innerHTML = '<div class="card full-width"><div class="empty-state"><p>宏观矩阵加载失败，稍后刷新重试。</p></div></div>';
+    if (intelSlot) intelSlot.innerHTML = '';
+    return;
+  }
+  if (macroSlot && data.macro_compass) macroSlot.innerHTML = macroCardHTML(data.macro_compass);
+  if (chain && data.research_chain_macro) {
+    chain.textContent = `${data.research_chain_macro} → ${ROX.state.chainBase || ''}`;
+  }
+  if (intelSlot && data.intelligence) {
+    const it = data.intelligence;
+    intelSlot.innerHTML = `
+      <div class="grid-2 dashboard-secondary-grid dashboard-intelligence-grid">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">政策与全球变量</div><div class="card-subtitle">先看传导路径，再看交易信号</div></div>
+            <button class="btn btn-ghost btn-sm" data-route="/intelligence">查看情报台</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${it.global_risk.slice(0, 3).map(item => `
+              <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--ink-border-faint);">
+                <div><div class="stock-name">${item.factor}</div><div class="stock-code">${item.transmission}</div></div>
+                <span class="tag ${item.direction === 'warning' ? 'tag-amber' : item.direction === 'positive' ? 'tag-red' : 'tag-gray'}">${item.status}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">最新资讯线索</div><div class="card-subtitle">${it.source_status}</div></div><span class="tag tag-gray">公开信息</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            ${it.news.slice(0, 3).map(item => `
+              <div style="border-left:2px solid var(--ink-indigo);padding-left:10px;">
+                <div style="font-size:12px;color:var(--text-primary);line-height:1.6;">${item.title}</div>
+                <div style="margin-top:3px;font-size:10px;color:var(--text-tertiary);">${item.category} · ${item.fact_or_view}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+  }
+}
 
 async function loadResearchToday() {
   const body = document.getElementById('research-today-body');

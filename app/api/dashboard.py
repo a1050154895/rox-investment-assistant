@@ -24,32 +24,29 @@ router = APIRouter()
 
 @router.get("/overview")
 async def overview():
-    """仪表盘聚合数据"""
-    # 获取实时市场指数
-    market_indices = [ensure_contract(idx) for idx in await get_market_indices()]
+    """仪表盘首屏快层：指数 + 资本周期 + 矛盾（不含宏观/情报等慢源）。
 
-    # 资讯与宏观矩阵独立降级，任一外部数据源异常都不影响行情主看板
-    intelligence, macro_matrix, capital_cycle, contradictions = await asyncio.gather(
-        get_intelligence_brief(), get_macro_matrix(), get_capital_cycle_stage(), get_contradictions()
+    首屏分级：慢源（宏观矩阵、情报简报）拆到 /overview/slow，
+    由前端在首屏渲染后二次拉取，避免外部数据源拖慢第一屏。
+    """
+    market_indices = [ensure_contract(idx) for idx in await get_market_indices()]
+    capital_cycle, contradictions = await asyncio.gather(
+        get_capital_cycle_stage(), get_contradictions()
     )
 
-    # 自选股实时行情 — 前端异步加载用户真实自选股，此处返回空数组
-    watchlist = []
-
     research_chain = {
-        "macro": macro_matrix.get("matrix_cell", "宏观数据不足"),
+        "macro": "加载中",
         "cycle": capital_cycle.get("stage_name", "未评估"),
         "contradiction": contradictions["primary"]["name"],
         "summary": (
-            f"{macro_matrix.get('matrix_cell', '宏观数据不足')} → "
             f"资本周期「{capital_cycle.get('stage_name', '未评估')}」 → "
-            f"主要矛盾「{contradictions['primary']['name']}」"
+            f"主要矛盾「{contradictions['primary']['name']}」（宏观矩阵加载中）"
         ),
     }
 
     return {
         "market_indices": market_indices,
-        "macro_compass": macro_matrix,
+        "macro_compass": None,
         "capital_cycle": capital_cycle,
         "contradictions": contradictions,
         "research_chain": research_chain,
@@ -74,9 +71,23 @@ async def overview():
             ],
             "advice": "当前仅展示334方法论基准；尚未接入用户真实持仓，不输出调仓建议。"
         },
-        "watchlist": watchlist,
-        "intelligence": intelligence,
+        "watchlist": [],
+        "intelligence": None,
         "recent_decisions": [],
+        "updated_at": datetime.now().isoformat(),
+    }
+
+
+@router.get("/overview/slow")
+async def overview_slow():
+    """仪表盘慢层：宏观矩阵 + 情报简报（独立降级，不影响快层）。"""
+    macro_matrix, intelligence = await asyncio.gather(
+        get_macro_matrix(), get_intelligence_brief()
+    )
+    return {
+        "macro_compass": macro_matrix,
+        "intelligence": intelligence,
+        "research_chain_macro": macro_matrix.get("matrix_cell", "宏观数据不足"),
         "updated_at": datetime.now().isoformat(),
     }
 
