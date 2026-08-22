@@ -97,6 +97,36 @@ jobs:
       - name: Audit dependencies
         run: pip-audit
 
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run browser E2E
+        env:
+          ENVIRONMENT: test
+          SECRET_KEY: ci-test-secret-key-not-for-production
+        run: npm run test:e2e
+
   secret-scan:
     runs-on: ubuntu-latest
 
