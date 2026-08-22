@@ -124,8 +124,51 @@ jobs:
       - name: Run browser E2E
         env:
           ENVIRONMENT: test
-          SECRET_KEY: ci-test-secret-key-not-for-production
+          E2E_SECRET_KEY: ci-e2e-key
+          PYTHON_BIN: python
         run: npm run test:e2e
+
+
+  lighthouse:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Start application
+        env:
+          ENVIRONMENT: test
+          E2E_SECRET_KEY: ci-e2e-key
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8783 > /tmp/rox-lighthouse.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:8783/health && break || sleep 1; done
+
+      - name: Run Lighthouse mobile audit
+        env:
+          LH_PORT: 8783
+        run: npm run audit:mobile
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-mobile-report
+          path: lighthouse-report/
 
   secret-scan:
     runs-on: ubuntu-latest
