@@ -26,7 +26,7 @@ logger = logging.getLogger("rox")
 from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
     discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio, export_api, alerts, watchlist,
-    guide, research,
+    guide, research, funds,
 )
 
 app = FastAPI(
@@ -95,6 +95,7 @@ app.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
 app.include_router(watchlist.router, prefix="/api/watchlist", tags=["watchlist"])
 app.include_router(guide.router, prefix="/api/guide", tags=["guide"])
 app.include_router(research.router, prefix="/api/research", tags=["research"])
+app.include_router(funds.router, prefix="/api/funds", tags=["funds"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
