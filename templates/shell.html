@@ -13,7 +13,6 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a84ff'/><text x='50' y='70' font-size='60' font-family='-apple-system' font-weight='600' text-anchor='middle' fill='white'>R</text></svg>">
     <link rel="manifest" href="/static/manifest.json">
     <link rel="stylesheet" href="/static/css/app.css?v={{ version }}">
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script src="/static/vendor/lightweight-charts.standalone.production.js?v={{ version }}"></script>
 </head>
 <body>
@@ -227,6 +226,7 @@
 </div>
 
 <!-- Scripts -->
+<script src="/static/vendor/echarts.min.js?v={{ version }}"></script>
 <script src="/static/js/app.js?v={{ version }}"></script>
 <script src="/static/js/components/evidence-drawer.js?v={{ version }}"></script>
 <script src="/static/js/views/dashboard.js?v={{ version }}"></script>
