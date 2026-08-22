@@ -212,7 +212,7 @@ async function loadResearchToday() {
     <div class="research-queue-item" data-route="/research/${card.id}">
       <div class="research-queue-item-head"><span class="research-status ${card.status === 'ready' ? 'ready' : ''}">${card.status === 'ready' ? '待决策' : '草稿'}</span><span class="research-queue-date">${ROX.fmt.date(card.updated_at)}</span></div>
       <div class="research-queue-title">${ROX.escape(card.title)}</div>
-      <div class="research-queue-meta">${ROX.escape(card.stock || card.code || '未绑定标的')} · ${ROX.escape(card.action || '观察')}</div>
+      <div class="research-queue-meta">${ROX.escape(card.stock || card.code || '未绑定标的')} · ${ROX.escape(card.action || '观察')}${card.next_review_at ? ` · 复核 ${ROX.escape(card.next_review_at)}` : ''}</div>
       <div class="research-queue-progress"><span style="width:${[card.question, card.hypothesis, (card.facts || []).length, card.counter_evidence, card.invalidation].filter(Boolean).length * 20}%"></span></div>
     </div>`).join('')}</div>` : `<div class="research-queue-empty"><div><strong>还没有研究卡</strong><p>从一个具体问题开始，不要从“看一下市场”开始。</p></div><button class="btn btn-secondary btn-sm" data-route="/research">创建第一张</button></div>`;
   if (reviews.length) {

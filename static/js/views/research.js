@@ -33,6 +33,7 @@ function researchCardForm(card = {}) {
         <label class="form-group"><span class="form-label">仓位计划</span><input class="form-input" name="position_plan" value="${ROX.escape(card.position_plan || '')}" placeholder="如：试仓不超过总资产10%"></label>
         <label class="form-group"><span class="form-label">止损价（可选）</span><input class="form-input" type="number" step="0.01" name="stop_loss" value="${card.stop_loss ?? ''}" placeholder="仅作纪律记录"></label>
         <label class="form-group"><span class="form-label">持有周期</span><input class="form-input" name="holding_period" value="${ROX.escape(card.holding_period || '')}" placeholder="如：3-6个月"></label>
+        <label class="form-group"><span class="form-label">下次复核日期</span><input class="form-input" type="date" name="next_review_at" value="${ROX.escape(card.next_review_at || '')}"></label>
         <label class="form-group"><span class="form-label">状态</span><select class="form-input" name="status"><option value="draft" ${card.status !== 'ready' ? 'selected' : ''}>草稿</option><option value="ready" ${card.status === 'ready' ? 'selected' : ''}>待决策</option><option value="archived" ${card.status === 'archived' ? 'selected' : ''}>归档</option></select></label>
       </div>
       </div>

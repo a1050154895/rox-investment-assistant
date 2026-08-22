@@ -43,10 +43,14 @@ async def get_fund(code: str) -> dict[str, Any]:
         "data_source": quote.get("data_source"),
         "as_of": quote.get("as_of"),
         "stale": quote.get("stale", True),
-        "disclosures": {
-            "nav": {"status": "unavailable", "message": "基金净值接口尚未接入，不用行情价格冒充净值。"},
-            "holdings": {"status": "unavailable", "message": "持仓披露接口尚未接入，需以基金定期报告为准。"},
-            "tracking_error": {"status": "unavailable", "message": "跟踪误差需要净值与指数序列后计算。"},
+        "evidence_coverage": {
+            "market_price": {"status": quote.get("data_status", "unavailable"), "source": quote.get("data_source"), "as_of": quote.get("as_of"), "message": "场内交易价格"},
+            "kline": {"status": quote.get("data_status", "unavailable"), "source": quote.get("data_source"), "as_of": quote.get("as_of"), "message": "可用于交易价格风险观察"},
+            "nav": {"status": "unavailable", "source": None, "as_of": None, "message": "基金净值接口尚未接入"},
+            "iopv": {"status": "unavailable", "source": None, "as_of": None, "message": "IOPV/盘中参考净值接口尚未接入"},
+            "premium_discount": {"status": "unavailable", "source": None, "as_of": None, "message": "缺少净值或IOPV，不能计算折溢价"},
+            "holdings": {"status": "unavailable", "source": None, "as_of": None, "message": "持仓披露接口尚未接入，需以基金定期报告为准"},
+            "tracking_error": {"status": "unavailable", "source": None, "as_of": None, "message": "需要净值与指数序列后计算"},
         },
     }
 

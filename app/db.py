@@ -47,6 +47,7 @@ def _ensure_compat_columns() -> None:
     for table, column, ddl in (
         ("journal_entries", "research_card_id", "INTEGER"),
         ("research_cards", "hypothesis_status", "VARCHAR(20)"),
+        ("research_cards", "next_review_at", "VARCHAR(10)"),
     ):
         columns = {column["name"] for column in inspect(engine).get_columns(table)}
         if column in columns:
