@@ -50,12 +50,25 @@ async def research_stats(user: User = Depends(get_current_user), db: Session = D
         else:
             bucket["pending"] += 1
 
+    hypothesis_counts = {"成立": 0, "部分成立": 0, "失效": 0, "未验证": 0}
+    for card in cards:
+        status = card.hypothesis_status
+        if status in hypothesis_counts:
+            hypothesis_counts[status] += 1
+        else:
+            hypothesis_counts["未验证"] += 1
+
     return {
         "cards": {
             "total": len(cards),
             "draft": sum(card.status == "draft" for card in cards),
             "ready": sum(card.status == "ready" for card in cards),
             "archived": sum(card.status == "archived" for card in cards),
+            "hypothesis_status": hypothesis_counts,
+            "hypothesis_validation_rate": round(
+                (hypothesis_counts["成立"] + hypothesis_counts["部分成立"])
+                / max(hypothesis_counts["成立"] + hypothesis_counts["部分成立"] + hypothesis_counts["失效"], 1) * 100, 1,
+            ) if (hypothesis_counts["成立"] + hypothesis_counts["部分成立"] + hypothesis_counts["失效"]) else None,
         },
         "decisions": {
             "total": len(decisions),

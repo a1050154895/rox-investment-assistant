@@ -44,17 +44,15 @@ def init_db() -> None:
 
 def _ensure_compat_columns() -> None:
     """补齐早期版本缺失的轻量字段；重复执行安全。"""
-    columns = {column["name"] for column in inspect(engine).get_columns("journal_entries")}
-    if "research_card_id" in columns:
-        return
-    with engine.begin() as conn:
-        conn.execute(text(
-            "ALTER TABLE journal_entries ADD COLUMN research_card_id INTEGER"
-        ))
-        conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_journal_entries_research_card_id "
-            "ON journal_entries (research_card_id)"
-        ))
+    for table, column, ddl in (
+        ("journal_entries", "research_card_id", "INTEGER"),
+        ("research_cards", "hypothesis_status", "VARCHAR(20)"),
+    ):
+        columns = {column["name"] for column in inspect(engine).get_columns(table)}
+        if column in columns:
+            continue
+        with engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
 
 
 def check_database() -> bool:
