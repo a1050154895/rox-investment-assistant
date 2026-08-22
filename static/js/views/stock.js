@@ -44,7 +44,7 @@ ROX.register('/stock', async function(container, params) {
               <h2 style="font-size:18px;font-weight:600;">${info.name}</h2>
               <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);">${info.code}</span>
               <span class="tag tag-gray">${info.industry}</span>
-              <span class="tag ${info.stale ? 'tag-amber' : 'tag-green'}">${info.stale ? `历史快照 ${info.as_of || ''}` : '实时数据'}</span>
+              <span class="evidence-badge ${info.stale ? 'is-stale' : 'is-live'}"><i></i>${info.stale ? `快照 · ${info.as_of || ''}` : `实时 · ${info.as_of || ''}`}</span>
             </div>
             <div class="stock-hero-actions stock-action-bar">
               <div class="stock-live-price">
@@ -56,8 +56,8 @@ ROX.register('/stock', async function(container, params) {
                 <button class="btn btn-secondary btn-sm" data-period="weekly" id="btn-weekly">周线</button>
               </div>
               <button class="btn btn-secondary btn-sm" id="btn-add-watch" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 自选</button>
-              <button class="btn btn-secondary btn-sm" data-action="create-research-card" data-code="${info.code}" data-name="${ROX.escape(info.name)}" data-price="${info.price ?? ''}" data-data-status="${ROX.escape(info.data_status || '')}" data-data-source="${ROX.escape(info.data_source || '')}" data-as-of="${ROX.escape(info.as_of || '')}">建研究卡</button>
-              <button class="btn btn-primary btn-sm" data-action="add-decision" data-code="${info.code}" data-name="${ROX.escape(info.name)}">记录决策</button>
+              <button class="btn btn-primary btn-sm" data-action="create-research-card" data-code="${info.code}" data-name="${ROX.escape(info.name)}" data-price="${info.price ?? ''}" data-data-status="${ROX.escape(info.data_status || '')}" data-data-source="${ROX.escape(info.data_source || '')}" data-as-of="${ROX.escape(info.as_of || '')}">开始研究</button>
+              <button class="btn btn-secondary btn-sm" data-action="add-decision" data-code="${info.code}" data-name="${ROX.escape(info.name)}">记录决策</button>
               <button class="btn btn-secondary btn-sm" id="btn-add-alert" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 预警</button>
             </div>
           </div>
