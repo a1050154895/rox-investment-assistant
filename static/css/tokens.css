@@ -236,3 +236,46 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.22);
 }
+
+/* ============================================
+   浅色模式 — 暖纸表面（html[data-theme="light"]）
+   同一语义结构：暖墨 → 暖纸，朱砂加深保对比度
+   ============================================ */
+html[data-theme="light"] {
+  --brand-blue: #b3492f;
+  --brand-blue-hover: #9d3f30;
+  --brand-blue-active: #7f3226;
+  --brand-blue-glow: rgba(179, 73, 47, 0.10);
+  --brand-blue-subtle: rgba(179, 73, 47, 0.07);
+
+  --color-up: #c7352b;
+  --color-up-bg: rgba(199, 53, 43, 0.07);
+  --color-down: #1c7a3d;
+  --color-down-bg: rgba(28, 122, 61, 0.08);
+  --color-warn: #a36411;
+  --color-success: #1c7a3d;
+  --color-danger: #c7352b;
+
+  --bg-page: #f5f1e8;
+  --bg-surface: #fbf8f1;
+  --bg-elevated: #ffffff;
+  --bg-raised: #f1ece0;
+  --bg-input: #ffffff;
+  --bg-hover: rgba(60, 50, 35, 0.06);
+  --bg-active: rgba(179, 73, 47, 0.09);
+  --bg-secondary: #f0ebe0;
+  --bg-glass: rgba(251, 248, 241, 0.92);
+  --bg-glass-raised: rgba(255, 255, 255, 0.95);
+
+  --border-color: rgba(60, 50, 35, 0.16);
+  --border-color-light: rgba(60, 50, 35, 0.10);
+  --border-hover: rgba(60, 50, 35, 0.28);
+  --border-active: rgba(179, 73, 47, 0.55);
+  --border-accent: rgba(179, 73, 47, 0.35);
+
+  --text-primary: #241f18;
+  --text-secondary: #4a4336;
+  --text-tertiary: #7a7263;
+  --text-muted: #a39a89;
+  --text-inverse: #ffffff;
+}

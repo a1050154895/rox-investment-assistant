@@ -71,6 +71,13 @@ const ROX = {
     },
   },
 
+  // 深浅模式：立即应用并本地缓存（避免刷新闪回深色）
+  applyTheme(theme) {
+    const mode = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = mode;
+    try { localStorage.setItem('rox-theme', mode); } catch (_) { /* 忽略 */ }
+  },
+
   // Auto-refresh timer management
   startAutoRefresh(callback, interval = 30000) {
     this.stopAutoRefresh();
@@ -564,6 +571,8 @@ const ROX = {
 
   // Init
   init() {
+    // 深浅模式先于一切渲染应用（登录与否都生效，避免闪色）
+    this.applyTheme(localStorage.getItem('rox-theme') || 'dark');
     // Event delegation
     document.addEventListener('click', (e) => {
       // Nav route
@@ -579,7 +588,7 @@ const ROX = {
       if (actionEl) {
         const action = actionEl.dataset.action;
         const actions = {
-          'open-settings': () => this.openSettings(),
+          'open-settings': () => { this.closeNav(); this.openSettings(); },
           'close-settings': () => this.closeSettings(),
           'close-modal': () => this.closeModal(),
           'toggle-nav': () => {
@@ -753,6 +762,13 @@ const ROX = {
     await this.authCheck();
     if (!this.state.user) return; // 未登录：登录门禁已显示
     this.updateUserChip();
+    // 服务端主题设置校准本地缓存
+    ROX.api.get('/api/settings/').then(res => {
+      if (res && !res.error) {
+        this.state.settings = res;
+        this.applyTheme(res.theme || 'dark');
+      }
+    });
     this.loadIndexTicker();
     this.render(location.pathname);
     // Show keyboard shortcut hint (once per session)
@@ -845,6 +861,7 @@ const ROX = {
     const res = await this.api.put('/api/settings/', data);
     if (res && res.success) {
       this.state.settings = res.settings;
+      if (data.theme) this.applyTheme(data.theme);
       const keySaved = data.ai_api_key ? '；AI Key 已安全保存（不回显）' : '';
       this.showModal(`<div class="modal-header"><span class="modal-title">提示</span></div><p>设置已保存${keySaved}。</p><div style="margin-top:16px;text-align:right;"><button class="btn btn-primary" data-action="close-modal">确定</button></div>`);
     } else {
