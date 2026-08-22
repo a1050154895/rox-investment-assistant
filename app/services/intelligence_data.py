@@ -113,10 +113,11 @@ async def _fetch_news_akshare() -> tuple[list[dict[str, Any]], str]:
             func = getattr(ak, func_name, None)
             if func is None:
                 continue
+            from app.services.akshare_gate import gated_call
             if arg:
-                frame = await asyncio.wait_for(asyncio.to_thread(func, arg), timeout=8)
+                frame = await asyncio.wait_for(gated_call(lambda: func(arg)), timeout=8)
             else:
-                frame = await asyncio.wait_for(asyncio.to_thread(func), timeout=8)
+                frame = await asyncio.wait_for(gated_call(func), timeout=8)
             if frame is not None and not frame.empty:
                 return _normalize_news(frame, 10), label
         except Exception as exc:
@@ -143,8 +144,9 @@ async def _get_intelligence_brief_raw(force: bool = False) -> dict[str, Any]:
     flow_status = "结构化快照"
     try:
         import akshare as ak
+        from app.services.akshare_gate import gated_call
         flow_frame = await asyncio.wait_for(
-            asyncio.to_thread(ak.stock_sector_fund_flow_rank, "5", "行业"),
+            gated_call(lambda: ak.stock_sector_fund_flow_rank("5", "行业")),
             timeout=8
         )
         if flow_frame is not None and not flow_frame.empty:

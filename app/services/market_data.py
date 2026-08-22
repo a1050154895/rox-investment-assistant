@@ -234,7 +234,8 @@ async def _get_stock_quote_raw(code: str) -> dict[str, Any]:
                     self.trust_env = False
             requests.Session = _NoProxySession
             try:
-                df = ak.stock_zh_a_spot_em()
+                from app.services.akshare_gate import gated_call
+                df = await gated_call(ak.stock_zh_a_spot_em)
             finally:
                 requests.get = _orig_get
                 requests.Session = _orig_session

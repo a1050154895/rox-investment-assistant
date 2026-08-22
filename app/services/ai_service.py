@@ -31,6 +31,38 @@ def resolve_ai_config(settings: dict[str, Any] | None = None) -> dict[str, str]:
     return {"base": base, "key": key, "model": model, "mode": mode}
 
 
+def resolve_fallback_config(settings: dict[str, Any] | None = None) -> dict[str, str] | None:
+    """BYOK 备用提供商配置（吸收自 ROX3.0 llm.py 的 failover 思想）。
+
+    只有在主备 base 不同且备用已配置 Key 时才生效；platform 模式不启用。
+    """
+    settings = settings or {}
+    if (settings.get("ai_mode") or "platform") != "byok":
+        return None
+    base = str(settings.get("ai_fallback_url") or "").rstrip("/")
+    key = settings.get("ai_fallback_key") or ""
+    if not base or not key:
+        return None
+    return {"base": base, "key": key, "model": settings.get("ai_fallback_model") or DEFAULT_MODEL, "mode": "byok"}
+
+
+async def chat_with_fallback(
+    system: str,
+    messages: list[dict[str, str]],
+    cfg: dict[str, str],
+    fallback_cfg: dict[str, str] | None = None,
+    chat_fn: Any = None,
+) -> tuple[str, str]:
+    """先主后备调用；返回 (回答, 使用的端点标签)。主端点失败且备用可用时切换。"""
+    chat_fn = chat_fn or chat
+    try:
+        return await chat_fn(system, messages, cfg), "primary"
+    except Exception:
+        if fallback_cfg and is_configured(fallback_cfg) and fallback_cfg["base"] != cfg["base"]:
+            return await chat_fn(system, messages, fallback_cfg), "fallback"
+        raise
+
+
 def is_configured(cfg: dict[str, str]) -> bool:
     return bool(cfg.get("key"))
 

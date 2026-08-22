@@ -17,7 +17,10 @@ from app.core.auth import get_current_user
 from app.core.crypto import decrypt_secret
 from app.db import get_db
 from app.models import Setting, User
-from app.services.ai_service import chat, chat_stream, is_configured, resolve_ai_config
+from app.services.ai_service import (
+    chat_stream, chat_with_fallback, is_configured,
+    resolve_ai_config, resolve_fallback_config,
+)
 
 router = APIRouter()
 
@@ -43,8 +46,9 @@ def _load_user_settings(db: Session, user_id: int) -> dict:
     """读取用户设置；BYOK 密钥解密后仅在本请求内使用。"""
     rows = db.query(Setting).filter(Setting.user_id == user_id).all()
     settings = {r.key: r.value for r in rows}
-    if settings.get("ai_api_key"):
-        settings["ai_api_key"] = decrypt_secret(settings["ai_api_key"])
+    for key_field in ("ai_api_key", "ai_fallback_key"):
+        if settings.get(key_field):
+            settings[key_field] = decrypt_secret(settings[key_field])
     return settings
 
 
@@ -96,14 +100,22 @@ async def chat_endpoint(
     if body.context:
         user_content = f"[上下文]\n{body.context}\n\n[问题]\n{body.question}"
 
+    fallback = resolve_fallback_config(_load_user_settings(db, user.id))
     try:
-        answer = await chat(SYSTEM_PROMPT, [{"role": "user", "content": user_content}], cfg)
+        answer, provider_used = await chat_with_fallback(
+            SYSTEM_PROMPT, [{"role": "user", "content": user_content}], cfg, fallback,
+        )
     except Exception as exc:  # noqa: BLE001 — 统一转为友好错误
         raise HTTPException(
             status_code=502,
             detail={"code": "AI_CALL_FAILED", "message": "AI 服务调用失败，请检查 API 地址、Key 与模型名称是否正确，或稍后重试。"},
         ) from exc
-    return {"answer": answer, "ai_note": "模型辅助，不是事实来源"}
+    return {
+        "answer": answer,
+        "provider_used": provider_used,
+        "fallback_enabled": bool(fallback),
+        "ai_note": "模型辅助，不是事实来源",
+    }
 
 
 @router.post("/chat/stream")

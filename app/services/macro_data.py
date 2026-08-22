@@ -230,8 +230,9 @@ def parse_indicator_frame(frame: Any, spec: IndicatorSpec) -> dict[str, Any]:
 async def _fetch_indicator(spec: IndicatorSpec) -> dict[str, Any]:
     try:
         import akshare as ak
+        from app.services.akshare_gate import gated_call
         function = getattr(ak, spec.function_name)
-        frame = await asyncio.wait_for(asyncio.to_thread(function), timeout=12)
+        frame = await asyncio.wait_for(gated_call(function), timeout=12)
         return parse_indicator_frame(frame, spec)
     except Exception as exc:
         logger.warning("macro_indicator_unavailable key=%s error=%s", spec.key, exc)

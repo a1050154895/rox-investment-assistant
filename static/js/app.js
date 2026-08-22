@@ -251,6 +251,12 @@ const ROX = {
                 <label class="form-label">默认模型</label>
                 <input class="form-input" id="set-ai-model" value="${s.ai_model||''}" placeholder="deepseek-chat">
               </div>
+              <div class="form-group">
+                <label class="form-label">备用提供商（可选，主端点失败时切换）</label>
+                <input class="form-input" id="set-ai-fallback-url" value="${s.ai_fallback_url||''}" placeholder="https://api.siliconflow.cn">
+                <input class="form-input" type="password" id="set-ai-fallback-key" placeholder="${s.ai_fallback_configured ? '备用 Key 已配置，留空不修改' : '备用 API Key（加密存储）'}" style="margin-top:6px;">
+                <input class="form-input" id="set-ai-fallback-model" value="${s.ai_fallback_model||''}" placeholder="备用模型名" style="margin-top:6px;">
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">允许把研究卡内容发送给 AI</label>
@@ -788,10 +794,10 @@ const ROX = {
 
   async saveSettings() {
     const data = {};
-    const fields = ['set-ai-mode', 'set-ai-provider', 'set-ai-url', 'set-ai-key', 'set-ai-model', 'set-ai-send-card', 'set-theme', 'set-compact', 'set-chart-style', 'set-period'];
+    const fields = ['set-ai-mode', 'set-ai-provider', 'set-ai-url', 'set-ai-key', 'set-ai-model', 'set-ai-fallback-url', 'set-ai-fallback-key', 'set-ai-fallback-model', 'set-ai-send-card', 'set-theme', 'set-compact', 'set-chart-style', 'set-period'];
     const map = {
       'set-ai-mode': 'ai_mode', 'set-ai-provider': 'ai_provider', 'set-ai-url': 'ai_api_url', 'set-ai-key': 'ai_api_key',
-      'set-ai-model': 'ai_model', 'set-ai-send-card': 'ai_send_card_content',
+      'set-ai-model': 'ai_model', 'set-ai-fallback-url': 'ai_fallback_url', 'set-ai-fallback-key': 'ai_fallback_key', 'set-ai-fallback-model': 'ai_fallback_model', 'set-ai-send-card': 'ai_send_card_content',
       'set-theme': 'theme', 'set-compact': 'compact_mode',
       'set-chart-style': 'chart_style', 'set-period': 'default_period'
     };
@@ -800,7 +806,7 @@ const ROX = {
       if (el) {
         let val = el.value;
         if (f === 'set-compact' || f === 'set-ai-send-card') val = val === 'true';
-        if (f === 'set-ai-key' && !val) return; // 留空不覆盖已存 Key
+        if ((f === 'set-ai-key' || f === 'set-ai-fallback-key') && !val) return; // 留空不覆盖已存 Key
         data[map[f]] = val;
       }
     });

@@ -27,6 +27,8 @@ DEFAULT_SETTINGS = {
     "ai_provider": "deepseek",
     "ai_api_url": "https://api.deepseek.com",
     "ai_model": "deepseek-chat",
+    "ai_fallback_url": "",
+    "ai_fallback_model": "",
     "ai_send_card_content": "false",
     "theme": "dark",
     "compact_mode": "false",
@@ -36,7 +38,7 @@ DEFAULT_SETTINGS = {
 }
 
 # 只允许保存的键（白名单，防注入任意设置）
-ALLOWED_KEYS = set(DEFAULT_SETTINGS.keys()) | {"ai_api_key"}
+ALLOWED_KEYS = set(DEFAULT_SETTINGS.keys()) | {"ai_api_key", "ai_fallback_key"}
 
 # 套餐定义（价格与权益为公开展示信息）
 PLANS = [
@@ -52,6 +54,9 @@ class SettingsUpdate(BaseModel):
     ai_api_url: str | None = Field(None, max_length=300)
     ai_api_key: str | None = Field(None, max_length=300)
     ai_model: str | None = Field(None, max_length=100)
+    ai_fallback_url: str | None = Field(None, max_length=300)
+    ai_fallback_key: str | None = Field(None, max_length=300)
+    ai_fallback_model: str | None = Field(None, max_length=100)
     ai_send_card_content: bool | None = None
     theme: str | None = Field(None, max_length=20)
     compact_mode: bool | None = None
@@ -76,7 +81,7 @@ def _get_all(db: Session, user_id: int) -> dict:
     stored = _get_stored(db, user_id)
     out = dict(DEFAULT_SETTINGS)
     for k, v in stored.items():
-        if k == "ai_api_key":
+        if k in ("ai_api_key", "ai_fallback_key"):
             continue  # 永不回传密钥
         if k in ("compact_mode", "ai_send_card_content"):
             out[k] = v == "true"
@@ -99,6 +104,7 @@ async def get_settings(
         **settings,
         "ai_mode_label": AI_MODES.get(settings["ai_mode"], settings["ai_mode"]),
         "ai_key_masked": mask_secret(stored.get("ai_api_key", "")),
+        "ai_fallback_configured": bool(decrypt_secret(stored.get("ai_fallback_key", ""))),
         "ai_key_configured": bool(byok_key or platform_key),
         "platform_ai_available": platform_key,
         "ai_modes": [{"value": k, "label": v} for k, v in AI_MODES.items()],
@@ -118,7 +124,7 @@ async def update_settings(
             continue
         if k in ("compact_mode", "ai_send_card_content"):
             stored_value = "true" if isinstance(v, bool) and v else "false"
-        elif k == "ai_api_key":
+        elif k in ("ai_api_key", "ai_fallback_key"):
             stored_value = encrypt_secret(str(v).strip()) if str(v).strip() else ""
         else:
             stored_value = str(v)
