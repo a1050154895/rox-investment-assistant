@@ -89,6 +89,7 @@ const ROX = {
     { match: /^\/?$/,                    handler: '/',           title: '仪表盘' },
     { match: /^\/research(\/\d+)?\/?$/, handler: '/research', title: '研究卡', extract: m => ({ id: m[1] ? m[1].slice(1) : null }) },
     { match: /^\/stock(\/(\d+))?\/?$/,   handler: '/stock',      title: '个股透视', extract: m => ({ code: m[2] }) },
+    { match: /^\/funds(\/(\d+))?\/?$/,   handler: '/funds',      title: '基金透视', extract: m => ({ code: m[2] }) },
     { match: /^\/journal/,               handler: '/journal',    title: '决策日志' },
     { match: /^\/framework/,             handler: '/framework',  title: '认知框架' },
     { match: /^\/guide/,                 handler: '/guide',      title: '使用教程' },
@@ -168,6 +169,7 @@ const ROX = {
     const items = [
       { route: '/', label: '仪表盘', icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
       { route: '/stock', label: '个股', icon: '<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>' },
+      { route: '/funds', label: '基金', icon: '<path d="M4 19V5M4 19h16"/><path d="m7 15 3-4 3 2 5-6"/>' },
       { route: '/journal', label: '日志', icon: '<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>' },
       { route: '/framework', label: '框架', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>' },
       { route: '/guide', label: '教程', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>' },

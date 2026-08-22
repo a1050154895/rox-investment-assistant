@@ -349,6 +349,24 @@ class TestResearchCards:
     def test_today_requires_auth(self, client):
         assert client.get("/api/research/today").status_code == 401
 
+
+class TestFunds:
+    def test_fund_search_and_unavailable_disclosures(self, client):
+        search = client.get("/api/funds/search?q=沪深300")
+        assert search.status_code == 200
+        assert search.json()["results"][0]["code"] == "510300"
+
+        info = client.get("/api/funds/510300")
+        assert info.status_code == 200
+        data = info.json()
+        assert data["fund_type"] == "ETF"
+        assert data["disclosures"]["nav"]["status"] == "unavailable"
+
+    def test_unknown_fund_is_honest(self, client):
+        data = client.get("/api/funds/999999").json()
+        assert data["data_status"] == "unavailable"
+        assert "error" in data
+
     def test_decision_can_link_research_card(self, client, auth_headers):
         created = client.post("/api/research/", json={"title": "关联测试"}, headers=auth_headers)
         card_id = created.json()["card"]["id"]
