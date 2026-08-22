@@ -684,10 +684,11 @@ const ROX = {
     const ticker = document.getElementById('index-ticker');
     if (!ticker) return;
     ticker.innerHTML = data.market_indices.map(idx => `
-      <div class="index-item" title="${idx.stale ? `历史快照 · ${idx.as_of || ''}` : '实时数据'}">
+      <div class="index-item" title="${idx.stale ? `历史快照 · ${idx.as_of || ''}` : `${idx.data_source || '实时数据'} · ${idx.as_of || ''}`}" aria-label="${idx.name} ${idx.data_status === 'snapshot' ? '历史快照' : '实时'} ${idx.as_of || ''}">
         <span class="index-name">${idx.name}</span>
         <span class="index-price">${this.fmt.num(idx.price)}</span>
         <span class="index-change ${this.fmt.color(idx.change_pct)}">${this.fmt.pct(idx.change_pct)}</span>
+        <span class="index-status ${idx.stale ? 'is-stale' : 'is-live'}">${idx.stale ? '快照' : '实时'}</span>
       </div>
     `).join('');
   },

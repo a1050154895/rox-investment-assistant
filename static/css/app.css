@@ -141,6 +141,8 @@ summary { cursor: pointer; }
 .index-name { color: var(--text-tertiary); }
 .index-price { font-family: var(--font-mono); color: var(--text-primary); font-weight: 500; }
 .index-change { font-family: var(--font-mono); font-size: 11px; }
+.index-status { color:#8fae94; font-family:var(--font-mono); font-size:9px; }
+.index-status.is-stale { color:var(--color-warn); }
 .text-up { color: var(--rox-up); }
 .text-down { color: var(--rox-down); }
 
