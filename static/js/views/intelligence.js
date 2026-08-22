@@ -24,7 +24,7 @@ ROX.register('/intelligence', async function(container) {
           <button class="btn btn-secondary btn-sm" data-action="refresh-intelligence">刷新资讯</button>
         </div>
         <div class="intelligence-disclaimer">${data.disclaimer}</div>
-        <div style="margin-top:10px;font-size:11px;color:var(--text-tertiary);">数据状态：${data.source_status} · 更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}</div>
+        <div class="intelligence-source-line"><span class="evidence-badge is-live"><i></i>公开信息</span><span>来源：${data.source_status}</span><span>更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}</span></div>
       </div>
 
       <div class="card intelligence-map-card">
@@ -39,7 +39,7 @@ ROX.register('/intelligence', async function(container) {
 
       <div class="grid-2 intelligence-section-grid">
         <div class="card">
-          <div class="card-header"><div class="card-title">全球宏观风险地图</div><span class="tag tag-amber">传导观察</span></div>
+          <div class="card-header"><div><div class="card-title">全球宏观风险地图</div><div class="card-subtitle">外部变量如何进入行业利润</div></div><span class="tag tag-amber">传导观察</span></div>
           <div class="risk-list">
             ${data.global_risk.map(item => `
               <div class="risk-row">
@@ -53,7 +53,7 @@ ROX.register('/intelligence', async function(container) {
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><div class="card-title">政策传导跟踪</div><span class="tag tag-blue">公开信息</span></div>
+          <div class="card-header"><div><div class="card-title">政策传导跟踪</div><div class="card-subtitle">政策状态 → 受影响行业 → 验证方法</div></div><span class="tag tag-blue">事实线索</span></div>
           <div style="display:flex;flex-direction:column;gap:10px;">
             ${data.policy_tracker.map(item => `
               <div class="policy-row">
@@ -67,7 +67,7 @@ ROX.register('/intelligence', async function(container) {
 
       <div class="grid-2 intelligence-section-grid">
         <div class="card">
-          <div class="card-header"><div class="card-title">行业资金与景气线索</div><span class="tag tag-gray">需交叉确认</span></div>
+          <div class="card-header"><div><div class="card-title">行业资金与景气线索</div><div class="card-subtitle">资金变化不是结论，需要第二证据</div></div><span class="tag tag-amber">待验证</span></div>
           <div style="display:flex;flex-direction:column;gap:2px;">
             ${data.sector_flow.map(item => `
               <div class="sector-flow-row">
@@ -77,7 +77,7 @@ ROX.register('/intelligence', async function(container) {
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><div class="card-title">资讯研判纪律</div><span class="tag tag-green">方法优先</span></div>
+          <div class="card-header"><div><div class="card-title">资讯研判纪律</div><div class="card-subtitle">把资讯转成可执行验证</div></div><span class="tag tag-green">行动规则</span></div>
           <ol class="intelligence-method">
             ${data.method.map((item, index) => `<li><span>${String(index + 1).padStart(2, '0')}</span>${item}</li>`).join('')}
           </ol>
@@ -85,7 +85,7 @@ ROX.register('/intelligence', async function(container) {
       </div>
 
       <div class="card intelligence-news-card">
-        <div class="card-header"><div class="card-title">资讯与事件线索</div><span class="tag tag-blue">${data.news.length} 条</span></div>
+        <div class="card-header"><div><div class="card-title">资讯与事件线索</div><div class="card-subtitle">原始标题只生成假设，不直接生成结论</div></div><span class="tag tag-blue">${data.news.length} 条</span></div>
         <div class="news-list">
           ${data.news.map(item => `
             <article class="news-row">
