@@ -4,7 +4,8 @@
    ============================================ */
 
 ROX.register('/intelligence', async function(container) {
-  const data = await ROX.api.get('/api/intelligence/brief');
+  let data = await ROX.api.get('/api/intelligence/feed');
+  if (!data || data.error) data = await ROX.api.get('/api/intelligence/brief');
   if (!data) {
     container.innerHTML = '<div class="empty-state"><p>情报简报加载失败，请稍后刷新。</p></div>';
     return;
@@ -36,6 +37,36 @@ ROX.register('/intelligence', async function(container) {
           <div><b>验证动作</b><span>至少两项独立数据确认</span></div>
         </div>
       </div>
+
+      ${(data.themes?.length || 0) > 1 ? `
+      <div class="card intelligence-theme-card">
+        <div class="card-header">
+          <div><div class="card-title">主题主线</div><div class="card-subtitle">同一主题的资讯按时间线聚合：起因 → 发展 → 当前 · ${ROX.escape(data.sort_rule || '按重要度排序，无情绪分')}</div></div>
+          <span class="tag tag-gray">${data.themes.length} 个主题</span>
+        </div>
+        <div class="intelligence-theme-grid">
+          ${data.themes.slice(0, 6).map(theme => `
+            <details class="intelligence-theme"${theme.has_breaking ? ' data-breaking="1"' : ''}>
+              <summary>
+                <span class="intelligence-theme-name">${ROX.escape(theme.name)}</span>
+                <span class="intelligence-theme-badges">
+                  ${theme.has_breaking ? '<span class="tag tag-red">突发</span>' : ''}
+                  ${theme.research_hits ? `<span class="tag tag-blue">研究相关 ×${theme.research_hits}</span>` : ''}
+                  <span class="tag tag-gray">${theme.count} 条</span>
+                </span>
+              </summary>
+              <div class="intelligence-theme-body">
+                <div class="intelligence-theme-meta">影响行业：${theme.industries.slice(0, 6).map(i => ROX.escape(i)).join('、') || '未归类'}${theme.newest_hours != null ? ` · 最近更新 ${theme.newest_hours} 小时前` : ''}</div>
+                <ol class="intelligence-theme-timeline">
+                  ${theme.timeline.map(item => `<li><span class="intelligence-theme-time">${ROX.escape(String(item.published_at || '').slice(5, 16))}</span><span>${ROX.escape(item.title)}</span></li>`).join('')}
+                </ol>
+                <div class="intelligence-theme-verify">仍需验证：${ROX.escape(theme.verify_question)}</div>
+                ${theme.policy_topics?.length ? `<div class="intelligence-theme-meta">关联政策：${[...new Set(theme.policy_topics)].map(t => ROX.escape(t)).join('、')}</div>` : ''}
+                <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(`主题：${theme.name}`)}" data-content="${ROX.escape(`主题线索：${theme.name}（${theme.count} 条资讯聚合，影响行业：${theme.industries.slice(0, 4).join('、')}）`)}" data-source="${ROX.escape(data.source_status || '主题主线')}" data-as-of="${ROX.escape(String(data.updated_at || '').slice(0, 16))}">＋ 把主题加入研究卡</button>
+              </div>
+            </details>`).join('')}
+        </div>
+      </div>` : ''}
 
       <div class="grid-2 intelligence-section-grid">
         <div class="card">
@@ -90,11 +121,15 @@ ROX.register('/intelligence', async function(container) {
       </div>
 
       <div class="card intelligence-news-card">
-        <div class="card-header"><div><div class="card-title">资讯与事件线索</div><div class="card-subtitle">原始标题只生成假设，不直接生成结论</div></div><span class="tag tag-blue">${data.news.length} 条</span></div>
+        <div class="card-header"><div><div class="card-title">资讯与事件线索</div><div class="card-subtitle">原始标题只生成假设，不直接生成结论 · 突发=36小时内命中关键事件词，仅提示核对</div></div><span class="tag tag-blue">${data.news.length} 条</span></div>
         <div class="news-list">
           ${data.news.map(item => `
-            <article class="news-row">
-              <div class="news-meta"><span class="tag ${directionClass(item.direction)}">${item.category}</span><span>${item.fact_or_view}</span></div>
+            <article class="news-row ${item.is_breaking ? 'news-breaking' : ''}">
+              <div class="news-meta">
+                ${item.is_breaking ? '<span class="tag tag-red">突发</span>' : ''}
+                ${item.research_relevant?.length ? `<span class="tag tag-blue">研究相关：${item.research_relevant.map(ROX.escape).join('、')}</span>` : ''}
+                <span class="tag ${directionClass(item.direction)}">${item.category}</span><span>${item.fact_or_view}</span>
+              </div>
               <div class="news-title">${item.title}</div>
               <div class="news-detail">传导方向：${item.channels.join('、')} · ${item.evidence}</div>
               <div class="news-source">${item.source} · ${new Date(item.published_at).toLocaleString('zh-CN')}</div>

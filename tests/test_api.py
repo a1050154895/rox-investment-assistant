@@ -8,7 +8,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.11.0"
+        assert data["version"] == "4.12.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):

@@ -1089,3 +1089,21 @@ summary { cursor: pointer; }
 .data-source-dot.degraded { background: var(--ink-warn, #ff9f0a); }
 .data-source-dot.down { background: var(--color-down, #d34f42); }
 .data-source-dot.unknown { background: var(--text-tertiary, #948d83); }
+
+/* 主题主线 */
+.intelligence-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.intelligence-theme { border: 1px solid var(--border-default, rgba(224,211,191,.14)); border-radius: 10px; background: var(--ink-surface, rgba(224,211,191,.03)); overflow: hidden; }
+.intelligence-theme[data-breaking="1"] { border-color: rgba(211,79,66,.5); }
+.intelligence-theme summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px; cursor: pointer; list-style: none; }
+.intelligence-theme summary::-webkit-details-marker { display: none; }
+.intelligence-theme summary::before { content: '▸'; color: var(--text-tertiary); transition: transform .15s; }
+.intelligence-theme[open] summary::before { transform: rotate(90deg); }
+.intelligence-theme-name { font-size: 13px; font-weight: 600; }
+.intelligence-theme-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.intelligence-theme-body { padding: 0 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.intelligence-theme-meta { font-size: 11px; color: var(--text-tertiary); line-height: 1.6; }
+.intelligence-theme-timeline { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 6px; }
+.intelligence-theme-timeline li { font-size: 12px; color: var(--text-secondary); line-height: 1.6; display: flex; gap: 8px; }
+.intelligence-theme-time { flex: none; font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary); padding-top: 2px; }
+.intelligence-theme-verify { font-size: 11px; color: var(--ink-warn, #ff9f0a); padding: 8px 10px; border-radius: 8px; background: rgba(255,159,10,.07); line-height: 1.6; }
+.news-row.news-breaking { border-left: 2px solid var(--color-down, #d34f42); padding-left: 10px; }
