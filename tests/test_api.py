@@ -369,12 +369,20 @@ class TestFunds:
         assert info.status_code == 200
         data = info.json()
         assert data["fund_type"] == "ETF"
-        assert data["disclosures"]["nav"]["status"] == "unavailable"
+        assert data["evidence_coverage"]["nav"]["status"] == "unavailable"
 
     def test_unknown_fund_is_honest(self, client):
         data = client.get("/api/funds/999999").json()
         assert data["data_status"] == "unavailable"
         assert "error" in data
+
+    def test_research_card_review_date_persists(self, client, auth_headers):
+        created = client.post("/api/research/", json={
+            "title": "复核日期测试", "next_review_at": "2026-09-01",
+        }, headers=auth_headers)
+        assert created.status_code == 200
+        card = created.json()["card"]
+        assert card["next_review_at"] == "2026-09-01"
 
     def test_decision_can_link_research_card(self, client, auth_headers):
         created = client.post("/api/research/", json={"title": "关联测试"}, headers=auth_headers)

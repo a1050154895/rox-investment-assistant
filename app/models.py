@@ -99,6 +99,7 @@ class ResearchCard(Base):
     holding_period = mapped_column(String(30), default="")
     status = mapped_column(String(20), default="draft")
     hypothesis_status = mapped_column(String(20), nullable=True)
+    next_review_at = mapped_column(String(10), nullable=True)
     created_at = mapped_column(DateTime, default=utcnow)
     updated_at = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
@@ -125,6 +126,7 @@ class ResearchCard(Base):
             "holding_period": self.holding_period,
             "status": self.status,
             "hypothesis_status": self.hypothesis_status,
+            "next_review_at": self.next_review_at,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
