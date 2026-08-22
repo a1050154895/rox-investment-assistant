@@ -377,6 +377,30 @@ async def get_fund_flow(code: str) -> dict[str, Any]:
 
 async def get_market_indices() -> list[dict]:
     """获取市场指数"""
+    target_codes = {"000001": "上证指数", "399001": "深证成指", "399006": "创业板指", "000300": "沪深300"}
+    try:
+        quotes = await fetch_quotes(list(target_codes), is_index=True)
+        live = []
+        for code, name in target_codes.items():
+            quote = quotes.get(code)
+            if not quote or quote.get("price", 0) <= 0:
+                continue
+            live.append({
+                "name": name,
+                "code": f"{code}.{'SH' if not code.startswith('399') else 'SZ'}",
+                "price": quote["price"],
+                "change": quote["change"],
+                "change_pct": quote["change_pct"],
+                "data_status": "realtime",
+                "data_source": "腾讯自选股公开指数接口",
+                "as_of": quote.get("as_of", ""),
+                "stale": False,
+            })
+        if len(live) == len(target_codes):
+            return live
+    except Exception as e:
+        logger.warning("腾讯指数获取失败: %s", e)
+
     # 尝试 AKShare
     if AKSHARE_AVAILABLE:
         try:
@@ -393,6 +417,7 @@ async def get_market_indices() -> list[dict]:
                         "price": float(r.get('最新价', 0) or 0),
                         "change": float(r.get('涨跌额', 0) or 0),
                         "change_pct": float(r.get('涨跌幅', 0) or 0),
+                        "data_status": "realtime",
                         "data_source": "AKShare/东方财富公开接口", "as_of": "", "stale": False,
                     })
             if len(indices) >= 3:
@@ -404,6 +429,7 @@ async def get_market_indices() -> list[dict]:
     return [{"code": idx["code"], "name": idx["name"], "price": idx["price"],
              "change": round(idx["price"] * idx["change_pct"] / 100, 2),
              "change_pct": idx["change_pct"],
+             "data_status": "snapshot",
              "data_source": "NeoData 历史快照", "as_of": "2026-07-29", "stale": True} for idx in REAL_INDICES]
 
 
