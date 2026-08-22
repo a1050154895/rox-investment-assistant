@@ -351,6 +351,15 @@ class TestResearchCards:
 
 
 class TestFunds:
+    def test_fund_kline_metrics_contract(self, client):
+        data = client.get("/api/funds/510300/kline").json()
+        assert data["data_status"] in ("realtime", "snapshot", "unavailable")
+        if data.get("metrics"):
+            metrics = data["metrics"]
+            assert metrics["sample_count"] >= 2
+            assert "max_drawdown_pct" in metrics
+            assert "净值" in metrics["note"]
+
     def test_fund_search_and_unavailable_disclosures(self, client):
         search = client.get("/api/funds/search?q=沪深300")
         assert search.status_code == 200

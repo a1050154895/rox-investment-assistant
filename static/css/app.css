@@ -399,6 +399,11 @@ summary { cursor: pointer; }
 .fund-meta-card strong { color:var(--text-primary); font-size:20px; }
 .fund-chart-card, .fund-disclosure-card { margin-bottom:12px; }
 .fund-kline { height:320px; }
+.fund-risk-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color-light); }
+.fund-risk-metrics > div { display:flex; flex-direction:column; gap:4px; padding:10px; background:var(--bg-secondary); border-radius:var(--radius-md); }
+.fund-risk-metrics span { color:var(--text-tertiary); font-size:10px; }
+.fund-risk-metrics strong { color:var(--text-primary); font-family:var(--font-mono); font-size:14px; }
+.fund-metric-note { margin-top:8px; color:var(--text-muted); font-size:10px; line-height:1.5; }
 .fund-disclosure-list { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
 .fund-disclosure-list > div { display:flex; flex-direction:column; gap:5px; padding:12px; background:var(--bg-secondary); border-radius:var(--radius-md); }
 .fund-disclosure-list strong { color:var(--text-primary); font-size:12px; }
@@ -408,6 +413,7 @@ summary { cursor: pointer; }
   .fund-page-head .btn { width:100%; justify-content:center; }
   .fund-summary-grid, .fund-disclosure-list { grid-template-columns:1fr; }
   .fund-kline { height:260px; }
+  .fund-risk-metrics { grid-template-columns:repeat(2,1fr); }
   .fund-evidence-strip { align-items:flex-start; flex-direction:column; }
 }
 .onboarding-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); }
