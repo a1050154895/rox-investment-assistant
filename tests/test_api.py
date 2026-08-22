@@ -8,7 +8,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.9.0"
+        assert data["version"] == "4.10.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -393,6 +393,53 @@ class TestResearchCards:
             "evidence_type": "fact", "content": "未登录",
         })
         assert resp.status_code == 401
+
+    def test_full_lifecycle_statuses(self, client, auth_headers):
+        statuses = ["draft", "researching", "to_verify", "ready", "watching", "reviewed", "invalidated", "archived"]
+        card_id = None
+        for status in statuses:
+            payload = {"title": "生命周期测试", "status": status}
+            resp = client.post("/api/research/", json=payload, headers=auth_headers) if card_id is None else \
+                client.put(f"/api/research/{card_id}", json=payload, headers=auth_headers)
+            assert resp.status_code == 200, status
+            card = resp.json()["card"]
+            card_id = card["id"]
+            assert card["status"] == status
+            assert card["status_label"]
+        assert card["status_label"] == "已归档"
+
+        bad = client.post("/api/research/", json={"title": "非法状态", "status": "pending"}, headers=auth_headers)
+        assert bad.status_code == 422
+        bad_hyp = client.post("/api/research/", json={"title": "非法假设", "hypothesis_status": "大概率"}, headers=auth_headers)
+        assert bad_hyp.status_code == 422
+
+    def test_card_detail_links_decisions(self, client, auth_headers):
+        from datetime import date, timedelta
+        due = (date.today() - timedelta(days=1)).isoformat()
+        created = client.post("/api/research/", json={
+            "title": "档案测试", "code": "600519", "stock": "贵州茅台",
+            "question": "估值？", "hypothesis": "稳定", "facts": ["事实A"],
+            "counter_evidence": "反证A", "invalidation": "下修",
+            "next_review_at": due,
+        }, headers=auth_headers)
+        card_id = created.json()["card"]["id"]
+        client.post("/api/journal/", json={
+            "stock": "贵州茅台", "code": "600519", "action": "买入", "stage": "试仓30%",
+            "consistency_score": 70, "reason": "测试", "research_card_id": card_id,
+        }, headers=auth_headers)
+
+        detail = client.get(f"/api/research/{card_id}/detail", headers=auth_headers)
+        assert detail.status_code == 200
+        data = detail.json()
+        assert data["card"]["id"] == card_id
+        assert data["decision_stats"]["total"] == 1
+        assert data["decisions"][0]["research_card_id"] == card_id
+        assert data["review_due"] is True
+        assert data["card"]["evidence_counts"]["facts"] == 1
+        assert data["risk"]["passed"] == data["risk"]["total"]
+
+        today = client.get("/api/research/today", headers=auth_headers)
+        assert any(c["id"] == card_id for c in today.json()["due_review_cards"])
 
 
 class TestFunds:

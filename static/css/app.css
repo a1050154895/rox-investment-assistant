@@ -1068,3 +1068,16 @@ summary { cursor: pointer; }
 }
 .evidence-add-btn:hover { color: var(--color-primary, #c65a43); border-color: var(--color-primary, #c65a43); }
 @media (max-width: 640px) { .evidence-drawer { width: 100vw; } }
+
+/* 研究档案面板 */
+.research-archive { margin-bottom: 16px; }
+.research-archive-flags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.research-archive-stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(110px,1fr)); gap: 10px; margin-bottom: 12px; }
+.research-archive-stats > div { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius-md, 10px); background: var(--ink-surface, rgba(224,211,191,.04)); }
+.research-archive-stats span { font-size: 11px; color: var(--text-tertiary); }
+.research-archive-stats strong { font-size: 15px; font-family: var(--font-mono); }
+.research-archive-decisions { display: flex; flex-direction: column; gap: 6px; }
+.research-archive-decision { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: var(--ink-surface, rgba(224,211,191,.04)); flex-wrap: wrap; }
+.research-archive-decision-date { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); margin-left: 6px; }
+.research-archive-decision-meta { font-size: 11px; color: var(--text-secondary); }
+.research-archive-empty { font-size: 12px; color: var(--text-tertiary); padding: 10px 12px; border: 1px dashed var(--border-default, rgba(224,211,191,.2)); border-radius: 8px; }

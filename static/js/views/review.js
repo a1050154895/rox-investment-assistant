@@ -85,6 +85,9 @@ ROX.views.review = {
             <span class="research-hypothesis-rate">假设验证率 ${validationRate}</span>
           </div>
           <div class="research-review-note">未关联决策的研究卡：${coverage.unlinked_cards || 0} 张。先完成研究卡，再记录决策，复盘才有依据。</div>
+          <div class="research-review-actions" style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-secondary btn-sm" data-route="/research">去研究台更新状态 →</button>
+          </div>
         </div>
       `;
     }

@@ -1,7 +1,8 @@
 """研究卡 API：研究、论证、风控和决策的最小闭环。"""
 import json
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -9,6 +10,20 @@ from app.db import get_db
 from app.models import JournalEntry, ResearchCard, User, utcnow
 
 router = APIRouter()
+
+# 研究卡完整生命周期：草稿 → 研究 → 验证 → 决策 → 观察 → 复盘 → 失效/归档
+CARD_STATUSES = {
+    "draft": "草稿",
+    "researching": "研究中",
+    "to_verify": "待验证",
+    "ready": "待决策",
+    "watching": "观察中",
+    "reviewed": "已复盘",
+    "invalidated": "已失效",
+    "archived": "已归档",
+}
+
+HYPOTHESIS_STATUSES = {"成立", "部分成立", "失效", "未验证"}
 
 
 class ResearchCardIn(BaseModel):
@@ -28,6 +43,20 @@ class ResearchCardIn(BaseModel):
     hypothesis_status: str | None = Field(None, max_length=20)
     next_review_at: str | None = Field(None, max_length=10)
 
+    @field_validator("status")
+    @classmethod
+    def _valid_status(cls, value: str) -> str:
+        if value not in CARD_STATUSES:
+            raise ValueError(f"status 必须是 {sorted(CARD_STATUSES)} 之一")
+        return value
+
+    @field_validator("hypothesis_status")
+    @classmethod
+    def _valid_hypothesis(cls, value: str | None) -> str | None:
+        if value is not None and value not in HYPOTHESIS_STATUSES:
+            raise ValueError(f"hypothesis_status 必须是 {sorted(HYPOTHESIS_STATUSES)} 之一")
+        return value
+
 
 class ResearchCardUpdate(ResearchCardIn):
     title: str = Field(..., min_length=1, max_length=120)
@@ -41,6 +70,29 @@ def _set_card(card: ResearchCard, data: ResearchCardIn) -> None:
         setattr(card, key, value)
     card.facts_json = json.dumps(data.facts, ensure_ascii=False)
     card.updated_at = utcnow()
+
+
+def card_out(card: ResearchCard) -> dict:
+    """研究卡序列化：附上状态中文标签和证据计数。"""
+    data = card.to_dict()
+    facts = data.get("facts") or []
+    data["status_label"] = CARD_STATUSES.get(card.status, card.status)
+    data["evidence_counts"] = {
+        "facts": sum(1 for f in facts if not f.startswith("[待验证]")),
+        "pending_verify": sum(1 for f in facts if f.startswith("[待验证]")),
+        "counter": len([line for line in (card.counter_evidence or "").splitlines() if line.strip()]),
+    }
+    return data
+
+
+def _risk_checks(card: ResearchCard) -> list[dict]:
+    return [
+        {"key": "question", "label": "研究问题", "passed": bool(card.question.strip())},
+        {"key": "hypothesis", "label": "核心假设", "passed": bool(card.hypothesis.strip())},
+        {"key": "facts", "label": "至少一条事实", "passed": bool(card.facts_json and card.facts_json != "[]")},
+        {"key": "counter_evidence", "label": "反证", "passed": bool(card.counter_evidence.strip())},
+        {"key": "invalidation", "label": "失效条件", "passed": bool(card.invalidation.strip())},
+    ]
 
 
 @router.get("/today")
@@ -60,10 +112,13 @@ async def today(user: User = Depends(get_current_user), db: Session = Depends(ge
         .limit(5)
         .all()
     )
+    today_str = date.today().isoformat()
+    due = [card for card in cards if card.next_review_at and card.next_review_at <= today_str]
     return {
-        "cards": [card.to_dict() for card in cards],
+        "cards": [card_out(card) for card in cards],
+        "due_review_cards": [card_out(card) for card in due],
         "pending_reviews": [entry.to_dict() for entry in pending_reviews],
-        "next_action": "继续补齐事实、假设和反证" if cards else "创建第一张研究卡",
+        "next_action": "先处理到期复核，再补齐事实、假设和反证" if due else ("继续补齐事实、假设和反证" if cards else "创建第一张研究卡"),
     }
 
 
@@ -77,7 +132,7 @@ async def list_cards(
     if status:
         query = query.filter(ResearchCard.status == status)
     cards = query.order_by(ResearchCard.updated_at.desc(), ResearchCard.id.desc()).limit(100).all()
-    return {"count": len(cards), "cards": [card.to_dict() for card in cards]}
+    return {"count": len(cards), "cards": [card_out(card) for card in cards]}
 
 
 @router.post("/")
@@ -91,7 +146,7 @@ async def create_card(
     db.add(card)
     db.commit()
     db.refresh(card)
-    return {"success": True, "card": card.to_dict()}
+    return {"success": True, "card": card_out(card)}
 
 
 @router.get("/{card_id}")
@@ -99,7 +154,7 @@ async def get_card(card_id: int, user: User = Depends(get_current_user), db: Ses
     card = db.query(ResearchCard).filter(ResearchCard.id == card_id, ResearchCard.user_id == user.id).first()
     if not card:
         raise HTTPException(status_code=404, detail="研究卡不存在")
-    return {"card": card.to_dict()}
+    return {"card": card_out(card)}
 
 
 @router.put("/{card_id}")
@@ -115,7 +170,7 @@ async def update_card(
     _set_card(card, data)
     db.commit()
     db.refresh(card)
-    return {"success": True, "card": card.to_dict()}
+    return {"success": True, "card": card_out(card)}
 
 
 class EvidenceIn(BaseModel):
@@ -156,7 +211,43 @@ async def add_evidence(
     card.updated_at = utcnow()
     db.commit()
     db.refresh(card)
-    return {"success": True, "card": card.to_dict()}
+    return {"success": True, "card": card_out(card)}
+
+
+@router.get("/{card_id}/detail")
+async def card_detail(card_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """研究卡完整档案：证据、关联决策、执行结果、假设状态和复核提醒。"""
+    card = db.query(ResearchCard).filter(ResearchCard.id == card_id, ResearchCard.user_id == user.id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="研究卡不存在")
+    decisions = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.user_id == user.id, JournalEntry.research_card_id == card_id)
+        .order_by(JournalEntry.date.desc(), JournalEntry.id.desc())
+        .all()
+    )
+    settled = [d for d in decisions if d.result in ("盈", "亏")]
+    wins = [d for d in settled if d.result == "盈"]
+    pcts = [d.result_pct for d in settled if d.result_pct is not None]
+    checks = _risk_checks(card)
+    today_str = date.today().isoformat()
+    return {
+        "card": card_out(card),
+        "decisions": [entry.to_dict() for entry in decisions],
+        "decision_stats": {
+            "total": len(decisions),
+            "settled": len(settled),
+            "wins": len(wins),
+            "win_rate": round(len(wins) / len(settled) * 100, 1) if settled else None,
+            "avg_result_pct": round(sum(pcts) / len(pcts), 2) if pcts else None,
+        },
+        "review_due": bool(card.next_review_at and card.next_review_at <= today_str),
+        "risk": {
+            "passed": sum(c["passed"] for c in checks),
+            "total": len(checks),
+            "checks": checks,
+        },
+    }
 
 
 @router.get("/{card_id}/risk-check")
@@ -164,13 +255,7 @@ async def risk_check(card_id: int, user: User = Depends(get_current_user), db: S
     card = db.query(ResearchCard).filter(ResearchCard.id == card_id, ResearchCard.user_id == user.id).first()
     if not card:
         raise HTTPException(status_code=404, detail="研究卡不存在")
-    checks = [
-        {"key": "question", "label": "研究问题", "passed": bool(card.question.strip())},
-        {"key": "hypothesis", "label": "核心假设", "passed": bool(card.hypothesis.strip())},
-        {"key": "facts", "label": "至少一条事实", "passed": bool(card.facts_json and card.facts_json != "[]")},
-        {"key": "counter_evidence", "label": "反证", "passed": bool(card.counter_evidence.strip())},
-        {"key": "invalidation", "label": "失效条件", "passed": bool(card.invalidation.strip())},
-    ]
+    checks = _risk_checks(card)
     passed = sum(item["passed"] for item in checks)
     return {
         "card_id": card.id,

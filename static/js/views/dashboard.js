@@ -210,9 +210,9 @@ async function loadResearchToday() {
   }
   const cards = data.cards || [];
   const reviews = data.pending_reviews || [];
-  body.innerHTML = cards.length ? `<div class="research-queue-grid">${cards.slice(0, 4).map(card => `
+  body.innerHTML = cards.length ? `${data.due_review_cards?.length ? `<div class="research-pending-line"><span>⏰ ${data.due_review_cards.length} 张研究卡复核已到期</span><button class="btn btn-secondary btn-sm" data-route="/research/${data.due_review_cards[0].id}">先去复核 →</button></div>` : ''}<div class="research-queue-grid">${cards.slice(0, 4).map(card => `
     <div class="research-queue-item" data-route="/research/${card.id}">
-      <div class="research-queue-item-head"><span class="research-status ${card.status === 'ready' ? 'ready' : ''}">${card.status === 'ready' ? '待决策' : '草稿'}</span><span class="research-queue-date">${ROX.fmt.date(card.updated_at)}</span></div>
+      <div class="research-queue-item-head"><span class="research-status ${card.status === 'ready' || card.status === 'watching' ? 'ready' : ''}">${ROX.escape(card.status_label || card.status)}</span><span class="research-queue-date">${ROX.fmt.date(card.updated_at)}</span></div>
       <div class="research-queue-title">${ROX.escape(card.title)}</div>
       <div class="research-queue-meta">${ROX.escape(card.stock || card.code || '未绑定标的')} · ${ROX.escape(card.action || '观察')}${card.next_review_at ? ` · 复核 ${ROX.escape(card.next_review_at)}` : ''}</div>
       <div class="research-queue-progress"><span style="width:${[card.question, card.hypothesis, (card.facts || []).length, card.counter_evidence, card.invalidation].filter(Boolean).length * 20}%"></span></div>
