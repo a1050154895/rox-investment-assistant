@@ -7,6 +7,7 @@ from fastapi import APIRouter, Query
 
 from app.services.analysis_engine import build_analysis, calculate_indicators
 from app.services.data_contract import ensure_contract
+from app.services.tdx_indicators import FUTURE_FUNCTION_NOTE, pivots_summary
 from app.services.market_data import (
     get_stock_quote, get_kline, get_fund_flow, REAL_QUOTES,
 )
@@ -50,6 +51,29 @@ async def stock_info(code: str):
 async def kline(code: str, period: str = Query("daily", description="周期: daily/weekly")):
     """K线数据 — AKShare 实时获取，失败时回退到真实价格快照"""
     return ensure_contract(await get_kline(code, period))
+
+
+@router.get("/{code}/pivots")
+async def stock_pivots(code: str, threshold: float = Query(8.0, ge=1.0, le=30.0, description="拐点阈值百分比")):
+    """ZIG 关键转折点（峰/谷）——仅用于历史结构标注与复盘。
+
+    含未来函数：拐点在反向波动超阈值后才确认，禁止作为实时/回测信号。
+    """
+    kline = await get_kline(code, "daily", 250)
+    candles = kline.get("candles", [])
+    if len(candles) < 10:
+        return {"error": "K线数据不足，无法计算拐点", "pivots": [], "note": FUTURE_FUNCTION_NOTE}
+    closes = [c["close"] for c in candles]
+    dates = [str(c.get("date", "")) for c in candles]
+    summary = pivots_summary(closes, dates, threshold)
+    return {
+        "code": code,
+        **summary,
+        "candle_count": len(candles),
+        "data_status": kline.get("data_status"),
+        "data_source": kline.get("data_source"),
+        "as_of": dates[-1] if dates else None,
+    }
 
 
 @router.get("/{code}/analysis")
