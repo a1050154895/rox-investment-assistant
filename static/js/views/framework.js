@@ -10,11 +10,15 @@ ROX.register('/framework', async function(container) {
   }
 
   container.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="framework-page" style="display:flex;flex-direction:column;gap:16px;">
       <div class="tabs">
         <div class="tab active" data-fw-tab="methodology">方法论</div>
         <div class="tab" data-fw-tab="strategies">策略库</div>
         <div class="tab" data-fw-tab="knowledge">知识库</div>
+      </div>
+      <div class="framework-path">
+        <div class="framework-path-lead"><span class="framework-seal">研</span><div><strong>五层研究路径</strong><span>从环境判断走到可执行纪律，不把方法论当成单一信号。</span></div></div>
+        <div class="framework-path-steps">${['宏观定调','资本周期','矛盾分析','334纪律','一致性'].map((name, index) => `<div><b>L${index + 1}</b><span>${name}</span></div>`).join('<i>→</i>')}</div>
       </div>
       <div id="fw-content"></div>
     </div>
@@ -48,13 +52,13 @@ function renderMethodology(data) {
   el.innerHTML = `
     <div class="grid-2" style="gap:16px;">
       ${data.layers.map(layer => `
-        <div class="methodology-card">
+        <div class="methodology-card framework-layer-card">
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="methodology-level">${layer.level}</span>
             <span class="tag tag-blue">${layer.name}</span>
           </div>
           <div class="methodology-title">${ROX.escape(layer.title)}</div>
-          <div class="methodology-summary">${ROX.escape(layer.summary)}</div>
+          <div class="methodology-summary"><span class="methodology-question">研究问题</span>${ROX.escape(layer.summary)}</div>
           <details class="methodology-detail" style="margin-top:10px;">
             <summary>展开完整框架</summary>
             <div class="methodology-detail-body">
