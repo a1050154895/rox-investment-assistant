@@ -1,6 +1,10 @@
 """AI 助手服务 — OpenAI 兼容 chat/completions 调用。
 
-配置优先级：环境变量（AI_API_KEY / AI_API_BASE / AI_MODEL）> 用户设置（数据库）。
+三层模式（ai_mode）：
+- off      不使用 AI：核心功能完整可用，AI 端点直接拒绝。
+- platform 平台 AI：只使用服务端环境变量配置。
+- byok     自带模型：只使用用户设置（Key 为加密落库后的解密结果）。
+
 未配置时由 API 层返回明确错误，不降级为编造回复。
 """
 import os
@@ -15,10 +19,16 @@ TIMEOUT_SECONDS = 60.0
 
 def resolve_ai_config(settings: dict[str, Any] | None = None) -> dict[str, str]:
     settings = settings or {}
-    base = (os.getenv("AI_API_BASE", "").strip() or settings.get("ai_api_url") or DEFAULT_BASE).rstrip("/")
-    key = os.getenv("AI_API_KEY", "").strip() or settings.get("ai_api_key") or ""
-    model = os.getenv("AI_MODEL", "").strip() or settings.get("ai_model") or DEFAULT_MODEL
-    return {"base": base, "key": key, "model": model}
+    mode = settings.get("ai_mode") or "platform"
+    if mode == "byok":
+        base = (settings.get("ai_api_url") or DEFAULT_BASE).rstrip("/")
+        key = settings.get("ai_api_key") or ""
+        model = settings.get("ai_model") or DEFAULT_MODEL
+    else:
+        base = (os.getenv("AI_API_BASE", "").strip() or DEFAULT_BASE).rstrip("/")
+        key = os.getenv("AI_API_KEY", "").strip()
+        model = os.getenv("AI_MODEL", "").strip() or DEFAULT_MODEL
+    return {"base": base, "key": key, "model": model, "mode": mode}
 
 
 def is_configured(cfg: dict[str, str]) -> bool:

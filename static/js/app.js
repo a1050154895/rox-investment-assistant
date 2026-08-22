@@ -219,27 +219,46 @@ const ROX = {
     const tabs = {
       ai: `
         <div class="settings-section active">
-          <h4>AI 模型配置</h4>
+          <h4>AI 模式</h4>
           <div style="display:flex;flex-direction:column;gap:16px;">
             <div class="form-group">
-              <label class="form-label">AI 服务商</label>
-              <select class="form-select" id="set-ai-provider">
-                <option value="deepseek" ${s.ai_provider==='deepseek'?'selected':''}>DeepSeek</option>
-                <option value="openai" ${s.ai_provider==='openai'?'selected':''}>OpenAI</option>
-                <option value="zhipu" ${s.ai_provider==='zhipu'?'selected':''}>智谱AI</option>
+              <label class="form-label">AI 模式</label>
+              <select class="form-select" id="set-ai-mode">
+                ${(s.ai_modes || [{value:'off',label:'不使用 AI'},{value:'platform',label:'使用平台 AI'},{value:'byok',label:'使用我的模型（BYOK）'}]).map(m => `<option value="${m.value}" ${(s.ai_mode||'platform')===m.value?'selected':''}>${m.label}</option>`).join('')}
               </select>
+              <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7;margin-top:6px;">不使用 AI 时，研究卡、决策、复盘等核心功能完整可用。${s.platform_ai_available ? '平台 AI 当前可用。' : '平台 AI 暂未开通，可选择自带模型。'}</div>
+            </div>
+            <div id="byok-fields" style="display:${(s.ai_mode||'platform')==='byok'?'flex':'none'};flex-direction:column;gap:14px;">
+              <div class="form-group">
+                <label class="form-label">API 服务商</label>
+                <select class="form-select" id="set-ai-provider">
+                  <option value="deepseek" ${s.ai_provider==='deepseek'?'selected':''}>DeepSeek</option>
+                  <option value="openai" ${s.ai_provider==='openai'?'selected':''}>OpenAI 兼容</option>
+                  <option value="zhipu" ${s.ai_provider==='zhipu'?'selected':''}>智谱AI</option>
+                  <option value="custom" ${s.ai_provider==='custom'?'selected':''}>自定义</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">API Base URL</label>
+                <input class="form-input" id="set-ai-url" value="${s.ai_api_url||''}" placeholder="https://api.deepseek.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">API Key（加密存储，不回显）</label>
+                <input class="form-input" type="password" id="set-ai-key" placeholder="${s.ai_key_masked ? `当前 ${s.ai_key_masked}，留空则不修改` : '输入 API Key'}">
+                ${s.ai_key_masked ? `<div style="display:flex;align-items:center;gap:8px;margin-top:6px;"><span style="font-size:11px;color:var(--text-tertiary);">已配置：${s.ai_key_masked}</span><button class="btn btn-secondary btn-sm" data-action="delete-ai-key" style="color:var(--color-down);">删除 Key</button></div>` : ''}
+              </div>
+              <div class="form-group">
+                <label class="form-label">默认模型</label>
+                <input class="form-input" id="set-ai-model" value="${s.ai_model||''}" placeholder="deepseek-chat">
+              </div>
             </div>
             <div class="form-group">
-              <label class="form-label">API 地址</label>
-              <input class="form-input" id="set-ai-url" value="${s.ai_api_url||''}" placeholder="https://api.deepseek.com">
-            </div>
-            <div class="form-group">
-              <label class="form-label">API Key</label>
-              <input class="form-input" type="password" id="set-ai-key" placeholder="输入 API Key">
-            </div>
-            <div class="form-group">
-              <label class="form-label">默认模型</label>
-              <input class="form-input" id="set-ai-model" value="${s.ai_model||''}" placeholder="deepseek-chat">
+              <label class="form-label">允许把研究卡内容发送给 AI</label>
+              <select class="form-select" id="set-ai-send-card">
+                <option value="false" ${!s.ai_send_card_content?'selected':''}>默认不发送（推荐）</option>
+                <option value="true" ${s.ai_send_card_content?'selected':''}>允许，发送前逐次确认</option>
+              </select>
+              <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7;margin-top:6px;">AI 输出一律标注「模型辅助，不是事实来源」，且不能覆盖硬性风控；默认不发送持仓等敏感账户信息。</div>
             </div>
             <button class="btn btn-primary" data-action="save-settings">保存配置</button>
           </div>
@@ -320,6 +339,15 @@ const ROX = {
     };
 
     body.innerHTML = tabs[tab] || tabs.ai;
+
+    // AI 模式切换时显示/隐藏 BYOK 表单
+    const modeSelect = document.getElementById('set-ai-mode');
+    const byokFields = document.getElementById('byok-fields');
+    if (modeSelect && byokFields) {
+      modeSelect.addEventListener('change', () => {
+        byokFields.style.display = modeSelect.value === 'byok' ? 'flex' : 'none';
+      });
+    }
   },
 
   // Modal
@@ -548,6 +576,16 @@ const ROX = {
           'open-settings': () => this.openSettings(),
           'close-settings': () => this.closeSettings(),
           'close-modal': () => this.closeModal(),
+          'delete-ai-key': async () => {
+            const res = await this.api.delete('/api/settings/ai-key');
+            if (res && res.success) {
+              this.state.settings = null; // 强制下次重新拉取
+              await this.renderSettings('ai');
+              this.toast(res.message || 'BYOK 密钥已删除', 'success');
+            } else {
+              this.toast('删除失败，请重试', 'error');
+            }
+          },
           'save-settings': () => this.saveSettings(),
           'add-decision': () => this.showDecisionForm(actionEl.dataset.code, actionEl.dataset.name),
           'record-card-decision': () => this.showDecisionForm(actionEl.dataset.code, actionEl.dataset.name, actionEl.dataset.cardId),
@@ -750,17 +788,19 @@ const ROX = {
 
   async saveSettings() {
     const data = {};
-    const fields = ['set-ai-provider', 'set-ai-url', 'set-ai-key', 'set-ai-model', 'set-theme', 'set-compact', 'set-chart-style', 'set-period'];
+    const fields = ['set-ai-mode', 'set-ai-provider', 'set-ai-url', 'set-ai-key', 'set-ai-model', 'set-ai-send-card', 'set-theme', 'set-compact', 'set-chart-style', 'set-period'];
     const map = {
-      'set-ai-provider': 'ai_provider', 'set-ai-url': 'ai_api_url', 'set-ai-key': 'ai_api_key',
-      'set-ai-model': 'ai_model', 'set-theme': 'theme', 'set-compact': 'compact_mode',
+      'set-ai-mode': 'ai_mode', 'set-ai-provider': 'ai_provider', 'set-ai-url': 'ai_api_url', 'set-ai-key': 'ai_api_key',
+      'set-ai-model': 'ai_model', 'set-ai-send-card': 'ai_send_card_content',
+      'set-theme': 'theme', 'set-compact': 'compact_mode',
       'set-chart-style': 'chart_style', 'set-period': 'default_period'
     };
     fields.forEach(f => {
       const el = document.getElementById(f);
       if (el) {
         let val = el.value;
-        if (f === 'set-compact') val = val === 'true';
+        if (f === 'set-compact' || f === 'set-ai-send-card') val = val === 'true';
+        if (f === 'set-ai-key' && !val) return; // 留空不覆盖已存 Key
         data[map[f]] = val;
       }
     });
@@ -904,9 +944,12 @@ const ROX = {
         body: JSON.stringify({ question, context }),
       });
       if (!resp.ok) {
-        answer.textContent = resp.status === 503 ? 'AI 服务未配置，请在设置中填写 API Key。'
+        const err = await resp.json().catch(() => null);
+        const message = err?.detail?.message || (typeof err?.detail === 'string' ? err.detail : null);
+        answer.textContent = message
+          || (resp.status === 503 ? 'AI 服务未配置或已关闭，可在设置中调整 AI 模式。'
           : resp.status === 401 ? '请先登录以使用 AI 助手。'
-          : 'AI 服务调用失败。';
+          : 'AI 服务调用失败。');
         return;
       }
       const reader = resp.body.getReader();
@@ -922,6 +965,10 @@ const ROX = {
           }
         }
       }
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:10px;color:var(--text-tertiary);margin-top:6px;';
+      note.textContent = '— 模型辅助，不是事实来源，不覆盖硬性风控 —';
+      answer.parentElement.appendChild(note);
     } catch (e) {
       answer.textContent = '网络异常，请稍后重试。';
     }
