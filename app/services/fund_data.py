@@ -54,4 +54,25 @@ async def get_fund(code: str) -> dict[str, Any]:
 async def get_fund_kline(code: str, period: str = "daily") -> dict[str, Any]:
     if code.strip().lower().replace(".sh", "").replace(".sz", "") not in ETF_METADATA:
         return {"candles": [], "data_status": "unavailable", "message": "暂不支持该基金代码"}
-    return await get_kline(code, period)
+    result = await get_kline(code, period)
+    candles = result.get("candles", [])
+    if candles:
+        closes = [float(item["close"]) for item in candles if item.get("close") is not None]
+        if len(closes) >= 2:
+            peak = closes[0]
+            max_drawdown = 0.0
+            for close in closes:
+                peak = max(peak, close)
+                max_drawdown = min(max_drawdown, (close / peak - 1) * 100)
+            daily_returns = [(closes[i] / closes[i - 1] - 1) * 100 for i in range(1, len(closes)) if closes[i - 1]]
+            mean_return = sum(daily_returns) / len(daily_returns) if daily_returns else 0.0
+            variance = sum((value - mean_return) ** 2 for value in daily_returns) / len(daily_returns) if daily_returns else 0.0
+            result["metrics"] = {
+                "sample_count": len(closes),
+                "period_return_pct": round((closes[-1] / closes[0] - 1) * 100, 2),
+                "max_drawdown_pct": round(max_drawdown, 2),
+                "volatility_proxy_pct": round(variance ** 0.5, 2),
+                "as_of": candles[-1].get("date"),
+                "note": "基于交易价格K线，不代表基金净值收益或跟踪误差。",
+            }
+    return result
