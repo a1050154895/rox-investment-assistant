@@ -17,11 +17,17 @@
 </head>
 <body>
 <div class="app-shell" id="app">
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    <!-- 导航遮罩（移动端抽屉） -->
+    <div class="nav-backdrop" id="nav-backdrop" data-action="close-nav" aria-hidden="true"></div>
+
+    <!-- Sidebar（桌面：常驻左栏；移动端：左侧抽屉） -->
+    <aside class="sidebar" id="app-sidebar">
         <div class="logo">
             <div class="logo-icon">R</div>
             <span class="logo-text">ROX投资助手</span>
+            <button class="nav-drawer-close" data-action="close-nav" aria-label="关闭导航">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
         </div>
         <nav class="nav-items">
             <div class="nav-item active" data-route="/">
@@ -118,15 +124,13 @@
         </div>
     </aside>
 
-    <!-- Mobile Nav -->
-    <aside class="sidebar mobile-nav" id="mobile-nav">
-        <!-- Filled by JS -->
-    </aside>
-
     <!-- Main Area -->
     <main class="main-area">
         <header class="topbar">
             <div class="topbar-left">
+                <button class="nav-menu-btn" data-action="toggle-nav" aria-label="打开导航" aria-expanded="false" aria-controls="app-sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                </button>
                 <span class="topbar-title" id="page-title">仪表盘</span>
             </div>
             <div class="topbar-right">

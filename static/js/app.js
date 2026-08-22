@@ -148,8 +148,8 @@ const ROX = {
     document.getElementById('page-title').textContent = resolved ? resolved.title : 'ROX投资助手';
     document.getElementById('search-box').style.display = (resolved && resolved.handler === '/stock') ? 'block' : 'none';
 
-    // Mobile nav
-    this.updateMobileNav(path);
+    // 路由变化后收起抽屉
+    this.closeNav();
 
     // Render
     if (handler) {
@@ -164,27 +164,27 @@ const ROX = {
     }
   },
 
-  updateMobileNav(path) {
-    const nav = document.getElementById('mobile-nav');
-    const items = [
-      { route: '/', label: '仪表盘', icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
-      { route: '/stock', label: '个股', icon: '<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>' },
-      { route: '/funds', label: '基金', icon: '<path d="M4 19V5M4 19h16"/><path d="m7 15 3-4 3 2 5-6"/>' },
-      { route: '/journal', label: '日志', icon: '<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>' },
-      { route: '/framework', label: '框架', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>' },
-      { route: '/guide', label: '教程', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>' },
-      { route: '/intelligence', label: '情报', icon: '<path d="M4 5h16v14H4z"/><path d="M7 9h10M7 13h7"/>' },
-      { route: '/review', label: '复盘', icon: '<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/><circle cx="19" cy="19" r="2"/>' },
-      { route: '/portfolio', label: '持仓', icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>' },
-      { route: '/watchlist', label: '自选', icon: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>' },
-    ];
-    nav.innerHTML = items.map(item => {
-      const active = (item.route === '/' && (path === '/' || path === '')) || (item.route !== '/' && path.startsWith(item.route));
-      return `<div class="mobile-nav-item ${active ? 'active' : ''}" data-route="${item.route}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${item.icon}</svg>
-        <span>${item.label}</span>
-      </div>`;
-    }).join('');
+  // 移动端左侧抽屉导航（左右布局：左侧导航 + 右侧内容）
+  openNav() {
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('nav-backdrop');
+    const btn = document.querySelector('.nav-menu-btn');
+    sidebar?.classList.add('nav-open');
+    backdrop?.classList.add('open');
+    document.body.classList.add('nav-locked');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+  },
+
+  closeNav() {
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('nav-backdrop');
+    const btn = document.querySelector('.nav-menu-btn');
+    sidebar?.classList.remove('nav-open');
+    backdrop?.classList.remove('open');
+    document.body.classList.remove('nav-locked');
+    if (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+    }
   },
 
   // Settings panel
@@ -582,6 +582,11 @@ const ROX = {
           'open-settings': () => this.openSettings(),
           'close-settings': () => this.closeSettings(),
           'close-modal': () => this.closeModal(),
+          'toggle-nav': () => {
+            const open = document.getElementById('app-sidebar')?.classList.contains('nav-open');
+            open ? this.closeNav() : this.openNav();
+          },
+          'close-nav': () => this.closeNav(),
           'delete-ai-key': async () => {
             const res = await this.api.delete('/api/settings/ai-key');
             if (res && res.success) {
@@ -727,6 +732,13 @@ const ROX = {
       if (shortcuts[e.key]) {
         e.preventDefault();
         this.navigate(shortcuts[e.key]);
+      }
+    });
+
+    // ESC 关闭抽屉（escape-routes）
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('app-sidebar')?.classList.contains('nav-open')) {
+        this.closeNav();
       }
     });
 
