@@ -74,6 +74,15 @@ ROX.register('/', async function(container) {
         <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="宏观指南针快照" data-content="${ROX.escape(`宏观指南针：主权信用 ${data.macro_compass.sovereign_credit.score}（${data.macro_compass.sovereign_credit.detail}）；价值实现 ${data.macro_compass.value_realization.score}（${data.macro_compass.value_realization.detail}）`)}" data-source="宏观指南针矩阵" data-as-of="${ROX.escape(data.macro_compass.data_quality?.latest_observation || '')}">＋ 把宏观状态加入研究卡</button>
       </div>
 
+      <!-- 数据源健康面板：DataSourceRegistry 真实埋点 -->
+      <div class="card full-width" id="data-health-card">
+        <div class="card-header">
+          <div><div class="card-title">数据源健康</div><div class="card-subtitle">状态来自真实请求埋点；降级与缺失如实展示，不伪造可用性</div></div>
+          <span class="tag tag-gray" id="data-health-summary">加载中…</span>
+        </div>
+        <div id="data-health-body" style="display:flex;flex-direction:column;gap:6px;"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
       <!-- 资本周期 + 矛盾追踪 -->
       <div class="grid-2 dashboard-secondary-grid">
         <!-- 资本周期 -->
@@ -191,6 +200,7 @@ ROX.register('/', async function(container) {
   loadStatsCard();
   loadDisciplineAssessment();
   loadResearchToday();
+  loadDataHealthCard();
 
   // 自动刷新：指数 ticker + 自选股 + 持仓卡片每 30s 更新
   ROX.startAutoRefresh(async () => {
@@ -375,6 +385,40 @@ async function loadAlertsCard() {
 
   card.innerHTML = html;
   compass.after(card);
+}
+
+async function loadDataHealthCard() {
+  const body = document.getElementById('data-health-body');
+  const summary = document.getElementById('data-health-summary');
+  if (!body) return;
+  const data = await ROX.api.get('/api/data/sources');
+  if (!data || data.error) {
+    body.innerHTML = '<div style="font-size:12px;color:var(--text-tertiary);">数据源健康信息加载失败。</div>';
+    if (summary) summary.textContent = '不可用';
+    return;
+  }
+  const s = data.summary || {};
+  if (summary) summary.textContent = `正常 ${s.healthy || 0} · 降级 ${s.degraded || 0} · 不可用 ${s.down || 0} · 未观测 ${s.unknown || 0}`;
+  const healthClass = { healthy: 'tag-green', degraded: 'tag-amber', down: 'tag-red', unknown: 'tag-gray' };
+  const healthLabel = { healthy: '正常', degraded: '降级', down: '不可用', unknown: '未观测' };
+  body.innerHTML = (data.sources || []).map(src => `
+    <div class="data-source-row" title="${ROX.escape(src.authorization || '')}">
+      <span class="data-source-dot ${src.health}"></span>
+      <div style="min-width:0;flex:1;">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <strong style="font-size:12px;">${ROX.escape(src.name)}</strong>
+          <span class="tag ${healthClass[src.health] || 'tag-gray'}">${healthLabel[src.health] || src.health}</span>
+          ${src.realtime ? '<span class="tag tag-blue">实时</span>' : ''}
+          ${src.consecutive_failures ? `<span class="tag tag-amber">连续失败 ${src.consecutive_failures}</span>` : ''}
+        </div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+          ${ROX.escape((src.data_types || []).join(' · '))}
+          · 最近成功 ${src.last_success_at ? new Date(src.last_success_at).toLocaleString('zh-CN') : '无记录'}
+          ${src.last_latency_ms != null ? ` · ${src.last_latency_ms}ms` : ''}
+          ${src.degrade_to ? ` · 降级 → ${ROX.escape(src.degrade_to)}` : ''}
+        </div>
+      </div>
+    </div>`).join('');
 }
 
 async function loadWatchlistCard() {

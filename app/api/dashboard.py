@@ -12,6 +12,7 @@ from app.core.auth import get_current_user
 from app.db import get_db
 from app.models import Alert, JournalEntry, Position, User, Watchlist
 from app.services.contradiction_engine import get_contradictions
+from app.services.data_contract import ensure_contract
 from app.services.market_data import get_market_indices
 from app.services.intelligence_data import get_intelligence_brief
 from app.services.macro_data import get_macro_matrix
@@ -25,7 +26,7 @@ router = APIRouter()
 async def overview():
     """仪表盘聚合数据"""
     # 获取实时市场指数
-    market_indices = await get_market_indices()
+    market_indices = [ensure_contract(idx) for idx in await get_market_indices()]
 
     # 资讯与宏观矩阵独立降级，任一外部数据源异常都不影响行情主看板
     intelligence, macro_matrix, capital_cycle, contradictions = await asyncio.gather(

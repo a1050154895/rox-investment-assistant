@@ -1081,3 +1081,11 @@ summary { cursor: pointer; }
 .research-archive-decision-date { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); margin-left: 6px; }
 .research-archive-decision-meta { font-size: 11px; color: var(--text-secondary); }
 .research-archive-empty { font-size: 12px; color: var(--text-tertiary); padding: 10px 12px; border: 1px dashed var(--border-default, rgba(224,211,191,.2)); border-radius: 8px; }
+
+/* 数据源健康面板 */
+.data-source-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--ink-surface, rgba(224,211,191,.04)); }
+.data-source-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; }
+.data-source-dot.healthy { background: var(--color-up, #2ea76a); box-shadow: 0 0 6px rgba(46,167,106,.5); }
+.data-source-dot.degraded { background: var(--ink-warn, #ff9f0a); }
+.data-source-dot.down { background: var(--color-down, #d34f42); }
+.data-source-dot.unknown { background: var(--text-tertiary, #948d83); }

@@ -125,7 +125,7 @@ async def _fetch_news_akshare() -> tuple[list[dict[str, Any]], str]:
     return [], ""
 
 
-async def get_intelligence_brief(force: bool = False) -> dict[str, Any]:
+async def _get_intelligence_brief_raw(force: bool = False) -> dict[str, Any]:
     """返回资讯、政策、全球风险和行业资金研判面板。"""
     cache_key = "brief"
     cached = _CACHE.get(cache_key)
@@ -196,3 +196,14 @@ async def get_stock_intelligence(code: str, name: str, industry: str) -> dict[st
         "rule": "资讯只作为假设生成器；需以业绩、订单、价格趋势与资金流至少两项验证后再纳入决策。",
         "updated_at": brief["updated_at"],
     }
+
+
+# ---- DataSourceRegistry 埋点 ----
+from app.services import data_source_registry as _registry  # noqa: E402
+
+
+async def get_intelligence_brief(force: bool = False) -> dict[str, Any]:
+    result = await _get_intelligence_brief_raw(force)
+    ok = bool(result.get("news") or result.get("sector_flow"))
+    _registry.record("akshare_news", ok=ok, error=None if ok else "资讯抓取为空")
+    return result

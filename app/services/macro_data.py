@@ -289,7 +289,7 @@ def _matrix_conclusion(fiscal: dict[str, Any], value: dict[str, Any]) -> tuple[s
     return cell, "进入研究验证，不自动调仓", advice
 
 
-async def get_macro_matrix(force: bool = False) -> dict[str, Any]:
+async def _get_macro_matrix_raw(force: bool = False) -> dict[str, Any]:
     global _CACHE
     if _CACHE and not force and time.time() - _CACHE[0] < _CACHE_TTL:
         return _CACHE[1]
@@ -326,4 +326,14 @@ async def get_macro_matrix(force: bool = False) -> dict[str, Any]:
         "disclaimer": "宏观矩阵是研究代理，不是信用评级、投资建议或仓位指令。",
     }
     _CACHE = (time.time(), result)
+    return result
+
+
+# ---- DataSourceRegistry 埋点 ----
+from app.services import data_source_registry as _registry  # noqa: E402
+
+
+async def get_macro_matrix(force: bool = False) -> dict[str, Any]:
+    result = await _get_macro_matrix_raw(force)
+    _registry.record("macro_official", ok=result.get("data_status") != "unavailable")
     return result

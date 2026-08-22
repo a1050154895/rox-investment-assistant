@@ -6,6 +6,7 @@
 from fastapi import APIRouter, Query
 
 from app.services.analysis_engine import build_analysis, calculate_indicators
+from app.services.data_contract import ensure_contract
 from app.services.market_data import (
     get_stock_quote, get_kline, get_fund_flow, REAL_QUOTES,
 )
@@ -41,14 +42,14 @@ async def search_stocks(q: str = Query("", max_length=20, description="搜索关
 
 @router.get("/{code}")
 async def stock_info(code: str):
-    """个股实时行情"""
-    return await get_stock_quote(code)
+    """个股实时行情（统一数据状态契约出口）"""
+    return ensure_contract(await get_stock_quote(code))
 
 
 @router.get("/{code}/kline")
 async def kline(code: str, period: str = Query("daily", description="周期: daily/weekly")):
     """K线数据 — AKShare 实时获取，失败时回退到真实价格快照"""
-    return await get_kline(code, period)
+    return ensure_contract(await get_kline(code, period))
 
 
 @router.get("/{code}/analysis")

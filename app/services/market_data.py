@@ -177,7 +177,7 @@ def normalize_stock_code(code: str) -> str:
     return normalized.split(".")[0]
 
 
-async def get_stock_quote(code: str) -> dict[str, Any]:
+async def _get_stock_quote_raw(code: str) -> dict[str, Any]:
     """获取个股行情，并明确标注实时/快照状态。
 
     数据源优先级：腾讯 → 新浪 → AKShare → NeoData 快照。
@@ -281,7 +281,7 @@ async def get_stock_quote(code: str) -> dict[str, Any]:
     }
 
 
-async def get_kline(code: str, period: str = "daily", limit: int = 120) -> dict[str, Any]:
+async def _get_kline_raw(code: str, period: str = "daily", limit: int = 120) -> dict[str, Any]:
     """获取K线数据；失败时不生成模拟行情。
 
     数据源优先级：腾讯自选股公开接口 → AKShare。
@@ -336,7 +336,7 @@ async def get_kline(code: str, period: str = "daily", limit: int = 120) -> dict[
     }
 
 
-async def get_fund_flow(code: str) -> dict[str, Any]:
+async def _get_fund_flow_raw(code: str) -> dict[str, Any]:
     """获取资金流向；失败时仅返回已登记快照。"""
     code = normalize_stock_code(code)
 
@@ -375,7 +375,7 @@ async def get_fund_flow(code: str) -> dict[str, Any]:
     }
 
 
-async def get_market_indices() -> list[dict]:
+async def _get_market_indices_raw() -> list[dict]:
     """获取市场指数"""
     target_codes = {"000001": "上证指数", "399001": "深证成指", "399006": "创业板指", "000300": "沪深300"}
     try:
@@ -527,3 +527,37 @@ def load_stock_universe(refresh: bool = False) -> list[dict]:
         _universe_loaded_at = now
 
     return _universe_cache or []
+
+
+# ---- DataSourceRegistry 埋点包装：真实请求结果写入健康注册表 ----
+from app.services import data_source_registry as _registry  # noqa: E402
+
+
+async def get_stock_quote(code: str) -> dict[str, Any]:
+    result = await _get_stock_quote_raw(code)
+    _registry.record_result(result)
+    return result
+
+
+async def get_kline(code: str, period: str = "daily", limit: int = 120) -> dict[str, Any]:
+    result = await _get_kline_raw(code, period, limit)
+    _registry.record_result(result)
+    return result
+
+
+async def get_fund_flow(code: str) -> dict[str, Any]:
+    result = await _get_fund_flow_raw(code)
+    _registry.record_result(result)
+    return result
+
+
+async def get_market_indices() -> list[dict]:
+    indices = await _get_market_indices_raw()
+    if indices:
+        merged = {
+            "data_source": indices[0].get("data_source"),
+            "data_status": indices[0].get("data_status"),
+            "message": indices[0].get("message"),
+        }
+        _registry.record_result(merged)
+    return indices

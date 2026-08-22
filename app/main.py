@@ -26,12 +26,12 @@ logger = logging.getLogger("rox")
 from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
     discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio, export_api, alerts, watchlist,
-    guide, research, funds,
+    guide, research, funds, data,
 )
 
 app = FastAPI(
     title="ROX投资助手",
-    version="4.10.0",
+    version="4.11.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
@@ -96,6 +96,7 @@ app.include_router(watchlist.router, prefix="/api/watchlist", tags=["watchlist"]
 app.include_router(guide.router, prefix="/api/guide", tags=["guide"])
 app.include_router(research.router, prefix="/api/research", tags=["research"])
 app.include_router(funds.router, prefix="/api/funds", tags=["funds"])
+app.include_router(data.router, prefix="/api/data", tags=["data"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
