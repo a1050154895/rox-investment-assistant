@@ -11,7 +11,7 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'SECRET_KEY=e2e-test-key-32bytes-0123456789abcdef ENVIRONMENT=test DATABASE_URL=sqlite:///data/e2e.db .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8783',
+    command: 'ENVIRONMENT=test DATABASE_URL=sqlite:///data/e2e.db python -m uvicorn app.main:app --host 127.0.0.1 --port 8783',
     url: 'http://127.0.0.1:8783/health',
     reuseExistingServer: false,
     timeout: 120_000,
