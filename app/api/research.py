@@ -30,6 +30,7 @@ class ResearchCardIn(BaseModel):
     title: str = Field(..., min_length=1, max_length=120)
     code: str = Field("", max_length=10)
     stock: str = Field("", max_length=30)
+    targets: list[dict] = Field(default_factory=list, max_length=20)
     question: str = Field("", max_length=1000)
     hypothesis: str = Field("", max_length=2000)
     facts: list[str] = Field(default_factory=list, max_length=20)
@@ -42,6 +43,27 @@ class ResearchCardIn(BaseModel):
     status: str = Field("draft", max_length=20)
     hypothesis_status: str | None = Field(None, max_length=20)
     next_review_at: str | None = Field(None, max_length=10)
+
+    @field_validator("targets")
+    @classmethod
+    def _valid_targets(cls, value: list[dict]) -> list[dict]:
+        normalized = []
+        seen = set()
+        for target in value:
+            if not isinstance(target, dict):
+                raise ValueError("targets 必须是对象列表")
+            code = str(target.get("code", "")).strip()
+            if not code or len(code) > 10:
+                raise ValueError("每个研究目标必须包含有效代码")
+            if code in seen:
+                continue
+            seen.add(code)
+            normalized.append({
+                "code": code,
+                "name": str(target.get("name", "")).strip()[:30],
+                "type": str(target.get("type", "stock") or "stock"),
+            })
+        return normalized
 
     @field_validator("status")
     @classmethod
@@ -65,16 +87,23 @@ class ResearchCardUpdate(ResearchCardIn):
 
 
 def _set_card(card: ResearchCard, data: ResearchCardIn) -> None:
-    values = data.model_dump(exclude={"facts"})
+    values = data.model_dump(exclude={"facts", "targets"})
     for key, value in values.items():
         setattr(card, key, value)
     card.facts_json = json.dumps(data.facts, ensure_ascii=False)
+    card.targets_json = json.dumps(data.targets, ensure_ascii=False)
+    if data.targets:
+        primary = data.targets[0]
+        card.code = primary["code"]
+        card.stock = primary.get("name", "")
     card.updated_at = utcnow()
 
 
 def card_out(card: ResearchCard) -> dict:
     """研究卡序列化：附上状态中文标签和证据计数。"""
     data = card.to_dict()
+    if not data.get("targets") and (card.code or card.stock):
+        data["targets"] = [{"code": card.code, "name": card.stock, "type": "stock"}]
     facts = data.get("facts") or []
     data["status_label"] = CARD_STATUSES.get(card.status, card.status)
     data["evidence_counts"] = {
@@ -153,6 +182,22 @@ async def list_cards(
         query = query.filter(ResearchCard.status == status)
     cards = query.order_by(ResearchCard.updated_at.desc(), ResearchCard.id.desc()).limit(100).all()
     return {"count": len(cards), "cards": [card_out(card) for card in cards]}
+
+
+@router.get("/related/{code}")
+async def related(code: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """返回与标的关联的研究卡和决策，供个股/基金透视使用。"""
+    code = code.strip()
+    cards = db.query(ResearchCard).filter(ResearchCard.user_id == user.id).all()
+    related_cards = []
+    for card in cards:
+        output = card_out(card)
+        if any(str(target.get("code", "")) == code for target in output.get("targets", []) if isinstance(target, dict)):
+            related_cards.append(output)
+    decisions = db.query(JournalEntry).filter(
+        JournalEntry.user_id == user.id, JournalEntry.code == code
+    ).order_by(JournalEntry.date.desc(), JournalEntry.id.desc()).limit(20).all()
+    return {"cards": related_cards, "decisions": [entry.to_dict() for entry in decisions]}
 
 
 @router.post("/")

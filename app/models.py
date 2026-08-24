@@ -88,6 +88,7 @@ class ResearchCard(Base):
     title = mapped_column(String(120))
     code = mapped_column(String(10), default="")
     stock = mapped_column(String(30), default="")
+    targets_json = mapped_column(Text, default="[]")
     question = mapped_column(Text, default="")
     hypothesis = mapped_column(Text, default="")
     facts_json = mapped_column(Text, default="[]")
@@ -105,16 +106,20 @@ class ResearchCard(Base):
 
     def to_dict(self):
         import json
-
         try:
             facts = json.loads(self.facts_json or "[]")
         except (TypeError, ValueError):
             facts = []
+        try:
+            targets = json.loads(self.targets_json or "[]")
+        except (TypeError, ValueError):
+            targets = []
         return {
             "id": self.id,
             "title": self.title,
             "code": self.code,
             "stock": self.stock,
+            "targets": targets if isinstance(targets, list) else [],
             "question": self.question,
             "hypothesis": self.hypothesis,
             "facts": facts,

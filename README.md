@@ -806,7 +806,7 @@ curl https://rox-investment-assistant.onrender.com/api/intelligence/brief
 - ✅ 价格预警在线轮询、页面提示和浏览器通知
 - ✅ 移动端抽屉、主题切换和研究闭环 Playwright 回归
 - ⏳ 预警独立采集 Worker、消息队列和服务端推送
-- ⏳ Lighthouse 移动审计纳入 CI 阈值检查（当前本地审计：无障碍 0.95、最佳实践 0.96、性能 0.75；LCP/TTI 仍需优化）
+- ✅ Lighthouse 移动审计已带 CI 阈值断言（无障碍/最佳实践 < 0.85 即失败；当前本地审计：无障碍 0.95、最佳实践 0.96、性能 0.75；LCP/TTI 仍需优化）
 
 ### 阶段 4.6：AI增强层
 

@@ -8,7 +8,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.28.0"
+        assert data["version"] == "4.29.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -521,6 +521,30 @@ class TestFunds:
             "research_card_id": 999999,
         }, headers=auth_headers)
         assert decision.status_code == 404
+
+    def test_research_card_supports_multiple_targets(self, client, auth_headers):
+        resp = client.post("/api/research/", json={
+            "title": "多目标研究",
+            "targets": [
+                {"code": "600519", "name": "贵州茅台", "type": "stock"},
+                {"code": "510300", "name": "沪深300ETF", "type": "fund"},
+            ],
+        }, headers=auth_headers)
+        assert resp.status_code == 200
+        assert [target["code"] for target in resp.json()["card"]["targets"]] == ["600519", "510300"]
+
+    def test_related_research_returns_cards_and_decisions(self, client, auth_headers):
+        card = client.post("/api/research/", json={
+            "title": "关联查询", "code": "600519", "stock": "贵州茅台",
+        }, headers=auth_headers).json()["card"]
+        client.post("/api/journal/", json={
+            "stock": "贵州茅台", "code": "600519", "action": "持有",
+            "stage": "试仓30%", "research_card_id": card["id"],
+        }, headers=auth_headers)
+        resp = client.get("/api/research/related/600519", headers=auth_headers)
+        assert resp.status_code == 200
+        assert [item["id"] for item in resp.json()["cards"]] == [card["id"]]
+        assert len(resp.json()["decisions"]) == 1
 
 
 class TestPortfolioUpdate:

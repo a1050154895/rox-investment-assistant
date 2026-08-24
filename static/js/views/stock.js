@@ -5,6 +5,7 @@
 let _klineChart = null;
 let _flowChart = null;
 let _klineSeries = null;
+let _stockDecisions = [];
 window.addEventListener('resize', () => {
   if (_klineChart && typeof _klineChart.resize === 'function') {
     const el = document.getElementById('kline-chart');
@@ -75,6 +76,7 @@ ROX.register('/stock', async function(container, params) {
         <div class="card stock-chart-card" style="flex:1;padding:12px;overflow:hidden;">
           ${kline?.data_status === 'unavailable' ? `<div class="empty-state"><p>${kline.message || 'K线数据暂不可用'}</p></div>` : `<div id="kline-chart" class="chart-container"></div>`}
         </div>
+        <div class="card" id="stock-research-links" style="padding:12px;"><div class="loading"><div class="spinner"></div></div></div>
 
         <!-- Fund Flow -->
         <div class="card stock-flow-card" style="padding:12px;">
@@ -181,17 +183,21 @@ ROX.register('/stock', async function(container, params) {
 
   // Render charts
   if (kline?.candles?.length) {
-    renderKline(kline.candles, info);
+    renderKline(kline.candles, info, _stockDecisions);
   }
+  loadRelatedResearch(code, document.getElementById('stock-research-links')).then(data => {
+    _stockDecisions = data?.decisions || [];
+    if (kline?.candles?.length) renderKline(kline.candles, info, _stockDecisions);
+  });
 
   // Period switch
   document.getElementById('btn-daily')?.addEventListener('click', async () => {
     const data = await ROX.api.get(`/api/stock/${code}/kline?period=daily`);
-    if (data?.candles?.length) renderKline(data.candles, info);
+    if (data?.candles?.length) renderKline(data.candles, info, _stockDecisions);
   });
   document.getElementById('btn-weekly')?.addEventListener('click', async () => {
     const data = await ROX.api.get(`/api/stock/${code}/kline?period=weekly`);
-    if (data?.candles?.length) renderKline(data.candles, info);
+    if (data?.candles?.length) renderKline(data.candles, info, _stockDecisions);
   });
 
   // Price alert — custom modal form (replaces prompt + confirm)
@@ -300,7 +306,16 @@ ROX.register('/stock', async function(container, params) {
   }, 30000);
 });
 
-function renderKline(candles, info) {
+async function loadRelatedResearch(code, mount) {
+  if (!mount) return;
+  const data = await ROX.api.get(`/api/research/related/${encodeURIComponent(code)}`);
+  if (!data || data.error) { mount.innerHTML = '<div class="empty-state"><p>关联研究数据暂不可用</p></div>'; return null; }
+  mount.innerHTML = `<div class="card-header"><div><div class="card-title">研究与决策关联</div><div class="card-subtitle">${data.cards.length} 张研究卡 · ${data.decisions.length} 条决策</div></div><button class="btn btn-secondary btn-sm" data-route="/research/new">新建研究卡</button></div>${data.cards.length ? `<div class="research-link-list">${data.cards.map(card => `<button class="research-link-item" data-route="/research/${card.id}"><strong>${ROX.escape(card.title)}</strong><span>${ROX.escape(card.status_label)} · ${ROX.escape(card.action || '观察')}</span></button>`).join('')}</div>` : '<div class="empty-state"><p>暂无关联研究卡</p></div>'}${data.decisions.length ? `<div class="research-link-decisions">${data.decisions.slice(0, 5).map(d => `<div><span class="tag ${ROX.fmt.actionTag(d.action)}">${ROX.escape(d.action)}</span><span>${ROX.escape(d.date)} · ${ROX.escape(d.result)}</span></div>`).join('')}</div>` : ''}`;
+  mount.querySelectorAll('[data-route]').forEach(item => item.addEventListener('click', () => ROX.navigate(item.dataset.route)));
+  return data;
+}
+
+function renderKline(candles, info, decisions = []) {
   const chartEl = document.getElementById('kline-chart');
   if (!chartEl) return;
 
@@ -320,6 +335,16 @@ function renderKline(candles, info) {
       upColor: '#26A69A', downColor: '#EF5350', borderUpColor: '#26A69A', borderDownColor: '#EF5350', wickUpColor: '#26A69A', wickDownColor: '#EF5350',
     });
     _klineSeries.setData(candles.map(c => ({ time: c.date, open: c.open, high: c.high, low: c.low, close: c.close })));
+    if (typeof _klineSeries.setMarkers === 'function') {
+      const markers = decisions.filter(d => d.date && candles.some(c => c.date === d.date)).map(d => ({
+        time: d.date,
+        position: ['买入', '持有'].includes(d.action) ? 'belowBar' : 'aboveBar',
+        color: d.action === '买入' ? '#ff453a' : d.action === '卖出' ? '#30d158' : '#0a84ff',
+        shape: d.action === '买入' ? 'arrowUp' : d.action === '卖出' ? 'arrowDown' : 'circle',
+        text: `${d.action}${d.result && d.result !== '待观察' ? ` · ${d.result}` : ''}`,
+      }));
+      _klineSeries.setMarkers(markers);
+    }
     _klineChart.timeScale().fitContent();
     requestAnimationFrame(() => _klineChart && _klineChart.resize(chartEl.clientWidth, chartEl.clientHeight));
     return;

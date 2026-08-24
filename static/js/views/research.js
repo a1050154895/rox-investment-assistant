@@ -16,8 +16,7 @@ function researchCardForm(card = {}) {
       <div class="research-step" data-step="1">
       <div class="research-step-label">1 / 4 · 先定义研究对象</div><div class="research-form-grid">
         <label class="form-group"><span class="form-label">研究标题 *</span><input class="form-input" name="title" required maxlength="120" value="${ROX.escape(card.title || '')}" placeholder="例如：宁德时代当前是否值得继续跟踪？"></label>
-        <label class="form-group"><span class="form-label">股票代码</span><input class="form-input" name="code" maxlength="10" value="${ROX.escape(card.code || '')}" placeholder="如 300750"></label>
-        <label class="form-group"><span class="form-label">股票名称</span><input class="form-input" name="stock" maxlength="30" value="${ROX.escape(card.stock || '')}" placeholder="如 宁德时代"></label>
+        <label class="form-group"><span class="form-label">研究目标</span><input class="form-input" id="research-target-search" autocomplete="off" placeholder="搜索股票代码或名称"><div id="research-target-results" class="search-results"></div><div id="research-target-list" class="research-target-list"></div><input type="hidden" name="code" value="${ROX.escape(card.code || '')}"><input type="hidden" name="stock" value="${ROX.escape(card.stock || '')}"><input type="hidden" name="targets" value=""></label>
         <label class="form-group"><span class="form-label">动作</span><select class="form-input" name="action"><option ${card.action === '观察' || !card.action ? 'selected' : ''}>观察</option><option ${card.action === '买入' ? 'selected' : ''}>买入</option><option ${card.action === '持有' ? 'selected' : ''}>持有</option><option ${card.action === '减仓' ? 'selected' : ''}>减仓</option><option ${card.action === '卖出' ? 'selected' : ''}>卖出</option></select></label>
       </div>
       </div>
@@ -63,7 +62,54 @@ function researchPayload(form) {
   data.facts = (data.facts || '').split('\n').map(item => item.trim()).filter(Boolean);
   data.stop_loss = data.stop_loss ? Number(data.stop_loss) : null;
   data.hypothesis_status = data.hypothesis_status || null;
+  try { data.targets = JSON.parse(form.querySelector('[name="targets"]')?.value || '[]'); } catch (_) { data.targets = []; }
   return data;
+}
+
+function setResearchTargets(form, targets) {
+  const list = form.querySelector('#research-target-list');
+  const hidden = form.querySelector('[name="targets"]');
+  if (!list || !hidden) return;
+  hidden.value = JSON.stringify(targets);
+  const code = form.querySelector('[name="code"]');
+  const stock = form.querySelector('[name="stock"]');
+  if (code) code.value = targets[0]?.code || '';
+  if (stock) stock.value = targets[0]?.name || '';
+  list.innerHTML = targets.map((target, index) => `<span class="tag tag-blue">${ROX.escape(target.name || target.code)} <button type="button" data-remove-target="${index}" aria-label="移除研究目标">×</button></span>`).join('');
+}
+
+async function bindResearchTargetPicker(form, seed) {
+  const input = form.querySelector('#research-target-search');
+  const results = form.querySelector('#research-target-results');
+  if (!input || !results) return;
+  let targets = Array.isArray(seed.targets) && seed.targets.length ? seed.targets : (seed.code ? [{ code: seed.code, name: seed.stock, type: 'stock' }] : []);
+  setResearchTargets(form, targets);
+  input.addEventListener('input', async () => {
+    const query = input.value.trim();
+    if (!query) { results.classList.remove('show'); return; }
+    const data = await ROX.api.get(`/api/stock/search?q=${encodeURIComponent(query)}`);
+    results.innerHTML = (data?.results || []).slice(0, 8).map(item => `<button type="button" class="search-result-item" data-target-code="${ROX.escape(item.code)}" data-target-name="${ROX.escape(item.name)}">${ROX.escape(item.name)} <span>${ROX.escape(item.code)}</span></button>`).join('') || '<div class="search-result-item">无匹配结果</div>';
+    results.classList.add('show');
+  });
+  results.addEventListener('click', (event) => {
+    const item = event.target.closest('[data-target-code]');
+    if (!item) return;
+    if (!targets.some(target => target.code === item.dataset.targetCode)) targets.push({ code: item.dataset.targetCode, name: item.dataset.targetName, type: 'stock' });
+    setResearchTargets(form, targets);
+    input.value = '';
+    results.classList.remove('show');
+  });
+  form.addEventListener('click', (event) => {
+    const remove = event.target.closest('[data-remove-target]');
+    if (remove) { targets.splice(Number(remove.dataset.removeTarget), 1); setResearchTargets(form, targets); }
+  });
+}
+
+async function renderResearchList(container) {
+  const data = await ROX.api.get('/api/research/');
+  const cards = data?.cards || [];
+  container.innerHTML = `<div class="research-page"><div class="research-page-head"><div><div class="eyebrow">ROX LOOP / RESEARCH</div><h2 class="research-page-title">研究卡</h2><p class="research-page-subtitle">把事实、假设、反证和决策放在同一条可复盘链路上。</p></div><button class="btn btn-primary" data-route="/research/new">+ 新建研究卡</button></div><div class="research-card-list">${cards.length ? cards.map(card => `<button class="card research-list-item" data-route="/research/${card.id}"><div><strong>${ROX.escape(card.title)}</strong><div class="research-queue-meta">${ROX.escape(card.targets?.map(t => t.name || t.code).join('、') || card.stock || '未绑定标的')}</div></div><span class="tag tag-blue">${ROX.escape(card.status_label || card.status)}</span></button>`).join('') : '<div class="empty-state">还没有研究卡，先建立第一个可验证问题。</div>'}</div></div>`;
+  container.querySelectorAll('[data-route]').forEach(item => item.addEventListener('click', () => ROX.navigate(item.dataset.route)));
 }
 
 function renderRiskResult(result, target) {
@@ -103,6 +149,7 @@ async function loadCardArchive(cardId, mount) {
 }
 
 ROX.register('/research', async function(container, params) {
+  if (!params.id && !params.newCard && !Object.keys(params.query || {}).length) { await renderResearchList(container); return; }
   let cardId = params.id;
   let card = null;
   if (cardId) {
@@ -135,6 +182,7 @@ ROX.register('/research', async function(container, params) {
   container.innerHTML = `<div class="research-page"><div class="research-page-head"><div><div class="eyebrow">ROX LOOP / RESEARCH</div><h2 class="research-page-title">${card ? '继续完善研究卡' : '把一个想法变成可验证判断'}</h2><p class="research-page-subtitle">先写清事实、假设和反证，再决定是否行动。</p></div><button class="btn btn-secondary" data-route="/research?template=serenity_chain">产业链三问模板</button><button class="btn btn-secondary" data-route="/research?template=discipline_guard">反模式自查模板</button><button class="btn btn-secondary" data-route="/">回到今日</button></div><div class="research-context-strip"><span class="research-context-mark">证</span><div><strong>这不是荐股表单</strong><span>把一个判断拆成证据、假设、反证和纪律，留下可复盘的依据。</span></div></div><div id="research-archive-mount"></div><div class="card research-card-shell">${researchCardForm(seed)}${cardId ? `<div class="research-decision-footer"><div><strong>研究链已保存</strong><span>准备好后再记录正式决策，决策会保留这张研究卡的关联。</span></div><button class="btn btn-primary" data-action="record-card-decision" data-card-id="${cardId}" data-code="${ROX.escape(card.code || '')}" data-name="${ROX.escape(card.stock || '')}">记录关联决策</button></div>` : ''}</div></div>`;
 
   const form = document.getElementById('research-card-form');
+  await bindResearchTargetPicker(form, seed);
   templateLoader();
   const archiveMount = document.getElementById('research-archive-mount');
   if (cardId) loadCardArchive(cardId, archiveMount);

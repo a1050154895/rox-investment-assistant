@@ -142,6 +142,7 @@ const ROX = {
   routes: {},
   routePatterns: [
     { match: /^\/?$/,                    handler: '/',           title: '仪表盘' },
+    { match: /^\/research\/new\/?$/, handler: '/research', title: '新建研究卡', extract: () => ({ newCard: true }) },
     { match: /^\/research(\/\d+)?\/?$/, handler: '/research', title: '研究卡', extract: m => ({ id: m[1] ? m[1].slice(1) : null }) },
     { match: /^\/stock(\/(\d+))?\/?$/,   handler: '/stock',      title: '个股透视', extract: m => ({ code: m[2] }) },
     { match: /^\/funds(\/(\d+))?\/?$/,   handler: '/funds',      title: '基金透视', extract: m => ({ code: m[2] }) },
