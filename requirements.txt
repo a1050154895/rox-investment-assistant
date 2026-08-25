@@ -10,4 +10,4 @@ psycopg2-binary==2.9.10
 PyJWT==2.13.0
 httpx==0.28.1
 slowapi==0.1.10
-cryptography==44.0.1
+cryptography==46.0.6

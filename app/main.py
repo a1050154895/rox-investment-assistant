@@ -31,7 +31,7 @@ from app.api import (
 
 app = FastAPI(
     title="ROX投资助手",
-    version="4.29.0",
+    version="4.30.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 

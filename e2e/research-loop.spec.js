@@ -14,7 +14,7 @@ test('mobile research loop reaches review statistics', async ({ page }) => {
   await register(page);
   await page.locator('#onboarding-overlay').evaluate((node) => node.classList.remove('onboarding-open'));
 
-  await page.goto('/research');
+  await page.goto('/research/new');
   await expect(page.locator('#research-card-form')).toBeVisible();
   await expect(page.locator('.research-step')).toHaveCount(4);
   await expect(page.locator('.research-step').filter({ visible: true })).toHaveCount(1);

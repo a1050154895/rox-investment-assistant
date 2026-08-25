@@ -24,7 +24,7 @@ test('mobile drawer navigation opens, navigates and closes', async ({ page }) =>
 
   // 点导航项：跳转并自动收起
   await page.locator("#app-sidebar .nav-item[data-route='/research']").click();
-  await expect(page.locator('#research-card-form')).toBeVisible();
+  await expect(page.locator('.research-card-list')).toBeVisible();
   await expect(page.locator('#app-sidebar')).not.toHaveClass(/nav-open/);
 });
 
