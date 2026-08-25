@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_db
-from app.models import DecisionContext, JournalEntry, User
+from app.models import DecisionContext, JournalEntry, ResearchCard, ResearchEvent, User
 
 router = APIRouter()
 
@@ -100,7 +100,6 @@ async def create_decision(
 ):
     """创建决策记录。"""
     if decision.research_card_id:
-        from app.models import ResearchCard
         card = db.query(ResearchCard).filter(
             ResearchCard.id == decision.research_card_id,
             ResearchCard.user_id == user.id,
@@ -123,6 +122,14 @@ async def create_decision(
     context = await _snapshot_context()
     if context:
         db.add(DecisionContext(journal_id=entry.id, **context))
+        db.commit()
+    if entry.research_card_id:
+        db.add(ResearchEvent(
+            user_id=user.id, research_card_id=entry.research_card_id,
+            event_type="decision", title="关联决策记录",
+            detail=f"{entry.action} · {entry.stage} · {entry.reason or '未填写理由'}",
+            source=f"决策日志 #{entry.id}",
+        ))
         db.commit()
     return {"success": True, "id": entry.id, "decision": _entry_to_dict(entry)}
 

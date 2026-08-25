@@ -457,6 +457,25 @@ class TestResearchCards:
         today = client.get("/api/research/today", headers=auth_headers)
         assert any(c["id"] == card_id for c in today.json()["due_review_cards"])
 
+    def test_research_timeline_tracks_evidence_and_decision(self, client, auth_headers):
+        card = client.post("/api/research/", json={"title": "时间线测试"}, headers=auth_headers).json()["card"]
+        card_id = card["id"]
+        evidence = client.post(f"/api/research/{card_id}/evidence", json={
+            "evidence_type": "fact", "content": "公告披露收入增长", "source": "公司公告", "as_of": "2026-08-26",
+        }, headers=auth_headers)
+        assert evidence.status_code == 200
+        decision = client.post("/api/journal/", json={
+            "stock": "测试标的", "code": "600519", "action": "观察", "stage": "试仓30%",
+            "reason": "等待第二条证据", "research_card_id": card_id,
+        }, headers=auth_headers)
+        assert decision.status_code == 200
+
+        detail = client.get(f"/api/research/{card_id}/detail", headers=auth_headers)
+        assert detail.status_code == 200
+        events = detail.json()["timeline"]
+        assert [event["event_type"] for event in events[:3]] == ["decision", "evidence", "created"]
+        assert events[1]["source"] == "公司公告"
+
 
 class TestFunds:
     def test_fund_kline_metrics_contract(self, client):

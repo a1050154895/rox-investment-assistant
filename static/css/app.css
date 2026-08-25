@@ -1122,6 +1122,21 @@ summary { cursor: pointer; }
 .research-archive-decision-date { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); margin-left: 6px; }
 .research-archive-decision-meta { font-size: 11px; color: var(--text-secondary); }
 .research-archive-empty { font-size: 12px; color: var(--text-tertiary); padding: 10px 12px; border: 1px dashed var(--border-default, rgba(224,211,191,.2)); border-radius: 8px; }
+.research-archive-section { margin-top: 14px; }
+.research-archive-section-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.research-timeline { display: flex; flex-direction: column; gap: 0; }
+.research-timeline-item { display: grid; grid-template-columns: 16px 1fr; gap: 9px; position: relative; padding-bottom: 12px; }
+.research-timeline-item:not(:last-child)::before { content: ''; position: absolute; left: 7px; top: 14px; bottom: 0; width: 1px; background: var(--border-default, rgba(224,211,191,.2)); }
+.research-timeline-marker { width: 9px; height: 9px; margin: 3px 0 0 3px; border-radius: 50%; background: var(--ink-vermilion); box-shadow: 0 0 0 3px rgba(198,83,57,.12); z-index: 1; }
+.research-timeline-evidence .research-timeline-marker { background: var(--ink-indigo, #50658c); box-shadow: 0 0 0 3px rgba(80,101,140,.12); }
+.research-timeline-decision .research-timeline-marker { background: var(--ink-green, #5d8062); box-shadow: 0 0 0 3px rgba(93,128,98,.12); }
+.research-timeline-body { min-width: 0; }
+.research-timeline-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.research-timeline-head strong { font-size: 12px; }
+.research-timeline-head time { color: var(--text-tertiary); font: 10px var(--font-mono); white-space: nowrap; }
+.research-timeline-body p { margin: 4px 0 3px; color: var(--text-secondary); font-size: 11px; line-height: 1.55; }
+.research-timeline-source { color: var(--text-tertiary); font-size: 10px; }
+.research-timeline-empty { color: var(--text-tertiary); font-size: 11px; padding: 9px 10px; border: 1px dashed var(--border-default, rgba(224,211,191,.2)); border-radius: 8px; }
 
 /* 数据源健康面板 */
 .data-source-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--ink-surface, rgba(224,211,191,.04)); }

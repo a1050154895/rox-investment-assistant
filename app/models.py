@@ -137,6 +137,32 @@ class ResearchCard(Base):
         }
 
 
+class ResearchEvent(Base):
+    """研究卡时间线事件。"""
+
+    __tablename__ = "research_events"
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    research_card_id = mapped_column(ForeignKey("research_cards.id", ondelete="CASCADE"), index=True)
+    event_type = mapped_column(String(30), index=True)
+    title = mapped_column(String(120))
+    detail = mapped_column(Text, default="")
+    source = mapped_column(String(120), default="")
+    created_at = mapped_column(DateTime, default=utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "research_card_id": self.research_card_id,
+            "event_type": self.event_type,
+            "title": self.title,
+            "detail": self.detail,
+            "source": self.source,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class DisciplineProfile(Base):
     __tablename__ = "discipline_profiles"
 

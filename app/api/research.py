@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_db
-from app.models import JournalEntry, ResearchCard, User, utcnow
+from app.models import JournalEntry, ResearchCard, ResearchEvent, User, utcnow
 
 router = APIRouter()
 
@@ -124,6 +124,13 @@ def _risk_checks(card: ResearchCard) -> list[dict]:
     ]
 
 
+def _add_event(db: Session, card: ResearchCard, user_id: int, event_type: str, title: str, detail: str = "", source: str = "") -> None:
+    db.add(ResearchEvent(
+        user_id=user_id, research_card_id=card.id, event_type=event_type,
+        title=title[:120], detail=detail[:1000], source=source[:120],
+    ))
+
+
 @router.get("/templates")
 async def list_templates():
     """研究卡模板：只给问法和证据清单，不给结论。"""
@@ -211,6 +218,8 @@ async def create_card(
     db.add(card)
     db.commit()
     db.refresh(card)
+    _add_event(db, card, user.id, "created", "研究卡创建", card.title)
+    db.commit()
     return {"success": True, "card": card_out(card)}
 
 
@@ -232,9 +241,15 @@ async def update_card(
     card = db.query(ResearchCard).filter(ResearchCard.id == card_id, ResearchCard.user_id == user.id).first()
     if not card:
         raise HTTPException(status_code=404, detail="研究卡不存在")
+    previous_status = card.status
     _set_card(card, data)
     db.commit()
     db.refresh(card)
+    detail = (f"状态：{CARD_STATUSES.get(previous_status, previous_status)} → "
+              f"{CARD_STATUSES.get(card.status, card.status)}" if previous_status != card.status
+              else "研究问题、假设、证据或纪律字段已更新")
+    _add_event(db, card, user.id, "updated", "研究卡更新", detail)
+    db.commit()
     return {"success": True, "card": card_out(card)}
 
 
@@ -276,6 +291,10 @@ async def add_evidence(
     card.updated_at = utcnow()
     db.commit()
     db.refresh(card)
+    _add_event(db, card, user.id, "evidence", {
+        "fact": "新增事实", "counter": "新增反证", "to_verify": "新增待验证问题"
+    }[data.evidence_type], data.content, data.source or data.as_of)
+    db.commit()
     return {"success": True, "card": card_out(card)}
 
 
@@ -291,6 +310,13 @@ async def card_detail(card_id: int, user: User = Depends(get_current_user), db: 
         .order_by(JournalEntry.date.desc(), JournalEntry.id.desc())
         .all()
     )
+    events = (
+        db.query(ResearchEvent)
+        .filter(ResearchEvent.user_id == user.id, ResearchEvent.research_card_id == card_id)
+        .order_by(ResearchEvent.created_at.desc(), ResearchEvent.id.desc())
+        .limit(100)
+        .all()
+    )
     settled = [d for d in decisions if d.result in ("盈", "亏")]
     wins = [d for d in settled if d.result == "盈"]
     pcts = [d.result_pct for d in settled if d.result_pct is not None]
@@ -299,6 +325,7 @@ async def card_detail(card_id: int, user: User = Depends(get_current_user), db: 
     return {
         "card": card_out(card),
         "decisions": [entry.to_dict() for entry in decisions],
+        "timeline": [event.to_dict() for event in events],
         "decision_stats": {
             "total": len(decisions),
             "settled": len(settled),

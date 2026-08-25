@@ -117,6 +117,20 @@ function renderRiskResult(result, target) {
   target.innerHTML = `<div class="research-risk-title">${result.status === 'ready' ? '✓ 可以进入决策' : '还需要补齐研究链'}</div><div class="research-checks">${(result.checks || []).map(item => `<span class="research-check ${item.passed ? 'passed' : 'failed'}">${item.passed ? '✓' : '○'} ${ROX.escape(item.label)}</span>`).join('')}</div><div class="research-risk-message">${ROX.escape(result.message || '')}</div>`;
 }
 
+function renderResearchTimeline(events) {
+  const labels = { created: '创建', updated: '更新', evidence: '证据', decision: '决策' };
+  if (!events?.length) return '<div class="research-timeline-empty">保存研究卡后，证据与决策会按时间沉淀在这里。</div>';
+  return `<div class="research-timeline">${events.map(event => `
+    <div class="research-timeline-item research-timeline-${ROX.escape(event.event_type || 'updated')}">
+      <div class="research-timeline-marker" aria-hidden="true"></div>
+      <div class="research-timeline-body">
+        <div class="research-timeline-head"><strong>${ROX.escape(event.title || labels[event.event_type] || '研究事件')}</strong><time>${ROX.escape((event.created_at || '').replace('T', ' ').slice(0, 16))}</time></div>
+        ${event.detail ? `<p>${ROX.escape(event.detail)}</p>` : ''}
+        ${event.source ? `<span class="research-timeline-source">来源：${ROX.escape(event.source)}</span>` : ''}
+      </div>
+    </div>`).join('')}</div>`;
+}
+
 async function loadCardArchive(cardId, mount) {
   const data = await ROX.api.get(`/api/research/${cardId}/detail`);
   if (!data || data.error || !mount) return;
@@ -140,6 +154,7 @@ async function loadCardArchive(cardId, mount) {
         <div><span>胜率</span><strong>${stats.win_rate != null ? stats.win_rate + '%' : '--'}</strong></div>
         <div><span>平均盈亏</span><strong>${stats.avg_result_pct != null ? ROX.fmt.pct(stats.avg_result_pct) : '--'}</strong></div>
       </div>
+      <div class="research-archive-section"><div class="research-archive-section-title">研究时间线</div>${renderResearchTimeline(data.timeline)}</div>
       ${stats.total ? `<div class="research-archive-decisions">${(data.decisions || []).map(d => `
         <div class="research-archive-decision">
           <div><span class="tag ${ROX.fmt.actionTag(d.action)}">${ROX.escape(d.action)}</span><span class="research-archive-decision-date">${ROX.escape(d.date)}</span></div>
