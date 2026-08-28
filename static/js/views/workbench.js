@@ -22,7 +22,7 @@ ROX.register('/workbench', async function(container) {
       </div>
       <section class="workbench-section"><div class="section-heading"><div><span class="eyebrow">TASKS</span><h3>研究任务</h3></div><span>选择一个动作开始</span></div>
         <div class="workbench-task-grid">
-          <button class="card workbench-task" data-route="/stock"><span class="task-kicker">ONE PAGE</span><strong>标的一页通</strong><small>行情、K线、基本面、研究卡和决策记录</small></button>
+          <button class="card workbench-task" data-route="/observe"><span class="task-kicker">WATCHDECK</span><strong>研究对象观察台</strong><small>自选联动行情、K线、研究卡和决策记录</small></button>
           <button class="card workbench-task" data-route="/intelligence"><span class="task-kicker">THEME</span><strong>主题研究</strong><small>主题主线、传导路径、行业影响和待验证问题</small></button>
           <button class="card workbench-task" data-route="/research/new?template=serenity_chain"><span class="task-kicker">CHAIN</span><strong>产业链三问</strong><small>把行业机会拆成可验证的研究问题</small></button>
           <button class="card workbench-task" data-route="/research/new?template=discipline_guard"><span class="task-kicker">COUNTER</span><strong>反模式自查</strong><small>主动寻找反证，检查仓位和退出条件</small></button>

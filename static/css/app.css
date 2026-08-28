@@ -1138,6 +1138,51 @@ summary { cursor: pointer; }
 .research-timeline-source { color: var(--text-tertiary); font-size: 10px; }
 .research-timeline-empty { color: var(--text-tertiary); font-size: 11px; padding: 9px 10px; border: 1px dashed var(--border-default, rgba(224,211,191,.2)); border-radius: 8px; }
 
+/* 研究对象观察台 */
+.observe-page { max-width: 1280px; margin: 0 auto; }
+.observe-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+.observe-side, .observe-stream { padding: 14px; min-width: 0; }
+.observe-side-title { display: flex; align-items: center; gap: 6px; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+.observe-side-title b { color: var(--text-tertiary); font-family: var(--font-mono); }
+.observe-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; width: 100%; text-align: left; padding: 9px 10px; border: 1px solid transparent; background: transparent; cursor: pointer; }
+.observe-item + .observe-item { border-top-color: var(--border-color-light); }
+.observe-item.active { background: rgba(198,90,67,.09); border-color: var(--ink-vermilion); }
+.observe-item-name, .observe-item-price { font-size: 12px; color: var(--text-primary); font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.observe-item-code, .observe-item-change { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); text-align: right; }
+.observe-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.observe-hero { padding: 18px; }
+.observe-hero-main { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+.observe-name { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.observe-code { margin-top: 4px; color: var(--text-tertiary); font: 11px var(--font-mono); }
+.observe-price { text-align: right; }
+.observe-price strong { display: block; font: 700 24px var(--font-mono); color: var(--text-primary); }
+.observe-price span { color: var(--text-secondary); font: 12px var(--font-mono); }
+.observe-hero-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 15px; }
+.observe-chart-card { padding: 14px; }
+.observe-panel-title { font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+.observe-chart { width: 100%; height: 380px; min-height: 260px; }
+.observe-chart-note { margin-top: 8px; color: var(--text-tertiary); font-size: 10px; }
+.observe-stream-section + .observe-stream-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color-light); }
+.observe-stream-title { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.observe-stream-title b { color: var(--text-tertiary); font-family: var(--font-mono); }
+.observe-stream-item { display: block; width: 100%; text-align: left; padding: 8px 9px; background: rgba(224,211,191,.04); border: 0; cursor: pointer; }
+.observe-stream-item + .observe-stream-item { margin-top: 6px; }
+.observe-stream-item strong { display: block; font-size: 11px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.observe-stream-item span { display: block; margin-top: 3px; color: var(--text-tertiary); font-size: 10px; }
+.observe-stream-empty, .observe-empty { color: var(--text-tertiary); font-size: 11px; line-height: 1.6; padding: 9px 10px; border: 1px dashed var(--border-color-light); }
+.observe-empty p { margin: 0 0 8px; }
+.observe-empty-state { padding: 44px; display: flex; justify-content: center; }
+@media (max-width: 1080px) {
+  .observe-layout { grid-template-columns: 220px minmax(0, 1fr); }
+  .observe-stream { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .observe-layout { grid-template-columns: 1fr; }
+  .observe-chart { height: 260px; }
+  .observe-hero-main { flex-direction: column; gap: 10px; }
+  .observe-price { text-align: left; }
+}
+
 /* 数据源健康面板 */
 .data-source-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--ink-surface, rgba(224,211,191,.04)); }
 .data-source-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; }
