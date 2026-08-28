@@ -10,6 +10,16 @@ async function register(page) {
   await expect(page.locator('#auth-gate')).toBeHidden();
 }
 
+test('unauthenticated mobile user can open login window', async ({ page }) => {
+  await page.goto('/workbench');
+  await expect(page.locator('#auth-gate')).toBeVisible();
+  await expect(page.locator('#mobile-account-btn')).toBeVisible();
+  await page.locator('#mobile-account-btn').click({ force: true });
+  await expect(page.locator('#auth-gate')).toBeVisible();
+  await expect(page.locator('#auth-submit')).toHaveText('登录');
+  await expect(page.locator('#auth-username')).toBeVisible();
+});
+
 test('login and logout restore the auth gate', async ({ page }) => {
   const username = `auth_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   await page.goto('/');

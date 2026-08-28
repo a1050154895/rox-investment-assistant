@@ -585,11 +585,14 @@ const ROX = {
   updateUserChip() {
     const chip = document.getElementById('user-chip');
     const name = document.getElementById('user-chip-name');
+    const accountButton = document.getElementById('mobile-account-btn');
     if (this.state.user) {
       if (chip) chip.style.display = 'inline-flex';
       if (name) name.textContent = this.state.user.username;
+      if (accountButton) { accountButton.textContent = '账户'; accountButton.setAttribute('aria-label', '账户设置'); }
     } else if (chip) {
       chip.style.display = 'none';
+      if (accountButton) { accountButton.textContent = '登录'; accountButton.setAttribute('aria-label', '登录'); }
     }
   },
 
@@ -667,6 +670,7 @@ const ROX = {
         const action = actionEl.dataset.action;
         const actions = {
           'open-settings': () => { this.closeNav(); this.openSettings(); },
+          'open-login': () => this.state.user ? this.openSettings() : this.showAuthGate(),
           'close-settings': () => this.closeSettings(),
           'close-modal': () => this.closeModal(),
           'toggle-nav': () => {

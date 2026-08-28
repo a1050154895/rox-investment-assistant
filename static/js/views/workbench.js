@@ -9,7 +9,8 @@ ROX.register('/workbench', async function(container) {
   ]);
   const cards = research?.cards || [];
   const due = research?.due_review_cards || [];
-  const aiState = ai && !ai.error ? `${ai.configured ? '已配置' : '未配置'} · ${ai.mode === 'off' ? '无 AI 模式' : ai.mode === 'byok' ? '自带模型' : '平台 AI'}` : '登录后查看';
+  const aiState = ai && !ai.error ? `${ai.configured ? '已配置' : '未配置'} · ${ai.mode === 'off' ? '无 AI 模式' : ai.mode === 'byok' ? '自带模型' : '平台 AI'}` : (ROX.state.user ? '暂不可用' : '请先登录');
+  const aiStateHTML = !ROX.state.user ? `<button class="workbench-login-prompt" data-action="open-login">请先登录</button>` : ROX.escape(aiState);
   container.innerHTML = `
     <div class="research-page workbench-page">
       <div class="research-page-head">
@@ -18,7 +19,7 @@ ROX.register('/workbench', async function(container) {
       </div>
       <div class="workbench-hero card">
         <div><span class="tag tag-blue">今日队列</span><h3>${ROX.escape(research?.next_action || '创建第一张研究卡')}</h3><p>AI 只负责整理、追问和归纳；行情、事实与风控仍以系统真实数据和你的核验为准。</p></div>
-        <div class="workbench-hero-stats"><div><strong>${cards.length}</strong><span>进行中</span></div><div><strong>${due.length}</strong><span>待复核</span></div><div><strong>${ROX.escape(aiState)}</strong><span>AI状态</span></div></div>
+        <div class="workbench-hero-stats"><div><strong>${cards.length}</strong><span>进行中</span></div><div><strong>${due.length}</strong><span>待复核</span></div><div><strong>${aiStateHTML}</strong><span>AI状态</span></div></div>
       </div>
       <section class="workbench-section"><div class="section-heading"><div><span class="eyebrow">TASKS</span><h3>研究任务</h3></div><span>选择一个动作开始</span></div>
         <div class="workbench-task-grid">

@@ -125,6 +125,7 @@ summary { cursor: pointer; }
   margin-left: 8px;
   flex: none;
 }
+.mobile-account-btn { display:none; }
 
 /* Main Area */
 .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -849,7 +850,11 @@ summary { cursor: pointer; }
 }
 .user-chip:hover { background: rgba(10,132,255,0.15); }
 .user-chip::before { content: "●"; font-size: 8px; }
-@media (max-width: 768px) { .user-chip { display: none !important; } }
+@media (max-width: 768px) {
+  .user-chip { display: none !important; }
+  .mobile-account-btn { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:6px 12px; border:1px solid var(--border-color-light); border-radius:8px; background:var(--bg-secondary); color:var(--text-secondary); font-size:12px; cursor:pointer; }
+  .mobile-account-btn:active { color:var(--ink-vermilion); border-color:var(--ink-vermilion); }
+}
 
 /* 超窄屏（375/390px）细化：更紧凑的顶栏与卡片内边距 */
 @media (max-width: 390px) {
