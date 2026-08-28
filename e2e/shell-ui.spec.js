@@ -10,6 +10,23 @@ async function register(page) {
   await expect(page.locator('#auth-gate')).toBeHidden();
 }
 
+test('login and logout restore the auth gate', async ({ page }) => {
+  const username = `auth_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await page.goto('/');
+  await page.getByText('注册', { exact: true }).click();
+  await page.getByLabel('用户名', { exact: true }).fill(username);
+  await page.getByLabel('密码', { exact: true }).fill('E2ePassword123!');
+  await page.getByRole('button', { name: '注册并进入', exact: true }).click();
+  await expect(page.locator('#auth-gate')).toBeHidden();
+
+  await page.getByRole('button', { name: '更多' }).click();
+  await page.locator("#app-sidebar .sidebar-bottom .nav-item[data-action='open-settings']").click();
+  await page.locator('[data-settings-tab="account"]').click();
+  await page.getByRole('button', { name: '退出登录', exact: true }).click();
+  await expect(page.locator('#auth-gate')).toBeVisible();
+  await expect(page.locator('#user-chip')).toBeHidden();
+});
+
 test('mobile drawer navigation opens, navigates and closes', async ({ page }) => {
   await register(page);
   await page.locator('#onboarding-overlay').evaluate((node) => node.classList.remove('onboarding-open'));

@@ -18,6 +18,19 @@ const ROX = {
     overviewPromise: null,
   },
 
+  auth: {
+    async ensure() {
+      if (ROX.state.user) return true;
+      const result = await ROX.api.get('/api/auth/me');
+      if (result?.user) {
+        ROX.state.user = result.user;
+        ROX.updateUserChip();
+        return true;
+      }
+      return false;
+    },
+  },
+
   // API client（自动携带 JWT；非 2xx 返回含 error/status/detail，便于前端提示）
   api: {
     _headers(json = true) {
@@ -531,12 +544,15 @@ const ROX = {
   },
 
   async submitAuth() {
+    const submit = document.getElementById('auth-submit');
     const username = document.getElementById('auth-username')?.value.trim() || '';
     const password = document.getElementById('auth-password')?.value || '';
     if (!username || !password) { this.showAuthError('请输入用户名和密码'); return; }
     if (this.state.authMode === 'register' && password.length < 6) { this.showAuthError('密码至少 6 位'); return; }
     const url = this.state.authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+    if (submit) { submit.disabled = true; submit.textContent = this.state.authMode === 'login' ? '登录中…' : '注册中…'; }
     const res = await this.api.post(url, { username, password });
+    if (submit) submit.disabled = false;
     if (res && res.success) {
       this.state.user = res.user;
       this.hideAuthError();
@@ -554,13 +570,16 @@ const ROX = {
   },
 
   async logout() {
-    try { await this.api.post('/api/auth/logout'); } catch (_) { /* 忽略登出接口错误 */ }
+    try { await this.api.post('/api/auth/logout'); } catch (_) { /* 本地状态仍需清理 */ }
     this.state.user = null;
     this.state.settings = null;
     this.state.membership = null;
     localStorage.removeItem('rox-discipline-profile');
     this.stopAlertPolling();
     this.showAuthGate();
+    this.closeSettings();
+    this.closeNav();
+    document.getElementById('view-container').innerHTML = '';
   },
 
   updateUserChip() {
