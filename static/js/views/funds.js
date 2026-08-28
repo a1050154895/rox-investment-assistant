@@ -20,7 +20,7 @@ ROX.register('/funds', async function(container, params) {
   const coverageAvailable = coverageList.filter(([, item]) => item.status && item.status !== 'unavailable').length;
   container.innerHTML = `
     <div class="fund-page">
-      <div class="fund-page-head"><div><div class="eyebrow">ROX / FUND RESEARCH</div><h2>${ROX.escape(fund.name)}</h2><p>${ROX.escape(fund.code)} · ${ROX.escape(fund.category)} · 跟踪 ${ROX.escape(fund.tracking)}</p></div><button class="btn btn-primary" data-action="create-research-card" data-code="${fund.code}" data-name="${ROX.escape(fund.name)}" data-price="${q.price ?? ''}" data-data-status="${ROX.escape(fund.data_status || '')}" data-data-source="${ROX.escape(fund.data_source || '')}" data-as-of="${ROX.escape(fund.as_of || '')}">开始研究</button><button class="btn btn-secondary" data-action="open-evidence-drawer" data-title="${ROX.escape(fund.name)}" data-content="${ROX.escape(`场内价格：${fund.name} ${ROX.fmt.num(q.price)}（${ROX.fmt.pct(q.change_pct || 0)}），仅交易价格、非净值`)}" data-source="${ROX.escape(fund.data_source || '')}" data-as-of="${ROX.escape(fund.as_of || '')}" data-code="${fund.code}" data-stock="${ROX.escape(fund.name)}">存为证据</button></div>
+      <div class="fund-page-head"><div><div class="eyebrow">ROX / FUND RESEARCH</div><h2>${ROX.escape(fund.name)}</h2><p>${ROX.escape(fund.code)} · ${ROX.escape(fund.category)} · 跟踪 ${ROX.escape(fund.tracking)}</p><div class="fund-search"><input class="form-input" id="fund-search-input" placeholder="搜索基金代码或名称" autocomplete="off"><div id="fund-search-results" class="search-results"></div></div></div><button class="btn btn-primary" data-action="create-research-card" data-code="${fund.code}" data-name="${ROX.escape(fund.name)}" data-price="${q.price ?? ''}" data-data-status="${ROX.escape(fund.data_status || '')}" data-data-source="${ROX.escape(fund.data_source || '')}" data-as-of="${ROX.escape(fund.as_of || '')}">开始研究</button><button class="btn btn-secondary" data-action="open-evidence-drawer" data-title="${ROX.escape(fund.name)}" data-content="${ROX.escape(`场内价格：${fund.name} ${ROX.fmt.num(q.price)}（${ROX.fmt.pct(q.change_pct || 0)}），仅交易价格、非净值`)}" data-source="${ROX.escape(fund.data_source || '')}" data-as-of="${ROX.escape(fund.as_of || '')}" data-code="${fund.code}" data-stock="${ROX.escape(fund.name)}">存为证据</button></div>
       <div class="fund-evidence-strip"><span class="evidence-badge ${fund.stale ? 'is-stale' : 'is-live'}"><i></i>${fund.stale ? '历史快照' : '实时行情'} · ${ROX.escape(fund.as_of || '时间未知')}</span><span>来源：${ROX.escape(fund.data_source || '不可用')}</span><span>行情价格不等于基金净值</span></div>
       <div class="fund-summary-grid">
         <div class="card fund-price-card"><span>场内价格</span><strong>${ROX.fmt.num(q.price)}</strong><em class="${ROX.fmt.color(q.change_pct || 0)}">${ROX.fmt.pct(q.change_pct)}</em><small>仅表示交易价格，净值待接入</small></div>
@@ -42,6 +42,23 @@ ROX.register('/funds', async function(container, params) {
     document.getElementById('fund-kline').innerHTML = '<div class="empty-state"><p>可靠K线数据暂不可用</p></div>';
   }
   loadFundRelatedResearch(fund.code, document.getElementById('fund-research-links'));
+  const fundInput = document.getElementById('fund-search-input');
+  const fundResults = document.getElementById('fund-search-results');
+  let fundSearchTimer;
+  fundInput?.addEventListener('input', () => {
+    clearTimeout(fundSearchTimer);
+    const query = fundInput.value.trim();
+    if (!query) { fundResults.classList.remove('show'); return; }
+    fundSearchTimer = setTimeout(async () => {
+      const data = await ROX.api.get(`/api/funds/search?q=${encodeURIComponent(query)}`);
+      fundResults.innerHTML = (data?.results || []).map(item => `<button type="button" class="search-result-item" data-fund-code="${ROX.escape(item.code)}">${ROX.escape(item.name || item.code)} <span>${ROX.escape(item.code)}</span></button>`).join('') || '<div class="search-result-item">无匹配基金</div>';
+      fundResults.classList.add('show');
+    }, 250);
+  });
+  fundResults?.addEventListener('click', event => {
+    const item = event.target.closest('[data-fund-code]');
+    if (item) ROX.navigate(`/funds/${item.dataset.fundCode}`);
+  });
 });
 
 async function loadFundRelatedResearch(code, mount) {

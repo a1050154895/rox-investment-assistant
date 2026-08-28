@@ -40,6 +40,19 @@ test('mobile primary tabbar exposes high-frequency work', async ({ page }) => {
   await expect(page.locator('#app-sidebar')).toHaveClass(/nav-open/);
 });
 
+test('mobile secondary pages resolve to registered views', async ({ page }) => {
+  await register(page);
+  await page.locator('#onboarding-overlay').evaluate((node) => node.classList.remove('onboarding-open'));
+  for (const [path, selector] of [
+    ['/anomaly', '.page-header'], ['/notes', '.page-header'], ['/backtest', '.backtest-config'],
+    ['/journal', '.journal-page'], ['/framework', '.framework-page'], ['/funds', '.fund-page'],
+  ]) {
+    await page.goto(path);
+    await expect(page.locator(`#view-container ${selector}`)).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#view-container').getByText('页面未找到', { exact: true })).toHaveCount(0);
+  }
+});
+
 test('drawer closes via backdrop and escape', async ({ page }) => {
   await register(page);
   await page.locator('#onboarding-overlay').evaluate((node) => node.classList.remove('onboarding-open'));

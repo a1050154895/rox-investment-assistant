@@ -23,7 +23,7 @@ ROX.views.notes = {
     const body = document.getElementById('notes-body');
     if (!body) return;
 
-    const loggedIn = await ROX.auth.ensure();
+    const loggedIn = Boolean(ROX.state.user);
     if (!loggedIn) {
       body.innerHTML = '<div class="card" style="padding:48px;text-align:center;color:var(--text-tertiary);"><p>登录后使用速记功能</p></div>';
       return;

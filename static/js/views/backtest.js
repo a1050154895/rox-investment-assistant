@@ -19,6 +19,11 @@ ROX.register('/backtest', async function(container) {
   const strategies = stratRes?.strategies || [];
   const stocks = stockRes?.stocks || [];
 
+  if (!strategies.length || !stocks.length) {
+    container.innerHTML = `<div class="empty-state"><p>回测暂不可用</p><p style="font-size:12px;color:var(--text-tertiary);">${ROX.escape(stratRes?.message || stockRes?.message || '策略或历史K线数据暂不可用，请稍后重试')}</p></div>`;
+    return;
+  }
+
   container.innerHTML = `
     <div class="backtest-layout">
       <!-- 配置面板 -->

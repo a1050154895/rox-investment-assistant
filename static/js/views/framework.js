@@ -230,7 +230,7 @@ function articleCard(a) {
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
           <span class="tag tag-blue">${a.category}</span>
-          <span style="font-size:10px;color:var(--text-tertiary);">${a.read_time}</span>
+          <span style="font-size:10px;color:var(--text-tertiary);">阅读约 ${a.read_time}</span>
         </div>
       </div>
       <div class="knowledge-body" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-direction:column;gap:8px;">

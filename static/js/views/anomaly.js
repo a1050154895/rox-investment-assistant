@@ -25,7 +25,7 @@ ROX.views.anomaly = {
     const body = document.getElementById('anomaly-body');
     if (!body) return;
 
-    const loggedIn = await ROX.auth.ensure();
+    const loggedIn = Boolean(ROX.state.user);
     if (!loggedIn) {
       body.innerHTML = '<div class="card" style="padding:48px;text-align:center;color:var(--text-tertiary);"><p>登录后使用异动雷达</p></div>';
       return;

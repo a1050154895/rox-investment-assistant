@@ -8,7 +8,7 @@ class TestHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.41.0"
+        assert data["version"] == "4.42.0"
         assert "key_source" in data
 
     def test_ready_ok(self, client):
@@ -133,6 +133,11 @@ class TestPortfolio:
 
 
 class TestJournal:
+    def test_journal_summary_route_is_not_captured_by_id_route(self, client, auth_headers):
+        resp = client.get("/api/journal/stats/summary", headers=auth_headers)
+        assert resp.status_code == 200
+        assert "score_distribution" in resp.json()
+
     def test_list_decisions(self, client, auth_headers):
         resp = client.get("/api/journal/", headers=auth_headers)
         assert resp.status_code == 200

@@ -134,6 +134,36 @@ async def create_decision(
     return {"success": True, "id": entry.id, "decision": _entry_to_dict(entry)}
 
 
+@router.get("/stats/summary")
+async def stats_summary(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """统计概览（当前用户）。"""
+    rows = db.query(JournalEntry).filter(JournalEntry.user_id == user.id).all()
+    total = len(rows)
+    scored = [r for r in rows if r.consistency_score]
+    avg_score = round(sum(r.consistency_score for r in scored) / max(len(scored), 1), 1)
+    high_consistency = len([r for r in rows if r.consistency_score >= 70])
+    compliance_rate = round(high_consistency / max(total, 1) * 100, 1)
+    wins = [r for r in rows if r.result == "盈"]
+    losses = [r for r in rows if r.result == "亏"]
+    win_rate = round(len(wins) / max(len(wins) + len(losses), 1) * 100, 1)
+    low_score = [r for r in rows if r.consistency_score < 60]
+    return {
+        "total": total, "avg_consistency": avg_score,
+        "compliance_rate": compliance_rate, "win_rate": win_rate,
+        "wins": len(wins), "losses": len(losses),
+        "pending": len([r for r in rows if r.result == "待观察"]),
+        "common_error": "存在低一致性记录，请逐条复核证据与纪律" if low_score else "暂无足够样本识别错误模式",
+        "score_distribution": {
+            "high": len([r for r in rows if r.consistency_score >= 75]),
+            "medium": len([r for r in rows if 45 <= r.consistency_score < 75]),
+            "low": len([r for r in rows if r.consistency_score < 45]),
+        },
+    }
+
+
 @router.get("/{decision_id}")
 async def get_decision(
     decision_id: int,
@@ -189,43 +219,6 @@ async def delete_decision(
     db.delete(entry)
     db.commit()
     return {"success": True}
-
-
-@router.get("/stats/summary")
-async def stats_summary(
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """统计概览（当前用户）。"""
-    rows = db.query(JournalEntry).filter(JournalEntry.user_id == user.id).all()
-    total = len(rows)
-    scored = [r for r in rows if r.consistency_score]
-    avg_score = round(sum(r.consistency_score for r in scored) / max(len(scored), 1), 1)
-    high_consistency = len([r for r in rows if r.consistency_score >= 70])
-    compliance_rate = round(high_consistency / max(total, 1) * 100, 1)
-
-    wins = [r for r in rows if r.result == "盈"]
-    losses = [r for r in rows if r.result == "亏"]
-    win_rate = round(len(wins) / max(len(wins) + len(losses), 1) * 100, 1)
-
-    low_score = [r for r in rows if r.consistency_score < 60]
-    error_patterns = "存在低一致性记录，请逐条复核证据与纪律" if low_score else "暂无足够样本识别错误模式"
-
-    return {
-        "total": total,
-        "avg_consistency": avg_score,
-        "compliance_rate": compliance_rate,
-        "win_rate": win_rate,
-        "wins": len(wins),
-        "losses": len(losses),
-        "pending": len([r for r in rows if r.result == "待观察"]),
-        "common_error": error_patterns,
-        "score_distribution": {
-            "high": len([r for r in rows if r.consistency_score >= 75]),
-            "medium": len([r for r in rows if 45 <= r.consistency_score < 75]),
-            "low": len([r for r in rows if r.consistency_score < 45]),
-        },
-    }
 
 
 @router.post("/review")
