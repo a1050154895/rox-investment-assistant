@@ -202,6 +202,7 @@ ROX.views.anomaly = {
           <div style="cursor:pointer;" data-action="anomaly-goto-stock" data-code="${ROX.escape(a.code)}">
             <span style="font-size:13px;font-weight:500;">${ROX.escape(a.name || a.code)}</span>
             <span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">${types} · 振幅${a.range_ratio || 0}× · 量比${a.volume_ratio || 0}×</span>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;">${ROX.escape(a.flow_direction_label || '量价方向待观察')} · 最大量 ${ROX.escape(a.max_volume_time || '未知')} · 最大振幅 ${ROX.escape(a.max_range_time || '未知')} · 速度 ${a.velocity_ratio || 0}×</div>
           </div>
           <span style="font-family:var(--font-mono);font-size:12px;color:${c};">${a.price ? ROX.fmt.num(a.price) : '--'} ${a.change_pct != null ? ROX.fmt.pct(a.change_pct) : ''}</span>
         </div>`;

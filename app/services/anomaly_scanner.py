@@ -239,6 +239,45 @@ def compute_intraday_spike(candles: list[dict]) -> dict | None:
     }
 
 
+def summarize_intraday_flow(candles: list[dict]) -> dict:
+    """提取分钟线中的量价方向代理，不把它命名为主力资金流。"""
+    if not candles:
+        return {
+            "flow_direction": "unknown", "flow_direction_label": "数据不足",
+            "max_volume_time": "", "max_range_time": "", "velocity_ratio": 0,
+        }
+    max_volume = max(candles, key=lambda item: item.get("volume", 0))
+    max_range = max(
+        candles,
+        key=lambda item: item.get("high", 0) - item.get("low", 0),
+    )
+    signed_volume = sum(
+        item.get("volume", 0) * (1 if item.get("close", 0) >= item.get("open", 0) else -1)
+        for item in candles
+    )
+    total_volume = sum(item.get("volume", 0) for item in candles)
+    if not total_volume:
+        direction = "unknown"
+    elif signed_volume > total_volume * 0.15:
+        direction = "up"
+    elif signed_volume < -total_volume * 0.15:
+        direction = "down"
+    else:
+        direction = "mixed"
+    labels = {"up": "上涨量能占优", "down": "下跌量能占优", "mixed": "多空混合", "unknown": "数据不足"}
+    average_move = sum(abs(item.get("close", 0) - item.get("open", 0)) for item in candles) / len(candles)
+    recent_move = abs(candles[-1].get("close", 0) - candles[-1].get("open", 0))
+    return {
+        "flow_direction": direction,
+        "flow_direction_label": labels[direction],
+        "max_volume_time": max_volume.get("datetime", ""),
+        "max_volume": max_volume.get("volume", 0),
+        "max_range_time": max_range.get("datetime", ""),
+        "max_range": round(max_range.get("high", 0) - max_range.get("low", 0), 4),
+        "velocity_ratio": round(recent_move / average_move, 2) if average_move else 0,
+    }
+
+
 async def intraday_scan(code: str, name: str = "") -> dict | None:
     """盘中异动扫描：分钟级 K 线检测 + 日线 ATR 交叉验证。"""
     intraday = await fetch_minute_kline(code, period="5m", limit=60)
@@ -251,6 +290,20 @@ async def intraday_scan(code: str, name: str = "") -> dict | None:
 
     quotes = await fetch_quotes([code])
     q = quotes.get(code) or {}
+    flow = summarize_intraday_flow(intraday)
+    news = []
+    try:
+        brief = await get_intelligence_brief()
+        for item in brief.get("news", [])[:20]:
+            title = item.get("title", "")
+            if (name and name in title) or code in title:
+                news.append({
+                    "title": title,
+                    "published_at": item.get("published_at", ""),
+                    "source": item.get("source", ""),
+                })
+    except Exception:
+        news = []
     return {
         "code": code,
         "name": name or q.get("name", ""),
@@ -262,4 +315,7 @@ async def intraday_scan(code: str, name: str = "") -> dict | None:
         "range_ratio": spike["range_ratio"],
         "volume_ratio": spike["volume_ratio"],
         "last_time": spike["last_time"],
+        **flow,
+        "news": news[:5],
+        "news_relation": "matched" if news else "unmatched",
     }

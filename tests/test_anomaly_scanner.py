@@ -1,5 +1,10 @@
 """异动雷达 ATR 计算的离线测试。"""
-from app.services.anomaly_scanner import compute_atr, compute_avg_volume, compute_intraday_spike
+from app.services.anomaly_scanner import (
+    compute_atr,
+    compute_avg_volume,
+    compute_intraday_spike,
+    summarize_intraday_flow,
+)
 
 
 def _candle(o, c, h, l, v=10000):
@@ -116,3 +121,15 @@ def test_intraday_insufficient_data():
     """数据不足时返回 None。"""
     candles = [{"datetime": str(i), "open": 10, "close": 11, "high": 12, "low": 9, "volume": 100} for i in range(5)]
     assert compute_intraday_spike(candles) is None
+
+
+def test_intraday_flow_summary_exposes_timing_and_direction():
+    candles = [
+        {"datetime": "09:35", "open": 10, "close": 10.1, "high": 10.2, "low": 9.9, "volume": 100},
+        {"datetime": "09:40", "open": 10.1, "close": 10.4, "high": 10.5, "low": 10.0, "volume": 400},
+        {"datetime": "09:45", "open": 10.4, "close": 10.5, "high": 10.6, "low": 10.3, "volume": 100},
+    ]
+    result = summarize_intraday_flow(candles)
+    assert result["flow_direction"] == "up"
+    assert result["max_volume_time"] == "09:40"
+    assert result["max_range_time"] == "09:40"
