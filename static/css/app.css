@@ -1259,3 +1259,21 @@ summary { cursor: pointer; }
 /* 浅色模式下的滚动条与深色阴影修正 */
 html[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(60, 50, 35, 0.18); }
 html[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(60, 50, 35, 0.30); }
+
+/* 快速速记 */
+.note-item { transition: border-color 0.15s; }
+.note-item:hover { border-color: var(--text-secondary); }
+.note-pinned { background: var(--bg-surface); }
+.note-tag-btn.active { color: var(--rox-primary, #c65a43); border-color: var(--rox-primary, #c65a43); }
+
+/* 异动雷达 */
+.anomaly-timeline { position: relative; padding-left: 20px; }
+.anomaly-timeline::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--border-color); }
+.anomaly-event { position: relative; margin-bottom: 16px; padding-left: 16px; }
+.anomaly-event::before { content: ''; position: absolute; left: -18px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--rox-primary, #c65a43); border: 2px solid var(--bg-card); }
+.anomaly-event.anomaly-news::before { background: var(--rox-accent, #0a84ff); }
+.anomaly-event.anomaly-price::before { background: var(--rox-up, #34c759); }
+.anomaly-strength { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: var(--font-mono); }
+.anomaly-strength.high { background: rgba(255,59,48,0.15); color: #ff3b30; }
+.anomaly-strength.medium { background: rgba(255,149,0,0.15); color: #ff9500; }
+.anomaly-strength.low { background: rgba(52,199,89,0.15); color: #34c759; }

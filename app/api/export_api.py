@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_db
-from app.models import Alert, DisciplineProfile, JournalEntry, Position, Setting, User, Watchlist
+from app.models import Alert, DisciplineProfile, JournalEntry, Position, QuickNote, ResearchCard, Setting, User, Watchlist
 
 router = APIRouter()
 
@@ -79,8 +79,10 @@ async def export_backup(
         "journal": [e.to_dict() for e in db.query(JournalEntry).filter(JournalEntry.user_id == user.id).order_by(JournalEntry.date.desc()).all()],
         "positions": [p.to_dict() for p in db.query(Position).filter(Position.user_id == user.id).all()],
         "watchlist": [w.to_dict() for w in db.query(Watchlist).filter(Watchlist.user_id == user.id).order_by(Watchlist.sort_order).all()],
-        "alerts": [a.to_dict() for a in db.query(Alert).filter(Alert.user_id == user.id).all()],
-        "settings": {s.key: s.value for s in db.query(Setting).filter(Setting.user_id == user.id).all()},
+       "alerts": [a.to_dict() for a in db.query(Alert).filter(Alert.user_id == user.id).all()],
+        "research_cards": [c.to_dict() for c in db.query(ResearchCard).filter(ResearchCard.user_id == user.id).order_by(ResearchCard.updated_at.desc()).all()],
+        "quick_notes": [n.to_dict() for n in db.query(QuickNote).filter(QuickNote.user_id == user.id).order_by(QuickNote.created_at.desc()).all()],
+       "settings": {s.key: s.value for s in db.query(Setting).filter(Setting.user_id == user.id).all()},
         "discipline_profile": profile.profile_json if profile else None,
     }
 
@@ -110,10 +112,16 @@ async def export_report(
     ).order_by(Watchlist.sort_order).all()
     alerts = db.query(Alert).filter(Alert.user_id == user.id).all()
     profile = db.query(DisciplineProfile).filter(
-        DisciplineProfile.user_id == user.id
+       DisciplineProfile.user_id == user.id
     ).first()
 
     closed = [e for e in journal if e.result in ("盈", "亏")]
+    research_cards = db.query(ResearchCard).filter(
+       ResearchCard.user_id == user.id
+    ).order_by(ResearchCard.updated_at.desc()).all()
+    notes = db.query(QuickNote).filter(
+        QuickNote.user_id == user.id
+    ).order_by(QuickNote.pinned.desc(), QuickNote.created_at.desc()).all()
     wins = sum(1 for e in closed if e.result == "盈")
     losses = sum(1 for e in closed if e.result == "亏")
     win_rate = round(wins / len(closed) * 100, 1) if closed else None
@@ -142,6 +150,43 @@ async def export_report(
                 f"| {e.date or '-'} | {e.stock or '-'} | {e.code or '-'} | {e.action or '-'} | {e.stage or '-'} "
                 f"| {(e.reason or '-')[:40]} | {e.result or '待观察'} | {e.result_pct if e.result_pct is not None else '-'} |"
             )
+    out.append("")
+
+    out.append("## 研究卡")
+    out.append("")
+    if research_cards:
+        out.append(f"- 研究卡总数：{len(research_cards)} 张")
+        status_counts = {}
+        for c in research_cards:
+            status_counts[c.status] = status_counts.get(c.status, 0) + 1
+        status_str = "、".join(f"{k}:{v}" for k, v in sorted(status_counts.items()))
+        out.append(f"- 状态分布：{status_str}")
+        out.append("")
+        out.append("| 标题 | 标的 | 状态 | 假设 | 更新时间 |")
+        out.append("| --- | --- | --- | --- | --- |")
+        for c in research_cards[:30]:
+            hypothesis = (c.hypothesis or "")[:50].replace("|", "/")
+            title = (c.title or "")[:40].replace("|", "/")
+            out.append(f"| {title} | {c.stock or c.code or '-'} | {c.status} | {hypothesis or '-'} | {c.updated_at.strftime('%Y-%m-%d') if c.updated_at else '-'} |")
+        out.append("")
+    else:
+        out.append("（暂无研究卡）")
+        out.append("")
+
+    out.append("## 快速速记")
+    out.append("")
+    if notes:
+        out.append(f"- 速记总数：{len(notes)} 条")
+        out.append("")
+        for n in notes[:20]:
+            pinned = "📌 " if n.pinned else ""
+            tag = f"[{n.tag}] " if n.tag else ""
+            content = (n.content or "")[:80].replace("\n", " ")
+            time_str = n.created_at.strftime("%Y-%m-%d %H:%M") if n.created_at else "-"
+            out.append(f"- {pinned}{tag}{content} ({time_str})")
+        out.append("")
+    else:
+        out.append("（暂无速记）")
         out.append("")
 
     out.append("## 当前持仓")

@@ -285,3 +285,31 @@ class MarketConcentration(Base):
     total_amount_yi = mapped_column(Float)
     stock_count = mapped_column(Integer)
     created_at = mapped_column(DateTime, default=utcnow)
+
+
+class QuickNote(Base):
+    """快速速记：灵感、盘中观察、事件快记，可关联研究卡。"""
+
+    __tablename__ = "quick_notes"
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    content = mapped_column(Text, default="")
+    code = mapped_column(String(10), default="")
+    stock = mapped_column(String(30), default="")
+    tag = mapped_column(String(20), default="")
+    research_card_id = mapped_column(ForeignKey("research_cards.id", ondelete="SET NULL"), nullable=True, index=True)
+    pinned = mapped_column(Boolean, default=False)
+    created_at = mapped_column(DateTime, default=utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "content": self.content,
+            "code": self.code,
+            "stock": self.stock,
+            "tag": self.tag,
+            "research_card_id": self.research_card_id,
+            "pinned": self.pinned,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

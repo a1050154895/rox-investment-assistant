@@ -12,10 +12,14 @@ import time
 from datetime import datetime
 from typing import Any
 
+from app.services.resilience import CircuitBreaker
+
 logger = logging.getLogger(__name__)
 _CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _CACHE_TTL = 300
 
+_NEWS_BREAKER = CircuitBreaker(failure_threshold=3, cooldown_seconds=60)
+_FLOW_BREAKER = CircuitBreaker(failure_threshold=3, cooldown_seconds=60)
 FALLBACK_NEWS = [
     {"id": "policy-fiscal", "category": "政策", "title": "财政与促消费政策的落地节奏仍是内需行业预期差的核心变量", "source": "公开政策信息整理", "published_at": "2026-07-30T08:30:00", "impact": "中性偏多", "direction": "positive", "channels": ["消费", "基建", "金融"], "evidence": "需持续核验政策细则、预算执行和终端需求数据", "fact_or_view": "研判"},
     {"id": "global-energy", "category": "全球宏观", "title": "能源与航运价格波动需通过成本端传导关注化工、运输与出口链", "source": "公开市场数据整理", "published_at": "2026-07-30T07:45:00", "impact": "风险观察", "direction": "warning", "channels": ["能源", "化工", "航运"], "evidence": "观察原油、运价与企业毛利率的同步性", "fact_or_view": "研判"},
@@ -102,6 +106,9 @@ def _dedup_news(news: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 async def _fetch_news_akshare() -> tuple[list[dict[str, Any]], str]:
     """尝试多个 AKShare 资讯接口，返回 (news, source_status)。"""
+    if _NEWS_BREAKER.is_open:
+        logger.info("资讯源熔断中，跳过 AKShare 调用")
+        return [], ""
     sources = [
         ("stock_info_global_em", None, "AKShare / 东方财富公开资讯"),
         ("stock_info_global_cls", "财经", "AKShare / 财联社公开资讯"),
@@ -119,10 +126,12 @@ async def _fetch_news_akshare() -> tuple[list[dict[str, Any]], str]:
             else:
                 frame = await asyncio.wait_for(gated_call(func), timeout=8)
             if frame is not None and not frame.empty:
+                _NEWS_BREAKER.record_success()
                 return _normalize_news(frame, 10), label
         except Exception as exc:
             logger.info("资讯源 %s 不可用: %s", func_name, exc)
             continue
+    _NEWS_BREAKER.record_failure()
     return [], ""
 
 

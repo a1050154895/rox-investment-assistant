@@ -104,6 +104,8 @@ def _offline_network(monkeypatch):
         ("app.services.screener_engine", "fetch_quotes", _no_quotes),
         ("app.services.backtest_engine", "fetch_kline", _no_kline),
         ("app.api.watchlist", "fetch_quotes", _no_quotes),
+        ("app.services.anomaly_scanner", "fetch_kline", _no_kline),
+        ("app.services.anomaly_scanner", "fetch_quotes", _no_quotes),
     ]
     for mod_path, attr, repl in targets:
         monkeypatch.setattr(f"{mod_path}.{attr}", repl)

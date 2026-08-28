@@ -1,5 +1,6 @@
 """ROX投资助手 — FastAPI 应用入口"""
 import logging
+import uuid
 import os
 import time
 
@@ -26,23 +27,25 @@ logger = logging.getLogger("rox")
 from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
     discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio, export_api, alerts, watchlist,
-    guide, research, funds, data, knowledge,
+    guide, research, funds, data, knowledge, notes, anomaly,
 )
 
 app = FastAPI(
     title="ROX投资助手",
-    version="4.31.0",
+    version="4.32.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """请求耗时日志（跳过静态文件）。"""
+    """请求耗时日志（跳过静态文件），带请求 ID 便于追踪。"""
     start = time.time()
+    rid = uuid.uuid4().hex[:8]
     response = await call_next(request)
     elapsed = (time.time() - start) * 1000
     if not request.url.path.startswith("/static"):
-        logger.info("%s %s → %d (%.0fms)", request.method, request.url.path, response.status_code, elapsed)
+        logger.info("[%s] %s %s → %d (%.0fms)", rid, request.method, request.url.path, response.status_code, elapsed)
+        response.headers["X-Request-ID"] = rid
     return response
 
 
@@ -98,6 +101,8 @@ app.include_router(research.router, prefix="/api/research", tags=["research"])
 app.include_router(funds.router, prefix="/api/funds", tags=["funds"])
 app.include_router(data.router, prefix="/api/data", tags=["data"])
 app.include_router(knowledge.router, prefix="/api/knowledge", tags=["knowledge"])
+app.include_router(notes.router, prefix="/api/notes", tags=["notes"])
+app.include_router(anomaly.router, prefix="/api/anomaly", tags=["anomaly"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
