@@ -112,10 +112,19 @@ summary { cursor: pointer; }
   padding: var(--space-2) 0 var(--space-1);
   white-space: nowrap;
   overflow: hidden;
-  opacity: 0;
-  transition: opacity var(--transition-normal);
 }
-.sidebar:hover .version-label { opacity: 1; }
+
+.topbar-version {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg-surface);
+  white-space: nowrap;
+  margin-left: 8px;
+  flex: none;
+}
 
 /* Main Area */
 .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
