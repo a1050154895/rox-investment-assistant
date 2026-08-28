@@ -18,7 +18,7 @@ test('mobile drawer navigation opens, navigates and closes', async ({ page }) =>
   await expect(page.locator("#app-sidebar .nav-item[data-route='/research']")).toBeHidden();
 
   // 打开抽屉
-  await page.getByRole('button', { name: '打开导航' }).click();
+  await page.getByRole('button', { name: '更多' }).click();
   await expect(page.locator('#app-sidebar')).toHaveClass(/nav-open/);
   await expect(page.locator("#app-sidebar .nav-item[data-route='/research']")).toBeVisible();
 
@@ -28,17 +28,29 @@ test('mobile drawer navigation opens, navigates and closes', async ({ page }) =>
   await expect(page.locator('#app-sidebar')).not.toHaveClass(/nav-open/);
 });
 
+test('mobile primary tabbar exposes high-frequency work', async ({ page }) => {
+  await register(page);
+  await page.locator('#onboarding-overlay').evaluate((node) => node.classList.remove('onboarding-open'));
+
+  await expect(page.locator('#mobile-tabbar')).toBeVisible();
+  await expect(page.locator('#mobile-tabbar .mobile-tab')).toHaveCount(4);
+  await page.getByRole('button', { name: '研究' }).click();
+  await expect(page.locator('.workbench-page')).toBeVisible();
+  await page.getByRole('button', { name: '更多' }).click();
+  await expect(page.locator('#app-sidebar')).toHaveClass(/nav-open/);
+});
+
 test('drawer closes via backdrop and escape', async ({ page }) => {
   await register(page);
   await page.locator('#onboarding-overlay').evaluate((node) => node.classList.remove('onboarding-open'));
 
   // 遮罩关闭
-  await page.getByRole('button', { name: '打开导航' }).click();
+  await page.getByRole('button', { name: '更多' }).click();
   await page.locator('#nav-backdrop').click({ position: { x: 350, y: 100 } });
   await expect(page.locator('#app-sidebar')).not.toHaveClass(/nav-open/);
 
   // ESC 关闭
-  await page.getByRole('button', { name: '打开导航' }).click();
+  await page.getByRole('button', { name: '更多' }).click();
   await page.keyboard.press('Escape');
   await expect(page.locator('#app-sidebar')).not.toHaveClass(/nav-open/);
 });
@@ -50,7 +62,7 @@ test('theme switches between dark and light and persists', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
   // 从抽屉打开设置（应自动收起抽屉且面板可点）
-  await page.getByRole('button', { name: '打开导航' }).click();
+  await page.getByRole('button', { name: '更多' }).click();
   await page.locator("#app-sidebar .sidebar-bottom .nav-item[data-action='open-settings']").click();
   await expect(page.locator('#app-sidebar')).not.toHaveClass(/nav-open/);
   await expect(page.locator('#settings-panel')).toHaveClass(/open/);

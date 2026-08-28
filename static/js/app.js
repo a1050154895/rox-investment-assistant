@@ -201,6 +201,11 @@ const ROX = {
       else if (route !== '/' && path.startsWith(route)) isActive = true;
       item.classList.toggle('active', isActive);
     });
+    document.querySelectorAll('.mobile-tab[data-route]').forEach(item => {
+      const route = item.dataset.route;
+      const isActive = route === '/' ? (path === '/' || path === '') : path.startsWith(route);
+      item.classList.toggle('active', isActive);
+    });
 
     // Update page title and search visibility
     document.getElementById('page-title').textContent = resolved ? resolved.title : 'ROX投资助手';

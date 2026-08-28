@@ -128,6 +128,7 @@ summary { cursor: pointer; }
 
 /* Main Area */
 .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.mobile-tabbar { display: none; }
 
 /* Topbar — 毛玻璃 */
 .topbar {
@@ -637,17 +638,11 @@ summary { cursor: pointer; }
     opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 239;
   }
   .nav-backdrop.open { opacity: 1; pointer-events: auto; }
-  .nav-menu-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px; margin-left: -8px; margin-right: 2px;
-    background: none; border: none; border-radius: 10px;
-    color: var(--text-secondary); cursor: pointer; touch-action: manipulation;
-  }
-  .nav-menu-btn:active { background: rgba(224,211,191,.08); }
+  .nav-menu-btn { display: none; }
   body.nav-locked { overflow: hidden; }
 
   .main-area { min-width: 0; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
-  .view-container { min-width: 0; padding: var(--space-3); overflow-x: hidden; }
+  .view-container { min-width: 0; padding: var(--space-3); padding-bottom: calc(78px + env(safe-area-inset-bottom)); overflow-x: hidden; }
 
   .grid-2, .grid-3, .grid-4 { grid-template-columns: minmax(0, 1fr); }
   .index-ticker { display: none; }
@@ -750,6 +745,20 @@ summary { cursor: pointer; }
   .discipline-segment { min-width: 0; padding: 4px 2px; font-size: 9px; }
   .coach-input-row { grid-template-columns: 1fr; }
   .modal-actions { position: sticky; bottom: -16px; padding: 12px 0 4px; background: var(--ink-bg-deep); }
+
+  .mobile-tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 220;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    min-height: 58px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bg-page) 92%, transparent);
+    border-top: 1px solid var(--border-color-light);
+    box-shadow: 0 -8px 24px rgba(0,0,0,.12);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .mobile-tab { min-width: 0; min-height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: none; color: var(--text-tertiary); font-size: 10px; cursor: pointer; touch-action: manipulation; }
+  .mobile-tab svg { width: 20px; height: 20px; }
+  .mobile-tab.active { color: var(--ink-vermilion); }
+  .mobile-tab:active { background: var(--ink-bg-raised); }
 
   /* Review page mobile */
   .review-header-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }

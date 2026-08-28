@@ -174,6 +174,21 @@
     </main>
 </div>
 
+<nav class="mobile-tabbar" id="mobile-tabbar" aria-label="主要导航">
+    <button class="mobile-tab active" data-route="/" aria-label="今日">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h5"/></svg><span>今日</span>
+    </button>
+    <button class="mobile-tab" data-route="/workbench" aria-label="研究">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h6M8 16h4"/></svg><span>研究</span>
+    </button>
+    <button class="mobile-tab" data-route="/observe" aria-label="观察">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg><span>观察</span>
+    </button>
+    <button class="mobile-tab" data-action="toggle-nav" aria-label="更多" aria-expanded="false" aria-controls="app-sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span>更多</span>
+    </button>
+</nav>
+
 <!-- Settings Panel -->
 <div class="settings-overlay" id="settings-overlay" data-action="close-settings"></div>
 <div class="settings-panel" id="settings-panel">
