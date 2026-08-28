@@ -32,6 +32,8 @@ ROX 将宏观变量、公开政策、全球风险、产业链传导、市场行�
 
 前身项目 ROX3.0-Quant 的吸收/拒绝决策记录见 [docs/ROX3-merge-analysis.md](docs/ROX3-merge-analysis.md)。
 
+外部金融工具（FinRobot / TradingAgents-CN / Finance AI LLM / DeepEar 等）的研究与借鉴边界登记见 [docs/external-tools-research.md](docs/external-tools-research.md)。
+
 ## 目录
 
 - [产品定位](#产品定位)
