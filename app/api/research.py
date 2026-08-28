@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_db
-from app.models import JournalEntry, ResearchCard, ResearchEvent, User, utcnow
+from app.models import JournalEntry, QuickNote, ResearchCard, ResearchEvent, User, utcnow
 
 router = APIRouter()
 
@@ -228,7 +228,11 @@ async def get_card(card_id: int, user: User = Depends(get_current_user), db: Ses
     card = db.query(ResearchCard).filter(ResearchCard.id == card_id, ResearchCard.user_id == user.id).first()
     if not card:
         raise HTTPException(status_code=404, detail="研究卡不存在")
-    return {"card": card_out(card)}
+    notes = db.query(QuickNote).filter(
+        QuickNote.research_card_id == card_id,
+        QuickNote.user_id == user.id,
+    ).order_by(QuickNote.pinned.desc(), QuickNote.created_at.desc()).all()
+    return {"card": card_out(card), "notes": [n.to_dict() for n in notes]}
 
 
 @router.put("/{card_id}")
@@ -322,6 +326,12 @@ async def card_detail(card_id: int, user: User = Depends(get_current_user), db: 
     pcts = [d.result_pct for d in settled if d.result_pct is not None]
     checks = _risk_checks(card)
     today_str = date.today().isoformat()
+    linked_notes = (
+        db.query(QuickNote)
+        .filter(QuickNote.research_card_id == card_id, QuickNote.user_id == user.id)
+        .order_by(QuickNote.pinned.desc(), QuickNote.created_at.desc())
+        .all()
+    )
     return {
         "card": card_out(card),
         "decisions": [entry.to_dict() for entry in decisions],
@@ -334,6 +344,7 @@ async def card_detail(card_id: int, user: User = Depends(get_current_user), db: 
             "avg_result_pct": round(sum(pcts) / len(pcts), 2) if pcts else None,
         },
         "review_due": bool(card.next_review_at and card.next_review_at <= today_str),
+        "notes": [n.to_dict() for n in linked_notes],
         "risk": {
             "passed": sum(c["passed"] for c in checks),
             "total": len(checks),

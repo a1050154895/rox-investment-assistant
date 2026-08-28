@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.get("/search")
 async def fund_search(q: str = Query("", max_length=30)):
-    return {"results": search_funds(q)}
+    return {"results": await search_funds(q)}
 
 
 @router.get("/{code}")

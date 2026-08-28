@@ -49,6 +49,17 @@ ROX.views.anomaly = {
     const anomalies = data.anomalies || [];
     let html = '';
 
+    // Intraday section (loaded on demand)
+    html += `
+      <div class="card" style="padding:16px 20px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:14px;font-weight:590;">盘中监控</span>
+          <button class="btn btn-sm btn-secondary" data-action="intraday-scan" style="font-size:11px;">扫描盘中异动</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">基于 5 分钟 K 线检测实时波动率和成交量异动</div>
+        <div id="intraday-results"></div>
+      </div>`;
+
     // Summary
     html += `
       <div class="card" style="padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
@@ -160,5 +171,42 @@ ROX.views.anomaly = {
       scanBtn.dataset.bound = '1';
       scanBtn.addEventListener('click', () => this.scan());
     }
+
+    const intradayBtn = document.querySelector('[data-action="intraday-scan"]');
+    if (intradayBtn && !intradayBtn.dataset.bound) {
+      intradayBtn.dataset.bound = '1';
+      intradayBtn.addEventListener('click', () => this.scanIntraday());
+    }
+  },
+
+  async scanIntraday() {
+    const mount = document.getElementById('intraday-results');
+    if (!mount) return;
+    mount.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-tertiary);font-size:12px;">扫描中...</div>';
+    const data = await ROX.api.get('/api/anomaly/intraday');
+    if (!data || !data.alerts) {
+      mount.innerHTML = '<div style="font-size:11px;color:var(--text-tertiary);">扫描失败或不可用</div>';
+      return;
+    }
+    if (data.alerts.length === 0) {
+      mount.innerHTML = '<div style="font-size:11px;color:var(--text-tertiary);">自选股中暂无盘中异动</div>';
+      return;
+    }
+    let html = '';
+    data.alerts.forEach(a => {
+      const types = (a.spike_types || []).map(t => t === 'intraday_range_spike' ? '振幅突破' : t === 'intraday_volume_spike' ? '量能放大' : t).join(' · ');
+      const up = (a.change_pct || 0) >= 0;
+      const c = up ? 'var(--rox-up)' : 'var(--rox-down)';
+      html += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--border-color-light);">
+          <div style="cursor:pointer;" data-action="anomaly-goto-stock" data-code="${ROX.escape(a.code)}">
+            <span style="font-size:13px;font-weight:500;">${ROX.escape(a.name || a.code)}</span>
+            <span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">${types} · 振幅${a.range_ratio || 0}× · 量比${a.volume_ratio || 0}×</span>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:12px;color:${c};">${a.price ? ROX.fmt.num(a.price) : '--'} ${a.change_pct != null ? ROX.fmt.pct(a.change_pct) : ''}</span>
+        </div>`;
+    });
+    mount.innerHTML = html;
+    this.bind(mount);
   },
 };

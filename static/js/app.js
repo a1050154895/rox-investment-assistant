@@ -867,7 +867,7 @@ const ROX = {
     if (!data || !data.results) return;
     const results = document.getElementById('search-results');
     if (data.results.length === 0) {
-      results.innerHTML = '<div class="search-result-item" style="color:var(--text-tertiary);">无匹配结果（当前支持 A 股全市场）</div>';
+      results.innerHTML = '<div class="search-result-item" style="color:var(--text-tertiary);">无匹配结果（当前支持 A 股与场内基金）</div>';
     } else {
       results.innerHTML = data.results.map(s => `
         <div class="search-result-item" data-action="view-stock" data-code="${s.code}">

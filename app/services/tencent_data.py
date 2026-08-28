@@ -257,6 +257,47 @@ async def fetch_kline(code: str, period: str = "day", limit: int = 120, is_index
         return []
 
 
+_MINUTE_KLINE_URL = "https://ifzq.gtimg.cn/appstock/app/kline/mkline"
+_MINUTE_PERIODS = {"1m": "m1", "5m": "m5", "15m": "m15", "30m": "m30", "60m": "m60"}
+
+
+async def fetch_minute_kline(code: str, period: str = "5m", limit: int = 48) -> list[dict]:
+    """获取分钟级 K 线。period: 1m/5m/15m/30m/60m。
+
+    返回 [{datetime, open, close, high, low, volume}]，失败返回 []。
+    腾讯分钟接口不支持前复权，仅用于盘中异动观察。
+    """
+    symbol = to_tencent_symbol(code)
+    if not symbol or period not in _MINUTE_PERIODS:
+        return []
+    params = {"param": f"{symbol},{_MINUTE_PERIODS[period]},,,{limit}"}
+    try:
+        resp = await run_with_retry(
+            lambda: _request(_MINUTE_KLINE_URL, params=params),
+            breaker=_KLINE_BREAKER,
+            retry_on=_RETRY_ON,
+        )
+        data = resp.json()
+        node = data.get("data", {}).get(symbol, {}) or {}
+        rows = node.get(_MINUTE_PERIODS[period]) or []
+        candles = []
+        for row in rows:
+            if not isinstance(row, list) or len(row) < 6:
+                continue
+            candles.append({
+                "datetime": str(row[0]),
+                "open": _f(row[1]),
+                "close": _f(row[2]),
+                "high": _f(row[3]),
+                "low": _f(row[4]),
+                "volume": int(_f(row[5])),
+            })
+        return candles
+    except Exception as e:
+        logger.warning("腾讯分钟K线获取失败: %s", e)
+        return []
+
+
 _GLOBAL_INDEX_SYMBOLS: dict[str, dict] = {
     "usDJI":   {"name": "道琼斯",     "region": "美股"},
     "usIXIC":  {"name": "纳斯达克",   "region": "美股"},
@@ -371,9 +412,10 @@ _A_SHARE_MARKETS = ("sh", "sz", "bj")
 
 
 async def smartbox_search(query: str, limit: int = 10) -> list[dict]:
-    """腾讯自选股实时搜索（全市场，按相关度排序）。
+    """腾讯自选股实时搜索（A股 + 场内基金/LOF/ETF，按相关度排序）。
 
-    返回 [{code, name, symbol}]，仅保留 A 股（sh/sz/bj，类型 GP-A）；
+    返回 [{code, name, symbol}]，保留 A 股（GP-A）和场内基金（ETF/LOF/FJ/
+    FUND/EQP，含债券 ETF/黄金 ETF/货币 ETF 等品种）；
     返回格式：v_hint="市场~代码~名称~拼音~类型^...^"，GBK 编码。
     """
     query = (query or "").strip()
@@ -402,8 +444,11 @@ async def smartbox_search(query: str, limit: int = 10) -> list[dict]:
             continue
         market, code, name = parts[0], parts[1], parts[2]
         item_type = parts[4]
-        # A 股类型：GP-A（主板/创业板）、GP-A-KCB（科创板）等均以 GP-A 开头
-        if market not in _A_SHARE_MARKETS or not item_type.startswith("GP-A"):
+        # A 股：GP-A 开头（主板/创业板/科创板）
+        # 腾讯类型实测包含 ETF、LOF、FJ；保留 FUND/EQP 兼容其他接口口径
+        is_stock = item_type.startswith("GP-A")
+        is_fund = item_type in {"ETF", "LOF", "FJ", "FUND", "EQP"}
+        if market not in _A_SHARE_MARKETS or not (is_stock or is_fund):
             continue
         name = _decode_unicode_escapes(name)
         results.append({"code": code, "name": name, "symbol": f"{market}{code}"})

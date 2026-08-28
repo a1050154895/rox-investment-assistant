@@ -28,6 +28,7 @@ ROX.register('/workbench', async function(container) {
           <button class="card workbench-task" data-route="/intelligence"><span class="task-kicker">THEME</span><strong>主题研究</strong><small>主题主线、传导路径、行业影响和待验证问题</small></button>
           <button class="card workbench-task" data-route="/research/new?template=serenity_chain"><span class="task-kicker">CHAIN</span><strong>产业链三问</strong><small>把行业机会拆成可验证的研究问题</small></button>
           <button class="card workbench-task" data-route="/research/new?template=discipline_guard"><span class="task-kicker">COUNTER</span><strong>反模式自查</strong><small>主动寻找反证，检查仓位和退出条件</small></button>
+          <button class="card workbench-task" data-route="/research/new?template=capital_flow_discipline"><span class="task-kicker">FLOW</span><strong>三流纪律自查</strong><small>核验流向、流量、流速与交易边界</small></button>
           <button class="card workbench-task" data-route="/review"><span class="task-kicker">REVIEW</span><strong>复盘研究判断</strong><small>查看假设验证率、关联决策和错误模式</small></button>
           <button class="card workbench-task" data-route="/guide"><span class="task-kicker">EVIDENCE</span><strong>研究资料与方法</strong><small>查看研究方法、证据边界和数据可信规则</small></button>
         </div>

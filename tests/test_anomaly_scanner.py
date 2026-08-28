@@ -1,5 +1,5 @@
 """异动雷达 ATR 计算的离线测试。"""
-from app.services.anomaly_scanner import compute_atr, compute_avg_volume
+from app.services.anomaly_scanner import compute_atr, compute_avg_volume, compute_intraday_spike
 
 
 def _candle(o, c, h, l, v=10000):
@@ -91,3 +91,28 @@ def test_scan_watchlist_empty():
     from app.services.anomaly_scanner import scan_watchlist
     result = asyncio.run(scan_watchlist([]))
     assert result == []
+
+
+def test_intraday_spike_detection():
+    """分钟线振幅/量能超过 2× 基线时应标记异动。"""
+    # 前 10 根正常，最后 2 根振幅翻倍
+    candles = [{"datetime": str(i), "open": 10, "close": 11, "high": 12, "low": 9, "volume": 100} for i in range(10)]
+    candles.append({"datetime": "10", "open": 10, "close": 14, "high": 18, "low": 9, "volume": 300})
+    candles.append({"datetime": "11", "open": 14, "close": 13, "high": 16, "low": 12, "volume": 250})
+    result = compute_intraday_spike(candles)
+    assert result is not None
+    assert "intraday_range_spike" in result["spike_types"]
+    assert result["range_ratio"] > 2.0
+
+
+def test_intraday_no_spike():
+    """正常波动不应标记异动。"""
+    candles = [{"datetime": str(i), "open": 10, "close": 11, "high": 12, "low": 9, "volume": 100} for i in range(15)]
+    result = compute_intraday_spike(candles)
+    assert result is None
+
+
+def test_intraday_insufficient_data():
+    """数据不足时返回 None。"""
+    candles = [{"datetime": str(i), "open": 10, "close": 11, "high": 12, "low": 9, "volume": 100} for i in range(5)]
+    assert compute_intraday_spike(candles) is None

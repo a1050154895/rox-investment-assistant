@@ -10,6 +10,7 @@ from typing import Any
 
 from app.services.market_data import get_kline, get_stock_quote
 from app.services.tencent_data import fetch_kline
+from app.services.tencent_data import smartbox_search
 
 
 ETF_METADATA: dict[str, dict[str, Any]] = {
@@ -110,25 +111,43 @@ async def _tracking_error_entry(code: str) -> dict[str, Any]:
     }
 
 
-def search_funds(query: str, limit: int = 10) -> list[dict[str, Any]]:
+async def search_funds(query: str, limit: int = 10) -> list[dict[str, Any]]:
+    """搜索基金：先查内置 ETF 元数据，再从腾讯全市场搜索补全 LOF/ETF。"""
     q = query.strip().lower()
-    return [
+    metadata_results = [
         {"code": code, **meta}
         for code, meta in ETF_METADATA.items()
         if not q or q in code or q in meta["name"].lower() or q in meta["tracking"].lower()
-    ][:limit]
+    ]
+    results = metadata_results[:limit]
+    if len(results) >= limit:
+        return results
+
+    smart = await smartbox_search(query, limit=limit * 2)
+    seen_codes = {item["code"] for item in results}
+    for item in smart:
+        code = item.get("code", "")
+        if code and code not in seen_codes:
+            results.append({"code": code, "name": item.get("name", ""), "tracking": "待核验", "fund_type": "场内基金", "category": ""})
+            seen_codes.add(code)
+            if len(results) >= limit:
+                break
+    return results
 
 
 async def get_fund(code: str) -> dict[str, Any]:
     normalized = code.strip().lower().replace(".sh", "").replace(".sz", "")
     metadata = ETF_METADATA.get(normalized)
     if not metadata:
-        return {"error": "暂不支持该基金代码，当前先支持常用ETF研究。", "data_status": "unavailable"}
+        metadata = {"name": "场内基金", "fund_type": "场内基金", "tracking": "待核验", "category": ""}
     quote = await get_stock_quote(normalized)
+    if quote.get("data_status") == "unavailable":
+        return {"error": "场内基金行情暂不可用，请稍后重试或改用代码搜索。", "data_status": "unavailable"}
     tracking = await _tracking_error_entry(normalized)
     return {
         "code": normalized,
         **metadata,
+        "name": quote.get("name") or metadata["name"],
         "quote": quote,
         "data_status": quote.get("data_status", "unavailable"),
         "data_source": quote.get("data_source"),
@@ -147,8 +166,6 @@ async def get_fund(code: str) -> dict[str, Any]:
 
 
 async def get_fund_kline(code: str, period: str = "daily") -> dict[str, Any]:
-    if code.strip().lower().replace(".sh", "").replace(".sz", "") not in ETF_METADATA:
-        return {"candles": [], "data_status": "unavailable", "message": "暂不支持该基金代码"}
     result = await get_kline(code, period)
     candles = result.get("candles", [])
     if candles:

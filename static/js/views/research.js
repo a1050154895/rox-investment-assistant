@@ -155,6 +155,16 @@ async function loadCardArchive(cardId, mount) {
         <div><span>平均盈亏</span><strong>${stats.avg_result_pct != null ? ROX.fmt.pct(stats.avg_result_pct) : '--'}</strong></div>
       </div>
       <div class="research-archive-section"><div class="research-archive-section-title">研究时间线</div>${renderResearchTimeline(data.timeline)}</div>
+      ${(data.notes || []).length ? `
+      <div class="research-archive-section">
+        <div class="research-archive-section-title">关联速记</div>
+        ${(data.notes || []).map(n => `
+          <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:8px;">
+            <div style="font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;">${n.pinned ? '📌 ' : ''}${ROX.escape(n.content)}</div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px;font-family:var(--font-mono);">${ROX.escape((n.created_at || '').slice(0, 16).replace('T', ' '))}${n.tag ? ` · ${ROX.escape(n.tag)}` : ''}</div>
+          </div>
+        `).join('')}
+      </div>` : ''}
       ${stats.total ? `<div class="research-archive-decisions">${(data.decisions || []).map(d => `
         <div class="research-archive-decision">
           <div><span class="tag ${ROX.fmt.actionTag(d.action)}">${ROX.escape(d.action)}</span><span class="research-archive-decision-date">${ROX.escape(d.date)}</span></div>
@@ -194,7 +204,7 @@ ROX.register('/research', async function(container, params) {
     }
     ROX.toast(`已套用模板：${res.name}`, 'info');
   };
-  container.innerHTML = `<div class="research-page"><div class="research-page-head"><div><div class="eyebrow">ROX LOOP / RESEARCH</div><h2 class="research-page-title">${card ? '继续完善研究卡' : '把一个想法变成可验证判断'}</h2><p class="research-page-subtitle">先写清事实、假设和反证，再决定是否行动。</p></div><button class="btn btn-secondary" data-route="/research?template=serenity_chain">产业链三问模板</button><button class="btn btn-secondary" data-route="/research?template=discipline_guard">反模式自查模板</button><button class="btn btn-secondary" data-route="/">回到今日</button></div><div class="research-context-strip"><span class="research-context-mark">证</span><div><strong>这不是荐股表单</strong><span>把一个判断拆成证据、假设、反证和纪律，留下可复盘的依据。</span></div></div><div id="research-archive-mount"></div><div class="card research-card-shell">${researchCardForm(seed)}${cardId ? `<div class="research-decision-footer"><div><strong>研究链已保存</strong><span>准备好后再记录正式决策，决策会保留这张研究卡的关联。</span></div><button class="btn btn-primary" data-action="record-card-decision" data-card-id="${cardId}" data-code="${ROX.escape(card.code || '')}" data-name="${ROX.escape(card.stock || '')}">记录关联决策</button></div>` : ''}</div></div>`;
+  container.innerHTML = `<div class="research-page"><div class="research-page-head"><div><div class="eyebrow">ROX LOOP / RESEARCH</div><h2 class="research-page-title">${card ? '继续完善研究卡' : '把一个想法变成可验证判断'}</h2><p class="research-page-subtitle">先写清事实、假设和反证，再决定是否行动。</p></div><button class="btn btn-secondary" data-route="/research?template=serenity_chain">产业链三问</button><button class="btn btn-secondary" data-route="/research?template=discipline_guard">反模式自查</button><button class="btn btn-secondary" data-route="/research?template=capital_flow_discipline">三流纪律</button><button class="btn btn-secondary" data-route="/">回到今日</button></div><div class="research-context-strip"><span class="research-context-mark">证</span><div><strong>这不是荐股表单</strong><span>把一个判断拆成证据、假设、反证和纪律，留下可复盘的依据。</span></div></div><div id="research-archive-mount"></div><div class="card research-card-shell">${researchCardForm(seed)}${cardId ? `<div class="research-decision-footer"><div><strong>研究链已保存</strong><span>准备好后再记录正式决策，决策会保留这张研究卡的关联。</span></div><button class="btn btn-primary" data-action="record-card-decision" data-card-id="${cardId}" data-code="${ROX.escape(card.code || '')}" data-name="${ROX.escape(card.stock || '')}">记录关联决策</button></div>` : ''}</div></div>`;
 
   const form = document.getElementById('research-card-form');
   await bindResearchTargetPicker(form, seed);

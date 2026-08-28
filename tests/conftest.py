@@ -88,12 +88,20 @@ def _offline_network(monkeypatch):
     async def _no_kline(code, period="day", limit=120, is_index=False):
         return []
 
+    async def _no_minute_kline(code, period="5m", limit=48):
+        return []
+
     async def _no_indices():
+        return []
+
+    async def _no_smartbox(query, limit=10):
         return []
 
     targets = [
         ("app.services.tencent_data", "fetch_quotes", _no_quotes),
         ("app.services.tencent_data", "fetch_kline", _no_kline),
+        ("app.services.tencent_data", "fetch_minute_kline", _no_minute_kline),
+        ("app.services.tencent_data", "smartbox_search", _no_smartbox),
         ("app.services.tencent_data", "fetch_global_indices", _no_indices),
         ("app.services.market_data", "fetch_quotes", _no_quotes),
         ("app.services.market_data", "fetch_kline", _no_kline),
@@ -105,6 +113,8 @@ def _offline_network(monkeypatch):
         ("app.services.backtest_engine", "fetch_kline", _no_kline),
         ("app.api.watchlist", "fetch_quotes", _no_quotes),
         ("app.services.anomaly_scanner", "fetch_kline", _no_kline),
+        ("app.services.anomaly_scanner", "fetch_minute_kline", _no_minute_kline),
+        ("app.services.fund_data", "smartbox_search", _no_smartbox),
         ("app.services.anomaly_scanner", "fetch_quotes", _no_quotes),
     ]
     for mod_path, attr, repl in targets:

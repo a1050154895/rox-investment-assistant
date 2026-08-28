@@ -7,7 +7,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 from app.services.intelligence_data import get_intelligence_brief
-from app.services.tencent_data import fetch_kline, fetch_quotes
+from app.services.tencent_data import fetch_kline, fetch_minute_kline, fetch_quotes
 
 
 def compute_atr(candles: list[dict], period: int = 14) -> float | None:
@@ -185,4 +185,81 @@ async def pre_market_scan(watchlist: list[dict]) -> dict:
         "overnight_news": [{"title": n.get("title", ""), "published_at": n.get("published_at", ""), "source": n.get("source", "")} for n in overnight[:15]],
         "flagged_stocks": flagged,
         "updated_at": now.isoformat(),
+    }
+
+
+def compute_intraday_spike(candles: list[dict]) -> dict | None:
+    """检测分钟级价格/成交量异动。
+
+    与日线 ATR 不同：盘中用过去 N 根分钟线的平均振幅和平均量做基线。
+    当前根振幅或量 >= 2×基线时标记为盘中异动。
+    """
+    if len(candles) < 12:
+        return None
+
+    # 用前 N-2 根做基线，最后 2 根做检测
+    baseline = candles[:-2]
+    recent = candles[-2:]
+
+    ranges = []
+    volumes = []
+    for c in baseline:
+        h, l = c.get("high", 0), c.get("low", 0)
+        if h > 0 and l > 0:
+            ranges.append(h - l)
+            volumes.append(c.get("volume", 0))
+
+    if not ranges or sum(ranges) <= 0:
+        return None
+    avg_range = sum(ranges) / len(ranges)
+    avg_vol = sum(volumes) / len(volumes) if volumes else 0
+
+    flags = []
+    max_range_ratio = 0
+    max_vol_ratio = 0
+    for c in recent:
+        h, l = c.get("high", 0), c.get("low", 0)
+        r = h - l
+        rr = round(r / avg_range, 2) if avg_range > 0 else 0
+        vr = round(c.get("volume", 0) / avg_vol, 2) if avg_vol > 0 else 0
+        max_range_ratio = max(max_range_ratio, rr)
+        max_vol_ratio = max(max_vol_ratio, vr)
+        if rr >= 2.0:
+            flags.append("intraday_range_spike")
+        if vr >= 2.0:
+            flags.append("intraday_volume_spike")
+
+    if not flags:
+        return None
+    return {
+        "spike_types": list(set(flags)),
+        "range_ratio": max_range_ratio,
+        "volume_ratio": max_vol_ratio,
+        "last_time": recent[-1].get("datetime", ""),
+    }
+
+
+async def intraday_scan(code: str, name: str = "") -> dict | None:
+    """盘中异动扫描：分钟级 K 线检测 + 日线 ATR 交叉验证。"""
+    intraday = await fetch_minute_kline(code, period="5m", limit=60)
+    if not intraday:
+        return None
+
+    spike = compute_intraday_spike(intraday)
+    if not spike:
+        return {"code": code, "name": name, "intraday": False, "available": True}
+
+    quotes = await fetch_quotes([code])
+    q = quotes.get(code) or {}
+    return {
+        "code": code,
+        "name": name or q.get("name", ""),
+        "intraday": True,
+        "available": True,
+        "price": q.get("price", 0),
+        "change_pct": q.get("change_pct", 0),
+        "spike_types": spike["spike_types"],
+        "range_ratio": spike["range_ratio"],
+        "volume_ratio": spike["volume_ratio"],
+        "last_time": spike["last_time"],
     }
