@@ -203,9 +203,11 @@ ROX.views.anomaly = {
             <span style="font-size:13px;font-weight:500;">${ROX.escape(a.name || a.code)}</span>
             <span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">${types} · 振幅${a.range_ratio || 0}× · 量比${a.volume_ratio || 0}×</span>
             <div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;">${ROX.escape(a.flow_direction_label || '量价方向待观察')} · 最大量 ${ROX.escape(a.max_volume_time || '未知')} · 最大振幅 ${ROX.escape(a.max_range_time || '未知')} · 速度 ${a.velocity_ratio || 0}×</div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;">新闻：${a.news_relation === 'matched' ? `已匹配 ${(a.news || []).length} 条` : '未匹配到相关标题'} · 仅作时间线线索</div>
           </div>
           <span style="font-family:var(--font-mono);font-size:12px;color:${c};">${a.price ? ROX.fmt.num(a.price) : '--'} ${a.change_pct != null ? ROX.fmt.pct(a.change_pct) : ''}</span>
-        </div>`;
+        </div>
+        ${a.news?.length ? `<div style="padding:6px 0 8px;border-top:1px solid var(--border-color-light);font-size:10px;color:var(--text-secondary);">${a.news.slice(0, 3).map(n => `${ROX.escape(n.published_at || '时间未知')} · ${ROX.escape(n.title)}`).join('<br>')}</div>` : ''}`;
     });
     mount.innerHTML = html;
     this.bind(mount);
