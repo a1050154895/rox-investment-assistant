@@ -4,6 +4,8 @@ const python = process.env.PYTHON_BIN || '.venv/bin/python';
 module.exports = defineConfig({
   testDir: './e2e',
   timeout: 30_000,
+  // 所有浏览器测试共用一个 SQLite 文件，避免并行注册/写入造成竞争。
+  workers: 1,
   fullyParallel: true,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
