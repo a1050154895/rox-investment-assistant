@@ -72,6 +72,13 @@ ROX.register('/stock', async function(container, params) {
           </div>
         </div>
 
+        <div class="mobile-stock-tabs" role="tablist" aria-label="个股信息分区">
+          <button class="mobile-stock-tab active" data-stock-panel="quote" role="tab">行情</button>
+          <button class="mobile-stock-tab" data-stock-panel="research" role="tab">研究</button>
+          <button class="mobile-stock-tab" data-stock-panel="flow" role="tab">资金</button>
+          <button class="mobile-stock-tab" data-stock-panel="analysis" role="tab">分析</button>
+        </div>
+
         <!-- K-Line Chart -->
         <div class="card stock-chart-card" style="flex:1;padding:12px;overflow:hidden;">
           ${kline?.data_status === 'unavailable' ? `<div class="empty-state"><p>${kline.message || 'K线数据暂不可用'}</p></div>` : `<div id="kline-chart" class="chart-container"></div>`}
@@ -180,6 +187,31 @@ ROX.register('/stock', async function(container, params) {
       </aside>
     </div>
   `;
+
+  const mobilePanels = [
+    ...container.querySelectorAll('.stock-main-column > .stock-chart-card'),
+    container.querySelector('#stock-research-links'),
+    container.querySelector('.stock-flow-card'),
+    ...container.querySelectorAll('.stock-framework-panel > .card'),
+  ].filter(Boolean);
+  mobilePanels.forEach(panel => {
+    panel.dataset.mobilePanel = panel.classList.contains('stock-chart-card') ? 'quote'
+      : panel.id === 'stock-research-links' ? 'research'
+        : panel.classList.contains('stock-flow-card') ? 'flow' : 'analysis';
+  });
+  container.querySelectorAll('[data-stock-panel]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      container.querySelectorAll('[data-stock-panel]').forEach(item => {
+        const active = item === tab;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      mobilePanels.forEach(panel => {
+        panel.classList.toggle('mobile-panel-active', panel.dataset.mobilePanel === tab.dataset.stockPanel);
+      });
+    });
+  });
+  container.querySelectorAll('[data-stock-panel="quote"]').forEach(tab => tab.click());
 
   // Render charts
   if (kline?.candles?.length) {

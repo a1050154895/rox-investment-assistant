@@ -129,6 +129,7 @@ summary { cursor: pointer; }
 /* Main Area */
 .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .mobile-tabbar { display: none; }
+.mobile-stock-tabs { display: none; }
 
 /* Topbar — 毛玻璃 */
 .topbar {
@@ -693,6 +694,11 @@ summary { cursor: pointer; }
   .stock-chart-card .chart-container { min-height: 300px; }
   #flow-chart { height: 96px; }
   .card { min-width: 0; padding: 14px; }
+  .mobile-stock-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 4px; margin: 0 0 10px; background: var(--bg-secondary); border: 1px solid var(--border-color-light); border-radius: 8px; }
+  .mobile-stock-tab { min-height: 40px; border: 0; border-radius: 6px; background: transparent; color: var(--text-tertiary); font-size: 12px; cursor: pointer; touch-action: manipulation; }
+  .mobile-stock-tab.active { background: var(--bg-page); color: var(--ink-vermilion); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+  .stock-page [data-mobile-panel] { display: none; }
+  .stock-page [data-mobile-panel].mobile-panel-active { display: block; }
   .card-header { align-items: flex-start; gap: 10px; }
   .stock-analysis-column { gap: 10px; }
   .stock-analysis-column .card { padding: 14px; }

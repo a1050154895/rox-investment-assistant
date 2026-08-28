@@ -138,10 +138,11 @@ async def search_funds(query: str, limit: int = 10) -> list[dict[str, Any]]:
 async def get_fund(code: str) -> dict[str, Any]:
     normalized = code.strip().lower().replace(".sh", "").replace(".sz", "")
     metadata = ETF_METADATA.get(normalized)
+    known_fund = metadata is not None
     if not metadata:
         metadata = {"name": "场内基金", "fund_type": "场内基金", "tracking": "待核验", "category": ""}
     quote = await get_stock_quote(normalized)
-    if quote.get("data_status") == "unavailable":
+    if quote.get("data_status") == "unavailable" and not known_fund:
         return {"error": "场内基金行情暂不可用，请稍后重试或改用代码搜索。", "data_status": "unavailable"}
     tracking = await _tracking_error_entry(normalized)
     return {
