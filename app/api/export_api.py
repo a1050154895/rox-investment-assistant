@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_db
-from app.models import Alert, DisciplineProfile, JournalEntry, Position, QuickNote, ResearchCard, Setting, User, Watchlist
+from app.models import Alert, AnomalyEvent, DisciplineProfile, JournalEntry, Position, QuickNote, ResearchCard, Setting, User, Watchlist
 
 router = APIRouter()
 
@@ -82,6 +82,7 @@ async def export_backup(
        "alerts": [a.to_dict() for a in db.query(Alert).filter(Alert.user_id == user.id).all()],
         "research_cards": [c.to_dict() for c in db.query(ResearchCard).filter(ResearchCard.user_id == user.id).order_by(ResearchCard.updated_at.desc()).all()],
         "quick_notes": [n.to_dict() for n in db.query(QuickNote).filter(QuickNote.user_id == user.id).order_by(QuickNote.created_at.desc()).all()],
+        "anomaly_events": [e.to_dict() for e in db.query(AnomalyEvent).filter(AnomalyEvent.user_id == user.id).order_by(AnomalyEvent.updated_at.desc()).all()],
        "settings": {s.key: s.value for s in db.query(Setting).filter(Setting.user_id == user.id).all()},
         "discipline_profile": profile.profile_json if profile else None,
     }
@@ -122,6 +123,9 @@ async def export_report(
     notes = db.query(QuickNote).filter(
         QuickNote.user_id == user.id
     ).order_by(QuickNote.pinned.desc(), QuickNote.created_at.desc()).all()
+    anomaly_events = db.query(AnomalyEvent).filter(
+        AnomalyEvent.user_id == user.id
+    ).order_by(AnomalyEvent.updated_at.desc()).all()
     wins = sum(1 for e in closed if e.result == "盈")
     losses = sum(1 for e in closed if e.result == "亏")
     win_rate = round(wins / len(closed) * 100, 1) if closed else None
@@ -188,6 +192,18 @@ async def export_report(
     else:
         out.append("（暂无速记）")
         out.append("")
+
+    out.append("## 异动事件跟踪")
+    out.append("")
+    if anomaly_events:
+        out.append(f"- 事件总数：{len(anomaly_events)} 条")
+        out.append("| 标的 | 状态 | 观察次数 | 最近更新 |")
+        out.append("| --- | --- | --- | --- |")
+        for event in anomaly_events[:30]:
+            out.append(f"| {event.name or event.code}（{event.code}） | {event.status} | {len(event.to_dict()['snapshots'])} | {event.updated_at.strftime('%Y-%m-%d %H:%M') if event.updated_at else '-'} |")
+    else:
+        out.append("（暂无异动事件）")
+    out.append("")
 
     out.append("## 当前持仓")
     out.append("")

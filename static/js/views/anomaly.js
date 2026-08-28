@@ -13,7 +13,8 @@ ROX.register('/anomaly', async function(container) {
     </div>
     <div id="anomaly-body">
       <div style="text-align:center;padding:60px 0;color:var(--text-secondary);"><div style="font-size:14px;">点击"扫描自选"开始检测</div></div>
-    </div>
+      </div>
+      <div id="anomaly-events" style="margin-top:16px;"></div>
   `;
   await ROX.views.anomaly.load();
 });
@@ -29,6 +30,7 @@ ROX.views.anomaly = {
       body.innerHTML = '<div class="card" style="padding:48px;text-align:center;color:var(--text-tertiary);"><p>登录后使用异动雷达</p></div>';
       return;
     }
+    this.loadEvents();
   },
 
   async scan() {
@@ -177,6 +179,38 @@ ROX.views.anomaly = {
       intradayBtn.dataset.bound = '1';
       intradayBtn.addEventListener('click', () => this.scanIntraday());
     }
+
+    body.querySelectorAll('[data-action="anomaly-create-event"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        const result = await ROX.api.post(`/api/anomaly/events?code=${encodeURIComponent(btn.dataset.code)}&name=${encodeURIComponent(btn.dataset.name)}`);
+        btn.textContent = result?.id ? '事件已记录' : (result?.message || '记录失败');
+      });
+    });
+    body.querySelectorAll('[data-action="anomaly-refresh-event"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        const result = await ROX.api.post(`/api/anomaly/events/${btn.dataset.id}/refresh`);
+        btn.disabled = false;
+        if (result?.status_label) {
+          btn.closest('[data-event-row]').querySelector('[data-event-status]').textContent = result.status_label;
+          btn.closest('[data-event-row]').querySelector('[data-event-count]').textContent = `${(result.snapshots || []).length} 次观察`;
+        }
+      });
+    });
+  },
+
+  async loadEvents() {
+    const mount = document.getElementById('anomaly-events');
+    if (!mount) return;
+    const data = await ROX.api.get('/api/anomaly/events');
+    const events = data?.events || [];
+    if (!events.length) {
+      mount.innerHTML = '<div class="card" style="padding:16px 20px;color:var(--text-tertiary);font-size:11px;">暂无已记录事件。盘中扫描发现异动后，可记录并在后续刷新观察是否持续。</div>';
+      return;
+    }
+    mount.innerHTML = `<div class="card" style="padding:16px 20px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:14px;">事件跟踪</strong><span style="font-size:10px;color:var(--text-tertiary);">最多保留最近 50 条</span></div>${events.map(event => `<div data-event-row style="display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--border-color-light);padding:9px 0;"><div><strong style="font-size:12px;">${ROX.escape(event.name || event.code)}</strong><span style="font-size:10px;color:var(--text-tertiary);margin-left:6px;">${ROX.escape(event.code)} · <span data-event-count>${(event.snapshots || []).length} 次观察</span></span></div><div style="display:flex;align-items:center;gap:8px;"><span data-event-status class="tag tag-gray">${ROX.escape(event.status_label || '待观察')}</span><button class="btn btn-sm btn-ghost" data-action="anomaly-refresh-event" data-id="${event.id}" style="font-size:10px;">刷新</button></div></div>`).join('')}</div>`;
+    this.bind(mount);
   },
 
   async scanIntraday() {
@@ -204,6 +238,7 @@ ROX.views.anomaly = {
             <span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">${types} · 振幅${a.range_ratio || 0}× · 量比${a.volume_ratio || 0}×</span>
             <div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;">${ROX.escape(a.flow_direction_label || '量价方向待观察')} · 最大量 ${ROX.escape(a.max_volume_time || '未知')} · 最大振幅 ${ROX.escape(a.max_range_time || '未知')} · 速度 ${a.velocity_ratio || 0}×</div>
             <div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;">新闻：${a.news_relation === 'matched' ? `已匹配 ${(a.news || []).length} 条` : '未匹配到相关标题'} · 仅作时间线线索</div>
+            <button class="btn btn-sm btn-ghost" data-action="anomaly-create-event" data-code="${ROX.escape(a.code)}" data-name="${ROX.escape(a.name || a.code)}" style="margin-top:5px;font-size:10px;">记录事件</button>
           </div>
           <span style="font-family:var(--font-mono);font-size:12px;color:${c};">${a.price ? ROX.fmt.num(a.price) : '--'} ${a.change_pct != null ? ROX.fmt.pct(a.change_pct) : ''}</span>
         </div>
@@ -211,5 +246,6 @@ ROX.views.anomaly = {
     });
     mount.innerHTML = html;
     this.bind(mount);
+    this.loadEvents();
   },
 };

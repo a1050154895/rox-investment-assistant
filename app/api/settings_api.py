@@ -42,9 +42,9 @@ ALLOWED_KEYS = set(DEFAULT_SETTINGS.keys()) | {"ai_api_key", "ai_fallback_key"}
 
 # 套餐定义（价格与权益为公开展示信息）
 PLANS = [
-    {"name": "基础版", "price": 0, "period": "永久", "features": ["每日API 100次", "基础行情", "简单图表"]},
-    {"name": "专业版", "price": 99, "period": "月", "features": ["每日API 10,000次", "实时行情", "高级图表", "主力资金分析", "框架评分"]},
-    {"name": "尊享版", "price": 299, "period": "月", "features": ["无限API", "全功能", "AI深度分析", "专属策略", "优先支持"]},
+    {"name": "基础版", "price": 0, "period": "永久", "status": "available", "features": ["研究卡与复盘", "基础行情", "本地知识库"]},
+    {"name": "专业版", "price": None, "period": "规划中", "status": "planned", "features": ["更高频数据", "后台事件监控", "高级基金数据", "AI额度"]},
+    {"name": "尊享版", "price": None, "period": "规划中", "status": "planned", "features": ["团队研究空间", "更多数据源", "高级报告工作流", "优先支持"]},
 ]
 
 
@@ -166,5 +166,5 @@ async def get_membership(
         "features_unlocked": 0,
         "features_total": len(PLANS[0]["features"]),
         "plans": PLANS,
-        "note": "付费套餐正在接入，当前为基础版；后续版本将开放支付与权益激活。",
+        "note": "当前仅开放基础版。付费套餐尚未接入支付、订单和权益激活，页面内容仅为产品规划。",
     }

@@ -278,6 +278,29 @@ def summarize_intraday_flow(candles: list[dict]) -> dict:
     }
 
 
+def classify_event_status(snapshots: list[dict]) -> str:
+    """根据已保存观察次数与日期，给出保守的事件持续性状态。"""
+    if not snapshots:
+        return "detected"
+    if len(snapshots) == 1:
+        return "detected"
+    dates = {str(item.get("observed_at", ""))[:10] for item in snapshots if item.get("observed_at")}
+    if len(dates) > 1:
+        return "next_day_review"
+    if len(snapshots) >= 3:
+        return "intraday_persistent"
+    return "short_continuation"
+
+
+def event_status_label(status: str) -> str:
+    return {
+        "detected": "首次发现",
+        "short_continuation": "短期延续",
+        "intraday_persistent": "日内持续",
+        "next_day_review": "次日复核",
+    }.get(status, "待观察")
+
+
 async def intraday_scan(code: str, name: str = "") -> dict | None:
     """盘中异动扫描：分钟级 K 线检测 + 日线 ATR 交叉验证。"""
     intraday = await fetch_minute_kline(code, period="5m", limit=60)

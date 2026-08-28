@@ -67,6 +67,10 @@ def _social_finance_score(value: float) -> float:
     return _clamp(50 + (value - 10) * 3)
 
 
+def _neutral_score(value: float) -> float:
+    return 50.0
+
+
 # 降级快照：当 AKShare 不可用时（Render 网络限制等）使用最近已知值。
 # 数据来源：westock-data 技能 core_indicators_cur（腾讯自选股宏观接口）。
 FALLBACK_SNAPSHOT: dict[str, dict[str, Any]] = {
@@ -134,6 +138,21 @@ SPECS = (
 )
 
 
+# 只用于实质利率代理，不纳入宏观矩阵评分，避免改变既有矩阵口径。
+DERIVED_SPECS = (
+    IndicatorSpec(
+        key="lpr_1y", label="1年期贷款市场报价利率", function_name="macro_china_lpr",
+        value_columns=("LPR1Y",), date_columns=("TRADE_DATE",),
+        publisher="中国人民银行", group="derived", scorer=_neutral_score,
+    ),
+    IndicatorSpec(
+        key="gdp_yoy", label="国内生产总值同比", function_name="macro_china_gdp",
+        value_columns=("国内生产总值-同比增长",), date_columns=("季度",),
+        publisher="中华人民共和国国家统计局", group="derived", scorer=_neutral_score,
+    ),
+)
+
+
 def _to_number(value: Any) -> float | None:
     if value is None:
         return None
@@ -186,6 +205,43 @@ def _find_column(columns: list[str], candidates: tuple[str, ...]) -> str | None:
             if key in normalized_key.lower():
                 return original
     return None
+
+
+def _period_bucket(period: str) -> str | None:
+    """将月度、季度观察期归一到同一个季度桶。"""
+    text = str(period or "")
+    years = re.findall(r"20\d{2}", text)
+    if not years:
+        return None
+    year = years[0]
+    quarter = re.search(r"第\s*([1-4])\s*季度", text)
+    if quarter:
+        return f"{year}Q{quarter.group(1)}"
+    month = re.search(r"(?:年|[-/])\s*(\d{1,2})\s*月?", text)
+    if month:
+        return f"{year}Q{(int(month.group(1)) - 1) // 3 + 1}"
+    return year
+
+
+def _real_rate_proxy(indicators: list[dict[str, Any]]) -> dict[str, Any]:
+    """按资料口径计算实质利率代理，严格要求四项数据同一季度。"""
+    by_key = {item.get("key"): item for item in indicators}
+    keys = ("lpr_1y", "cpi_yoy", "m2_yoy", "gdp_yoy")
+    inputs = {key: by_key.get(key) for key in keys}
+    missing = [key for key, item in inputs.items() if not item or item.get("status") not in ("available", "snapshot")]
+    buckets = {key: _period_bucket(item.get("period", "")) for key, item in inputs.items() if item}
+    base = {"formula": "名义利率 - CPI - (M2增速 - GDP增速)", "inputs": inputs, "missing": missing, "period_buckets": buckets}
+    if missing:
+        return {**base, "status": "unavailable", "value": None, "message": "缺少四项有效数据，暂不计算。"}
+    if len(set(buckets.values())) != 1 or None in buckets.values():
+        return {**base, "status": "period_mismatch", "value": None, "message": "四项数据不属于同一季度，暂不计算。"}
+    value = inputs["lpr_1y"]["value"] - inputs["cpi_yoy"]["value"] - (
+        inputs["m2_yoy"]["value"] - inputs["gdp_yoy"]["value"]
+    )
+    return {
+        **base, "status": "calculated", "value": round(value, 2),
+        "message": "四项数据属于同一季度，可作为研究代理；不直接生成买卖结论。",
+    }
 
 
 def parse_indicator_frame(frame: Any, spec: IndicatorSpec) -> dict[str, Any]:
@@ -296,6 +352,8 @@ async def _get_macro_matrix_raw(force: bool = False) -> dict[str, Any]:
         return _CACHE[1]
 
     indicators = await asyncio.gather(*(_fetch_indicator(spec) for spec in SPECS))
+    derived_indicators = await asyncio.gather(*(_fetch_indicator(spec) for spec in DERIVED_SPECS))
+    real_rate = _real_rate_proxy(indicators + derived_indicators)
     fiscal = _group_result(indicators, "fiscal_credit", "财政信用条件")
     value = _group_result(indicators, "value_realization", "价值实现条件")
     cell, action, advice = _matrix_conclusion(fiscal, value)
@@ -315,6 +373,8 @@ async def _get_macro_matrix_raw(force: bool = False) -> dict[str, Any]:
         "framework_advice": advice,
         "data_status": "available" if fiscal.get("score") and value.get("score") else "degraded",
         "coverage": {"available": available_count, "total": len(indicators)},
+        "derived_indicators": derived_indicators,
+        "real_rate_proxy": real_rate,
         "data_quality": {
             "status": "stale" if stale_items else "ok" if available_count == len(indicators) else "partial",
             "stale_count": len(stale_items),

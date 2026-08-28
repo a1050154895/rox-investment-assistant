@@ -392,13 +392,13 @@ const ROX = {
                   <div style="font-size:11px;color:var(--text-tertiary);">${ROX.escape(p.features.join(' · '))}</div>
                 </div>
                 <div style="text-align:right;">
-                  <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;">¥${p.price}</div>
-                  <div style="font-size:11px;color:var(--text-tertiary);">/${ROX.escape(p.period)}</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;font-weight:700;">${p.price != null ? `¥${p.price}` : '暂未开放'}</div>
+                  <div style="font-size:11px;color:var(--text-tertiary);">${ROX.escape(p.period)}</div>
                 </div>
               </div>
             </div>
           `).join('')}
-          <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;">付费套餐接入中，当前为基础版；后续版本开放支付与权益激活。</div>
+          <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;">付费套餐尚未接入支付、订单和权益激活，当前不会收费。</div>
         </div>`,
     };
 

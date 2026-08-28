@@ -44,6 +44,7 @@ function macroCardHTML(mc) {
         </div>
         <div class="macro-meta">覆盖 ${mc.coverage?.available ?? 0}/${mc.coverage?.total ?? 0} 项 · ${mc.disclaimer || ''}</div>
         <div class="macro-quality-line">数据质量：${ROX.escape(mc.data_quality?.status || '未标注')} · 最新观察期：${ROX.escape(mc.data_quality?.latest_observation || '未知')} · ${ROX.escape(mc.data_quality?.message || '')}</div>
+        ${mc.real_rate_proxy ? `<div style="margin-top:12px;padding:10px 12px;background:var(--bg-secondary);border-left:2px solid var(--brand-blue);font-size:11px;"><strong>实质利率代理</strong>：${mc.real_rate_proxy.value != null ? `${mc.real_rate_proxy.value}%` : '暂不计算'} · ${ROX.escape(mc.real_rate_proxy.message || '')}<div style="margin-top:4px;color:var(--text-tertiary);">口径：名义利率 - CPI - (M2增速 - GDP增速) · ${Object.entries(mc.real_rate_proxy.period_buckets || {}).map(([key, value]) => `${key}=${value || '未知'}`).join(' · ')}</div></div>` : ''}
         <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="宏观指南针快照" data-content="${ROX.escape(`宏观指南针：主权信用 ${mc.sovereign_credit.score}（${mc.sovereign_credit.detail}）；价值实现 ${mc.value_realization.score}（${mc.value_realization.detail}）`)}" data-source="宏观指南针矩阵" data-as-of="${ROX.escape(mc.data_quality?.latest_observation || '')}">＋ 把宏观状态加入研究卡</button>
       </div>`;
 }

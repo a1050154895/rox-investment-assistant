@@ -313,3 +313,31 @@ class QuickNote(Base):
             "pinned": self.pinned,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class AnomalyEvent(Base):
+    """异动事件快照：保存首次发现与后续刷新，用于持续性复核。"""
+
+    __tablename__ = "anomaly_events"
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    code = mapped_column(String(10), index=True)
+    name = mapped_column(String(30), default="")
+    status = mapped_column(String(20), default="detected")
+    snapshots_json = mapped_column(Text, default="[]")
+    created_at = mapped_column(DateTime, default=utcnow, index=True)
+    updated_at = mapped_column(DateTime, default=utcnow, index=True)
+
+    def to_dict(self):
+        import json
+        try:
+            snapshots = json.loads(self.snapshots_json or "[]")
+        except (TypeError, ValueError):
+            snapshots = []
+        return {
+            "id": self.id, "code": self.code, "name": self.name,
+            "status": self.status, "snapshots": snapshots,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
