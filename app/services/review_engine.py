@@ -119,9 +119,8 @@ async def _fetch_sector_performance() -> list[dict[str, Any]]:
             })
         return sectors
     except Exception as exc:
-        logger.info("板块资金流获取失败，使用快照: %s", exc)
-        from app.services.intelligence_data import SECTOR_FLOW
-        return SECTOR_FLOW
+        logger.info("板块资金流获取失败，如实返回空列表: %s", exc)
+        return []
 
 
 def _calc_sentiment(indices: list[dict], breadth: dict) -> dict[str, Any]:

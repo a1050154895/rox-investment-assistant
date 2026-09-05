@@ -74,7 +74,7 @@ ROX.register('/intelligence', async function(container) {
           <div class="risk-list">
             ${data.global_risk.map(item => `
               <div class="risk-row">
-                <div class="risk-score ${item.direction}">${item.score}</div>
+                <div class="risk-score ${item.direction}" style="font-size:12px;">${ROX.escape(item.status)}</div>
                 <div style="min-width:0;flex:1;">
                   <div style="display:flex;justify-content:space-between;gap:8px;"><span class="risk-factor">${item.factor}</span><span class="tag ${directionClass(item.direction)}">${item.status}</span></div>
                   <div class="risk-transmission">${item.transmission}</div>
@@ -89,9 +89,9 @@ ROX.register('/intelligence', async function(container) {
           <div style="display:flex;flex-direction:column;gap:10px;">
             ${data.policy_tracker.map(item => `
               <div class="policy-row">
-                <div style="display:flex;justify-content:space-between;gap:8px;"><span class="policy-topic">${item.topic}</span><span class="tag ${item.signal === '正向' ? 'tag-red' : 'tag-amber'}">${item.stage}</span></div>
-                <div class="policy-affected">影响行业：${item.affected.join('、')}</div>
-                <div class="policy-method">研判方法：${item.method}</div>
+                <div style="display:flex;justify-content:space-between;gap:8px;"><span class="policy-topic">${ROX.escape(item.topic)}</span><span class="tag ${item.signal === '正向' ? 'tag-red' : 'tag-amber'}">${ROX.escape(item.stage)}</span></div>
+                <div class="policy-affected">影响行业：${ROX.escape(item.affected.join('、'))}</div>
+                <div class="policy-method">研判方法：${ROX.escape(item.method)}</div>
                 <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(item.topic)}" data-content="${ROX.escape(`政策线索：${item.topic}（${item.stage}，影响行业：${item.affected.join('、')}）`)}" data-source="${ROX.escape(data.source_status || '政策跟踪')}" data-as-of="${ROX.escape(new Date(data.updated_at).toLocaleString('zh-CN'))}">＋ 加入研究卡</button>
               </div>`).join('')}
           </div>
@@ -104,12 +104,12 @@ ROX.register('/intelligence', async function(container) {
           <div style="display:flex;flex-direction:column;gap:2px;">
             ${data.sector_flow.map(item => `
               <div class="sector-flow-row">
-                <div><div class="stock-name">${item.sector}</div><div class="stock-code">${item.driver}</div></div>
+                <div><div class="stock-name">${ROX.escape(item.sector)}</div><div class="stock-code">${ROX.escape(item.driver)}</div></div>
                 <div style="display:flex;align-items:center;gap:8px;">
                   <div class="${flowClass(item.trend)}" style="font-family:var(--font-mono);font-weight:600;">${item.flow > 0 ? '+' : ''}${item.flow.toFixed(1)} 亿</div>
                   <button class="evidence-add-btn" style="margin-top:0;" data-action="open-evidence-drawer" data-title="${ROX.escape(item.sector)}" data-content="${ROX.escape(`行业资金流：${item.sector} ${item.flow > 0 ? '+' : ''}${item.flow.toFixed(1)} 亿（驱动：${item.driver}）`)}" data-source="${ROX.escape(data.source_status || '行业资金流')}" data-as-of="${ROX.escape(new Date(data.updated_at).toLocaleString('zh-CN'))}">＋</button>
                 </div>
-              </div>`).join('')}
+              </div>`).join('') || '<div class="empty-state" style="padding:20px;"><p style="font-size:12px;margin:0;">行业资金流数据源暂不可用——不做估算，请以行情与订单证据交叉验证。</p></div>'}
           </div>
         </div>
         <div class="card">
@@ -131,18 +131,18 @@ ROX.register('/intelligence', async function(container) {
       <div class="card intelligence-news-card">
         <div class="card-header"><div><div class="card-title">资讯与事件线索</div><div class="card-subtitle">原始标题只生成假设，不直接生成结论 · 突发=36小时内命中关键事件词，仅提示核对</div></div><span class="tag tag-blue">${data.news.length} 条</span></div>
         <div class="news-list">
-          ${data.news.map(item => `
+          ${(data.news.length ? data.news.map(item => `
             <article class="news-row ${item.is_breaking ? 'news-breaking' : ''}">
               <div class="news-meta">
                 ${item.is_breaking ? '<span class="tag tag-red">突发</span>' : ''}
                 ${item.research_relevant?.length ? `<span class="tag tag-blue">研究相关：${item.research_relevant.map(ROX.escape).join('、')}</span>` : ''}
-                <span class="tag ${directionClass(item.direction)}">${item.category}</span><span>${item.fact_or_view}</span>
+                <span class="tag ${directionClass(item.direction)}">${ROX.escape(item.category)}</span><span>${ROX.escape(item.fact_or_view)}</span>
               </div>
-              <div class="news-title">${item.title}</div>
-              <div class="news-detail">传导方向：${item.channels.join('、')} · ${item.evidence}</div>
-              <div class="news-source">${item.source} · ${new Date(item.published_at).toLocaleString('zh-CN')}</div>
+              <div class="news-title">${ROX.escape(item.title)}</div>
+              <div class="news-detail">传导方向：${ROX.escape(item.channels.join('、'))} · ${ROX.escape(item.evidence)}</div>
+              <div class="news-source">${ROX.escape(item.source)}${item.published_at ? ' · ' + ROX.escape(new Date(item.published_at).toLocaleString('zh-CN')) : ''}</div>
               <button class="evidence-add-btn" data-action="open-evidence-drawer" data-title="${ROX.escape(item.title)}" data-content="${ROX.escape(`${item.title}（${item.fact_or_view}；传导：${item.channels.join('、')}）`)}" data-source="${ROX.escape(item.source || '')}" data-as-of="${ROX.escape(new Date(item.published_at).toLocaleString('zh-CN'))}">＋ 加入研究卡（事实/反证/待验证）</button>
-            </article>`).join('')}
+            </article>`).join('') : '<div class="empty-state" style="padding:24px;"><p style="font-size:12px;margin:0;">资讯源暂不可用，已如实隐藏——先做已知事实的验证，稍后再来看新线索。</p></div>')}
         </div>
       </div>
     </div>`;

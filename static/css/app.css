@@ -790,7 +790,6 @@ summary { cursor: pointer; }
   .nav-menu-btn { display: none; }
   .nav-drawer-close { display: none; }
 }
-}
 
 /* ============ Auth Gate ============ */
 .auth-gate {

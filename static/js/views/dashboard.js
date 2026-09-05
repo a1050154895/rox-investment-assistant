@@ -167,8 +167,8 @@ ROX.register('/', async function(container) {
           <div style="display:flex;flex-direction:column;gap:8px;">
             ${data.intelligence.global_risk.slice(0, 3).map(item => `
               <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--ink-border-faint);">
-                <div><div class="stock-name">${item.factor}</div><div class="stock-code">${item.transmission}</div></div>
-                <span class="tag ${item.direction === 'warning' ? 'tag-amber' : item.direction === 'positive' ? 'tag-red' : 'tag-gray'}">${item.status}</span>
+                <div><div class="stock-name">${ROX.escape(item.factor)}</div><div class="stock-code">${ROX.escape(item.transmission)}</div></div>
+                <span class="tag ${item.direction === 'warning' ? 'tag-amber' : item.direction === 'positive' ? 'tag-red' : 'tag-gray'}">${ROX.escape(item.status)}</span>
               </div>`).join('')}
           </div>
         </div>
@@ -177,9 +177,9 @@ ROX.register('/', async function(container) {
           <div style="display:flex;flex-direction:column;gap:10px;">
             ${data.intelligence.news.slice(0, 3).map(item => `
               <div style="border-left:2px solid var(--ink-indigo);padding-left:10px;">
-                <div style="font-size:12px;color:var(--text-primary);line-height:1.6;">${item.title}</div>
-                <div style="margin-top:3px;font-size:10px;color:var(--text-tertiary);">${item.category} · ${item.fact_or_view}</div>
-              </div>`).join('')}
+                <div style="font-size:12px;color:var(--text-primary);line-height:1.6;">${ROX.escape(item.title)}</div>
+                <div style="margin-top:3px;font-size:10px;color:var(--text-tertiary);">${ROX.escape(item.category)} · ${ROX.escape(item.fact_or_view)}</div>
+              </div>`).join('') || '<div class="empty-state" style="padding:16px;"><p style="font-size:12px;margin:0;">资讯源暂不可用，已如实隐藏——不用手写内容顶替。</p></div>'}
           </div>
         </div>
       </div>` : '<div class="card full-width"><div class="loading"><div class="spinner"></div></div><div style="font-size:12px;color:var(--text-tertiary);text-align:center;padding-bottom:12px;">资讯线索加载中…</div></div>'}</div>
@@ -193,7 +193,7 @@ ROX.register('/', async function(container) {
         <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;">
           ${data.recent_decisions.length ? data.recent_decisions.map(d => `
             <div class="decision-card ${d.score < 60 ? 'low-score' : ''}" data-action="view-stock" data-code="${d.code}">
-              <div class="decision-header"><div><div class="decision-stock">${d.stock}</div><div class="decision-meta">${d.code} · ${d.date}</div></div><span class="tag ${ROX.fmt.actionTag(d.action)}">${d.action}</span></div>
+              <div class="decision-header"><div><div class="decision-stock">${ROX.escape(d.stock)}</div><div class="decision-meta">${ROX.escape(d.code)} · ${ROX.escape(d.date)}</div></div><span class="tag ${ROX.fmt.actionTag(d.action)}">${ROX.escape(d.action)}</span></div>
             </div>`).join('') : `<div class="empty-state" style="width:100%;padding:20px;"><p>暂无真实决策记录，请从“记录决策”开始建立自己的样本。</p></div>`}
         </div>
       </div>
@@ -244,8 +244,8 @@ async function loadSlowOverview() {
           <div style="display:flex;flex-direction:column;gap:8px;">
             ${it.global_risk.slice(0, 3).map(item => `
               <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--ink-border-faint);">
-                <div><div class="stock-name">${item.factor}</div><div class="stock-code">${item.transmission}</div></div>
-                <span class="tag ${item.direction === 'warning' ? 'tag-amber' : item.direction === 'positive' ? 'tag-red' : 'tag-gray'}">${item.status}</span>
+                <div><div class="stock-name">${ROX.escape(item.factor)}</div><div class="stock-code">${ROX.escape(item.transmission)}</div></div>
+                <span class="tag ${item.direction === 'warning' ? 'tag-amber' : item.direction === 'positive' ? 'tag-red' : 'tag-gray'}">${ROX.escape(item.status)}</span>
               </div>`).join('')}
           </div>
         </div>
@@ -254,9 +254,9 @@ async function loadSlowOverview() {
           <div style="display:flex;flex-direction:column;gap:10px;">
             ${it.news.slice(0, 3).map(item => `
               <div style="border-left:2px solid var(--ink-indigo);padding-left:10px;">
-                <div style="font-size:12px;color:var(--text-primary);line-height:1.6;">${item.title}</div>
-                <div style="margin-top:3px;font-size:10px;color:var(--text-tertiary);">${item.category} · ${item.fact_or_view}</div>
-              </div>`).join('')}
+                <div style="font-size:12px;color:var(--text-primary);line-height:1.6;">${ROX.escape(item.title)}</div>
+                <div style="margin-top:3px;font-size:10px;color:var(--text-tertiary);">${ROX.escape(item.category)} · ${ROX.escape(item.fact_or_view)}</div>
+              </div>`).join('') || '<div class="empty-state" style="padding:16px;"><p style="font-size:12px;margin:0;">资讯源暂不可用，已如实隐藏——不用手写内容顶替。</p></div>'}
           </div>
         </div>
       </div>`;

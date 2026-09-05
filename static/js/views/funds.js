@@ -34,6 +34,7 @@ ROX.register('/funds', async function(container, params) {
   if (kline?.candles?.length && window.LightweightCharts) {
     const el = document.getElementById('fund-kline');
     const ct = ROX.chartTheme();
+    if (_fundChart) { try { _fundChart.remove(); } catch (_) {} }  // 每次进入页面先移除旧实例，避免累积泄漏
     _fundChart = LightweightCharts.createChart(el, { layout:{background:{color:'transparent'},textColor:ct.text}, grid:{vertLines:{color:ct.grid},horzLines:{color:ct.grid}}, rightPriceScale:{borderColor:ct.border}, timeScale:{borderColor:ct.border} });
     const series = _fundChart.addAreaSeries({ lineColor:'#c65a43', topColor:'rgba(198,90,67,.24)', bottomColor:'rgba(198,90,67,0)' });
     series.setData(kline.candles.map(c => ({time:c.date,value:c.close})));

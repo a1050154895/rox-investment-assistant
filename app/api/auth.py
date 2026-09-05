@@ -71,7 +71,8 @@ class VerifyEmailIn(BaseModel):
 
 
 @router.post("/register")
-async def register(data: RegisterIn, response: Response, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def register(request: Request, data: RegisterIn, response: Response, db: Session = Depends(get_db)):
     """注册新用户，返回 JWT token。邮箱为可选项，绑定后需验证才可用于找回密码。"""
     username = data.username.strip()
     if not username:

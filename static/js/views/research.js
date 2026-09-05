@@ -175,13 +175,13 @@ async function loadCardArchive(cardId, mount) {
 
 ROX.register('/research', async function(container, params) {
   if (!params.id && !params.newCard && !Object.keys(params.query || {}).length) { await renderResearchList(container); return; }
-  let cardId = params.id;
+  const query = params.query || {};
+  let cardId = params.id || query.id;  // 兼容 /research?id=N（速记 → 研究卡跳转）
   let card = null;
   if (cardId) {
     const data = await ROX.api.get(`/api/research/${cardId}`);
     card = data?.card || null;
   }
-  const query = params.query || {};
   let seed = card || (query.code ? {
     title: `${query.stock || query.code}：是否值得继续研究？`,
     code: query.code,

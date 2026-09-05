@@ -75,6 +75,17 @@ def auth_headers(auth_token):
 
 
 @pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """每个用例前后清空 slowapi 计数窗口：全局限流 200/min 已真实生效，
+    测试共享同一来源 IP，不清窗会互相耗尽配额。"""
+    from app.core.limiter import limiter
+
+    limiter.reset()
+    yield
+    limiter.reset()
+
+
+@pytest.fixture(autouse=True)
 def _offline_network(monkeypatch):
     """测试全程离线：禁用真实行情与 AKShare 网络调用，走确定性降级路径。"""
     # 1) 空 akshare 替身，拦截所有惰性 `import akshare as ak`

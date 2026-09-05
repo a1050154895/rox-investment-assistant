@@ -73,6 +73,7 @@ const ROX = {
     pct(v, dec = 2) { return v != null ? (v > 0 ? '+' : '') + Number(v).toFixed(dec) + '%' : '--'; },
     color(val) { return val > 0 ? 'text-up' : val < 0 ? 'text-down' : ''; },
     date(d) { return d ? new Date(d).toLocaleDateString('zh-CN') : '--'; },
+    time(d) { return d ? new Date(d).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--'; },
     scoreClass(s) { return s >= 75 ? 'score-high' : s >= 45 ? 'score-medium' : 'score-low'; },
     scoreLabel(s) { return s >= 75 ? '高' : s >= 60 ? '较高' : s >= 45 ? '中等' : '低'; },
     actionTag(a) {
@@ -239,7 +240,7 @@ const ROX = {
       try {
         await handler(container, params);
       } catch (e) {
-        container.innerHTML = `<div class="empty-state"><p>加载失败: ${e.message}</p></div>`;
+        container.innerHTML = `<div class="empty-state"><p>加载失败: ${this.escape(e.message)}</p></div>`;
       }
     } else {
       container.innerHTML = '<div class="empty-state"><p>页面未找到</p></div>';
@@ -307,7 +308,7 @@ const ROX = {
             <div class="form-group">
               <label class="form-label">AI 模式</label>
               <select class="form-select" id="set-ai-mode">
-                ${(s.ai_modes || [{value:'off',label:'不使用 AI'},{value:'platform',label:'使用平台 AI'},{value:'byok',label:'使用我的模型（BYOK）'}]).map(m => `<option value="${m.value}" ${(s.ai_mode||'platform')===m.value?'selected':''}>${m.label}</option>`).join('')}
+                ${(s.ai_modes || [{value:'off',label:'不使用 AI'},{value:'platform',label:'使用平台 AI'},{value:'byok',label:'使用我的模型（BYOK）'}]).map(m => `<option value="${ROX.escape(m.value)}" ${(s.ai_mode||'platform')===m.value?'selected':''}>${ROX.escape(m.label)}</option>`).join('')}
               </select>
               <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7;margin-top:6px;">不使用 AI 时，研究卡、决策、复盘等核心功能完整可用。${s.platform_ai_available ? '平台 AI 当前可用。' : '平台 AI 暂未开通，可选择自带模型。'}</div>
             </div>
@@ -323,7 +324,7 @@ const ROX = {
               </div>
               <div class="form-group">
                 <label class="form-label">API Base URL</label>
-                <input class="form-input" id="set-ai-url" value="${s.ai_api_url||''}" placeholder="https://api.deepseek.com">
+                <input class="form-input" id="set-ai-url" value="${ROX.escape(s.ai_api_url||'')}" placeholder="https://api.deepseek.com">
               </div>
               <div class="form-group">
                 <label class="form-label">API Key（加密存储，不回显）</label>
@@ -332,13 +333,13 @@ const ROX = {
               </div>
               <div class="form-group">
                 <label class="form-label">默认模型</label>
-                <input class="form-input" id="set-ai-model" value="${s.ai_model||''}" placeholder="deepseek-chat">
+                <input class="form-input" id="set-ai-model" value="${ROX.escape(s.ai_model||'')}" placeholder="deepseek-chat">
               </div>
               <div class="form-group">
                 <label class="form-label">备用提供商（可选，主端点失败时切换）</label>
-                <input class="form-input" id="set-ai-fallback-url" value="${s.ai_fallback_url||''}" placeholder="https://api.siliconflow.cn">
+                <input class="form-input" id="set-ai-fallback-url" value="${ROX.escape(s.ai_fallback_url||'')}" placeholder="https://api.siliconflow.cn">
                 <input class="form-input" type="password" id="set-ai-fallback-key" placeholder="${s.ai_fallback_configured ? '备用 Key 已配置，留空不修改' : '备用 API Key（加密存储）'}" style="margin-top:6px;">
-                <input class="form-input" id="set-ai-fallback-model" value="${s.ai_fallback_model||''}" placeholder="备用模型名" style="margin-top:6px;">
+                <input class="form-input" id="set-ai-fallback-model" value="${ROX.escape(s.ai_fallback_model||'')}" placeholder="备用模型名" style="margin-top:6px;">
               </div>
             </div>
             <div class="form-group">
@@ -419,6 +420,23 @@ const ROX = {
               : '<div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">建议绑定并验证邮箱，否则忘记密码将无法找回账号。</div>'}
             </div>
             <button class="btn btn-secondary btn-sm" data-action="save-account-email">${user.email && !user.email_verified ? '重新发送验证邮件' : '发送验证邮件'}</button>
+          </div>
+          <h4>修改密码</h4>
+          <div class="card" style="margin-bottom:16px;display:flex;flex-direction:column;gap:10px;">
+            <div class="form-group">
+              <label class="form-label" for="set-old-password">当前密码</label>
+              <input class="form-input" type="password" id="set-old-password" autocomplete="current-password">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="set-new-password">新密码（至少 6 位）</label>
+              <input class="form-input" type="password" id="set-new-password" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="set-confirm-password">确认新密码</label>
+              <input class="form-input" type="password" id="set-confirm-password" autocomplete="new-password">
+            </div>
+            <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;">修改成功后其他设备需要重新登录；忘记密码可使用已验证邮箱自助找回。</div>
+            <button class="btn btn-secondary btn-sm" data-action="change-account-password">修改密码</button>
           </div>
           <h4>套餐选择</h4>
           ${(m.plans||[]).map(p => `
@@ -680,6 +698,27 @@ const ROX = {
     }
   },
 
+  async saveAccountPassword() {
+    const oldPwd = document.getElementById('set-old-password')?.value || '';
+    const newPwd = document.getElementById('set-new-password')?.value || '';
+    const confirmPwd = document.getElementById('set-confirm-password')?.value || '';
+    if (!oldPwd || !newPwd) { this.toast('请填写当前密码和新密码', 'warn'); return; }
+    if (newPwd.length < 6) { this.toast('新密码至少 6 位', 'warn'); return; }
+    if (newPwd !== confirmPwd) { this.toast('两次输入的新密码不一致', 'warn'); return; }
+    const res = await this.api.post('/api/auth/change-password', { old_password: oldPwd, new_password: newPwd });
+    if (res && res.success) {
+      // 重签发的会话令牌已通过 Set-Cookie 生效，清空表单即可
+      ['set-old-password', 'set-new-password', 'set-confirm-password'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      this.toast(res.message || '密码已修改', 'success');
+    } else {
+      const detail = res && res.detail;
+      this.toast(typeof detail === 'string' ? detail : '修改失败，请重试', 'error');
+    }
+  },
+
   updateUserChip() {
     const chip = document.getElementById('user-chip');
     const name = document.getElementById('user-chip-name');
@@ -860,6 +899,7 @@ const ROX = {
           'forgot-password': () => this.showForgotPassword(),
           'forgot-submit': () => this.submitForgotPassword(),
           'save-account-email': () => this.saveAccountEmail(),
+          'change-account-password': () => this.saveAccountPassword(),
           'logout': () => this.logout(),
           'onboarding-prev': () => this.onboardingPrev(),
           'onboarding-next': () => this.onboardingNext(),
@@ -1002,10 +1042,10 @@ const ROX = {
       results.innerHTML = '<div class="search-result-item" style="color:var(--text-tertiary);">无匹配结果（当前支持 A 股与场内基金）</div>';
     } else {
       results.innerHTML = data.results.map(s => `
-        <div class="search-result-item" data-action="view-stock" data-code="${s.code}">
-          <span style="font-weight:500;">${s.name}</span>
-          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);margin-left:8px;">${s.code}</span>
-          ${s.industry ? `<span class="tag tag-gray" style="margin-left:4px;">${s.industry}</span>` : ''}
+        <div class="search-result-item" data-action="view-stock" data-code="${this.escape(s.code)}">
+          <span style="font-weight:500;">${this.escape(s.name)}</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);margin-left:8px;">${this.escape(s.code)}</span>
+          ${s.industry ? `<span class="tag tag-gray" style="margin-left:4px;">${this.escape(s.industry)}</span>` : ''}
           <button class="search-star-btn" data-quick-watch="${s.code}" data-quick-name="${this.escape(s.name)}" title="加入自选" style="margin-left:auto;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:2px 4px;font-size:14px;line-height:1;">☆</button>
         </div>
       `).join('');
@@ -1164,8 +1204,8 @@ const ROX = {
 
   renderDisciplineAssessment(assessment) {
     return `<div class="discipline-assessment">
-      <div class="discipline-summary"><div><strong>${assessment.status_label}</strong><p>${assessment.guidance}</p></div><span class="tag ${assessment.status === 'blocked' ? 'tag-red' : 'tag-green'}">${assessment.status === 'blocked' ? '需修正' : '已检查'}</span></div>
-      <div class="discipline-limit">风险仓位上限 <strong>${assessment.limits.allowed_position_pct}%</strong><span>${assessment.method}</span></div>
+      <div class="discipline-summary"><div><strong>${ROX.escape(assessment.status_label)}</strong><p>${ROX.escape(assessment.guidance)}</p></div><span class="tag ${assessment.status === 'blocked' ? 'tag-red' : 'tag-green'}">${assessment.status === 'blocked' ? '需修正' : '已检查'}</span></div>
+      <div class="discipline-limit">风险仓位上限 <strong>${ROX.escape(assessment.limits.allowed_position_pct)}%</strong><span>${ROX.escape(assessment.method)}</span></div>
       <div class="discipline-checks">${assessment.checks.map(item => `<div class="discipline-check ${item.passed ? 'passed' : 'failed'}"><span>${item.passed ? '通过' : '冲突'}</span><div><strong>${item.title}</strong><p>${item.detail}</p></div></div>`).join('')}</div>
     </div>`;
   },
@@ -1233,11 +1273,11 @@ const ROX = {
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label">股票名称</label>
-            <input class="form-input" id="dec-stock" value="${stockName||''}" placeholder="如：贵州茅台">
+            <input class="form-input" id="dec-stock" value="${ROX.escape(stockName||'')}" placeholder="如：贵州茅台">
           </div>
           <div class="form-group">
             <label class="form-label">股票代码</label>
-            <input class="form-input" id="dec-code" value="${stockCode||''}" placeholder="如：600519">
+            <input class="form-input" id="dec-code" value="${ROX.escape(stockCode||'')}" placeholder="如：600519">
           </div>
         </div>
         <div class="grid-2">
@@ -1311,7 +1351,7 @@ const ROX = {
     if (!res) return;
     const html = `
       <div class="modal-header">
-        <span class="modal-title">复盘报告 — ${res.period}</span>
+        <span class="modal-title">复盘报告 — ${ROX.escape(res.period)}</span>
         <div class="modal-close" data-action="close-modal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:16px;">
@@ -1325,7 +1365,7 @@ const ROX = {
           <div class="card-title" style="margin-bottom:12px;">按周期阶段统计</div>
           ${Object.entries(res.stage_breakdown||{}).map(([stage, s]) => `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-default);">
-              <span style="font-size:13px;">${stage}</span>
+              <span style="font-size:13px;">${ROX.escape(stage)}</span>
               <div style="display:flex;gap:16px;font-size:12px;">
                 <span style="color:var(--text-tertiary);">决策 ${s.count} 次</span>
                 <span style="color:var(--text-tertiary);">胜率 ${s.win_rate}%</span>
@@ -1337,13 +1377,13 @@ const ROX = {
         <div class="card">
           <div class="card-title" style="margin-bottom:12px;">洞察</div>
           <ul style="list-style:disc;padding-left:20px;font-size:13px;color:var(--text-secondary);line-height:1.8;">
-            ${(res.insights||[]).map(i => `<li>${i}</li>`).join('')}
+            ${(res.insights||[]).map(i => `<li>${ROX.escape(i)}</li>`).join('')}
           </ul>
         </div>
         <div class="card">
           <div class="card-title" style="margin-bottom:12px;">建议</div>
           <ul style="list-style:disc;padding-left:20px;font-size:13px;color:var(--text-secondary);line-height:1.8;">
-            ${(res.suggestions||[]).map(i => `<li>${i}</li>`).join('')}
+            ${(res.suggestions||[]).map(i => `<li>${ROX.escape(i)}</li>`).join('')}
           </ul>
         </div>
       </div>`;

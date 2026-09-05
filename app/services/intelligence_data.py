@@ -1,8 +1,8 @@
 """ROX 宏观资讯研判服务。
 
 所有研判均为公开信息的结构化观察，不构成投资建议。服务优先尝试 AKShare
-公开资讯接口；在数据源不可用时使用带来源和日期的演示快照，保证 Render 上
-页面与 API 具备稳定降级能力。
+公开资讯接口；数据源不可用时如实返回空列表与不可用状态，不用手写数据
+冒充实时资讯或资金流（数据可信纪律：缺失即缺失，不伪造）。
 """
 from __future__ import annotations
 
@@ -20,32 +20,20 @@ _CACHE_TTL = 300
 
 _NEWS_BREAKER = CircuitBreaker(failure_threshold=3, cooldown_seconds=60)
 _FLOW_BREAKER = CircuitBreaker(failure_threshold=3, cooldown_seconds=60)
-FALLBACK_NEWS = [
-    {"id": "policy-fiscal", "category": "政策", "title": "财政与促消费政策的落地节奏仍是内需行业预期差的核心变量", "source": "公开政策信息整理", "published_at": "2026-07-30T08:30:00", "impact": "中性偏多", "direction": "positive", "channels": ["消费", "基建", "金融"], "evidence": "需持续核验政策细则、预算执行和终端需求数据", "fact_or_view": "研判"},
-    {"id": "global-energy", "category": "全球宏观", "title": "能源与航运价格波动需通过成本端传导关注化工、运输与出口链", "source": "公开市场数据整理", "published_at": "2026-07-30T07:45:00", "impact": "风险观察", "direction": "warning", "channels": ["能源", "化工", "航运"], "evidence": "观察原油、运价与企业毛利率的同步性", "fact_or_view": "研判"},
-    {"id": "industry-ai", "category": "产业链", "title": "算力投资与通信设备订单验证，需结合资本开支和资金流确认", "source": "上市公司公告与行业公开信息", "published_at": "2026-07-29T18:20:00", "impact": "结构性机会", "direction": "positive", "channels": ["通信", "半导体", "计算机"], "evidence": "订单、营收增速、库存和主力资金需至少两项共振", "fact_or_view": "研判"},
-    {"id": "liquidity", "category": "资金流", "title": "增量资金与成交结构分化，避免将单日资金异动视为趋势确认", "source": "公开行情数据整理", "published_at": "2026-07-29T16:00:00", "impact": "中性", "direction": "neutral", "channels": ["全市场"], "evidence": "以五日净流、成交额和行业扩散度交叉确认", "fact_or_view": "研判"},
-]
 
+# 全球风险观察框架：仅方法论视角（传导路径 + 观察指标），不含任何"评分"。
+# 这里的 status 是观察姿态标签，不是测量结果。
 GLOBAL_RISK = [
-    {"factor": "全球增长", "status": "观察", "score": 54, "direction": "neutral", "transmission": "外需订单 → 出口链利润 → 制造业资本开支", "watch": "主要经济体制造业、出口新订单"},
-    {"factor": "利率与汇率", "status": "观察", "score": 58, "direction": "warning", "transmission": "无风险利率 → 估值折现 → 成长股风险偏好", "watch": "美元指数、国债收益率、人民币汇率"},
-    {"factor": "能源与航运", "status": "风险观察", "score": 66, "direction": "warning", "transmission": "原料与运价 → 成本端 → 化工/运输/出口毛利", "watch": "原油、煤炭、集运运价"},
-    {"factor": "供应链景气", "status": "结构改善", "score": 63, "direction": "positive", "transmission": "订单 → 库存 → 产能利用率 → 企业盈利", "watch": "半导体、通信、新能源订单与库存"},
+    {"factor": "全球增长", "status": "观察", "direction": "neutral", "transmission": "外需订单 → 出口链利润 → 制造业资本开支", "watch": "主要经济体制造业、出口新订单"},
+    {"factor": "利率与汇率", "status": "观察", "direction": "warning", "transmission": "无风险利率 → 估值折现 → 成长股风险偏好", "watch": "美元指数、国债收益率、人民币汇率"},
+    {"factor": "能源与航运", "status": "风险观察", "direction": "warning", "transmission": "原料与运价 → 成本端 → 化工/运输/出口毛利", "watch": "原油、煤炭、集运运价"},
+    {"factor": "供应链景气", "status": "结构改善", "direction": "positive", "transmission": "订单 → 库存 → 产能利用率 → 企业盈利", "watch": "半导体、通信、新能源订单与库存"},
 ]
 
 POLICY_TRACKER = [
     {"topic": "扩内需与消费", "stage": "执行观察", "affected": ["食品饮料", "家电", "商贸零售"], "signal": "正向", "method": "跟踪细则、社零、企业订单和估值变化"},
     {"topic": "科技与自主可控", "stage": "产业验证", "affected": ["半导体", "通信设备", "计算机"], "signal": "结构性", "method": "跟踪资本开支、订单、国产替代份额与资金流"},
     {"topic": "稳增长与基建", "stage": "项目落地观察", "affected": ["建筑", "建材", "工程机械"], "signal": "中性偏多", "method": "跟踪财政支出、项目开工和商品需求"},
-]
-
-SECTOR_FLOW = [
-    {"sector": "半导体", "flow": 3.8, "trend": "inflow", "driver": "政策预期 + 产业订单验证"},
-    {"sector": "通信设备", "flow": 2.6, "trend": "inflow", "driver": "算力链订单与资金共振"},
-    {"sector": "银行", "flow": 1.2, "trend": "inflow", "driver": "高股息防御与估值修复"},
-    {"sector": "白酒", "flow": -0.8, "trend": "outflow", "driver": "消费数据与估值消化"},
-    {"sector": "新能源", "flow": -1.5, "trend": "outflow", "driver": "供需与价格压力待确认"},
 ]
 
 
@@ -81,7 +69,7 @@ def _normalize_news(frame: Any, limit: int) -> list[dict[str, Any]]:
             source = "公开资讯"
         pub_date = str(row.get("发布日期") or row.get("发布时间") or "")
         if pub_date == "nan":
-            pub_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+            pub_date = ""  # 来源未提供时间就如实留空，不伪造"刚刚发布"
         items.append({
             "id": f"live-{index}", "category": category, "title": title,
             "source": source, "published_at": pub_date,
@@ -143,14 +131,15 @@ async def _get_intelligence_brief_raw(force: bool = False) -> dict[str, Any]:
         return cached[1]
 
     news, source_status = await _fetch_news_akshare()
+    news_status = "live"
     if not news:
-        news = FALLBACK_NEWS
-        source_status = "公开信息结构化快照（AKShare 资讯源暂不可用）"
+        news_status = "unavailable"
+        source_status = "AKShare 资讯源暂不可用，已如实隐藏资讯列表（不提供手写替代内容）"
     news = _dedup_news(news)
 
-    # 尝试获取实时行业资金流
-    sector_flow = SECTOR_FLOW
-    flow_status = "结构化快照"
+    # 行业资金流：实时源不可用时返回空列表，不用静态数值冒充测量结果
+    sector_flow: list[dict[str, Any]] = []
+    flow_status = "unavailable"
     try:
         import akshare as ak
         from app.services.akshare_gate import gated_call
@@ -176,6 +165,7 @@ async def _get_intelligence_brief_raw(force: bool = False) -> dict[str, Any]:
     result = {
         "disclaimer": "本页聚合公开资讯与结构化研判，非投资建议。研判须与行情、财务和仓位纪律交叉验证。",
         "source_status": source_status,
+        "news_status": news_status,
         "flow_status": flow_status,
         "news": news,
         "global_risk": GLOBAL_RISK,

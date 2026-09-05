@@ -22,7 +22,7 @@ ROX.register('/screener', async function(container) {
 
         <div class="screener-presets" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
           <button class="btn btn-sm btn-secondary preset-btn active" data-preset="">全部</button>
-          ${presets.map(p => `<button class="btn btn-sm btn-secondary preset-btn" data-preset="${p.id}" title="${p.description}">${p.name}</button>`).join('')}
+          ${presets.map(p => `<button class="btn btn-sm btn-secondary preset-btn" data-preset="${ROX.escape(p.id)}" title="${ROX.escape(p.description)}">${ROX.escape(p.name)}</button>`).join('')}
         </div>
 
         <div class="form-group" style="margin-bottom:10px;">
@@ -178,7 +178,7 @@ ROX.register('/screener', async function(container) {
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <span style="font-size:13px;color:var(--text-secondary);">共 ${res.total} 只符合条件（股票池 ${res.pool_size} 只）</span>
-        <span style="font-size:11px;color:var(--text-tertiary);">${res.data_source}</span>
+        <span style="font-size:11px;color:var(--text-tertiary);">${ROX.escape(res.data_source)}</span>
       </div>
       <div class="table-wrap" style="overflow-x:auto;">
         <table class="data-table" style="width:100%;font-size:13px;">
@@ -213,7 +213,7 @@ ROX.register('/screener', async function(container) {
           </tbody>
         </table>
       </div>
-      <p style="font-size:11px;color:var(--text-tertiary);margin-top:8px;">${res.disclaimer}</p>
+      <p style="font-size:11px;color:var(--text-tertiary);margin-top:8px;">${ROX.escape(res.disclaimer)}</p>
     `;
 
     // 行点击进入个股页

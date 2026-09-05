@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
 from app.core.limiter import limiter
@@ -53,7 +54,9 @@ async def log_requests(request: Request, call_next):
 init_db()
 
 # Rate limiting — 全局 200/min，登录 5/min
+# SlowAPIMiddleware 使 default_limits 对全部路由生效（否则仅带装饰器的路由限流）
 app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 安全响应头与统一错误响应

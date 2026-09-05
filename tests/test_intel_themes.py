@@ -62,7 +62,13 @@ class TestFeedAPI:
     def test_brief_contains_themes(self, client):
         data = client.get("/api/intelligence/brief").json()
         assert isinstance(data["themes"], list)
-        assert data["themes"]
+        # 数据可信契约：离线/无数据源时资讯为空、状态如实标注 unavailable，
+        # 不再回退到手写假资讯（主题引擎的正向覆盖见 TestThemeEngine）。
+        if data.get("news_status") == "unavailable":
+            assert data["news"] == []
+            assert data["themes"] == []
+        else:
+            assert data["themes"]
         for theme in data["themes"]:
             assert "timeline" in theme and "verify_question" in theme
         for item in data["news"]:

@@ -145,8 +145,8 @@ function renderTimeline(decisions) {
               <div class="decision-stock" style="cursor:pointer;" data-action="view-stock" data-code="${ROX.escape(d.code)}">${ROX.escape(d.stock)}</div>
               <div class="decision-meta">${ROX.escape(d.code)} · ${ROX.escape(d.date)} · 持仓 ${Number(d.holding_days) || 0} 天</div>
             </div>
-            <span class="tag ${ROX.fmt.actionTag(d.action)}">${d.action}</span>
-            <span class="tag tag-gray">${d.stage}</span>
+            <span class="tag ${ROX.fmt.actionTag(d.action)}">${ROX.escape(d.action)}</span>
+            <span class="tag tag-gray">${ROX.escape(d.stage)}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="score-badge ${ROX.fmt.scoreClass(d.consistency_score)}">${d.consistency_score}</span>
@@ -154,7 +154,7 @@ function renderTimeline(decisions) {
           </div>
         </div>
         <div style="display:flex;gap:12px;font-size:11px;color:var(--text-tertiary);">
-          <span>周期：${d.cycle_stage}</span>
+          <span>周期：${ROX.escape(d.cycle_stage)}</span>
           <span>矛盾强度：${d.contradiction_intensity}</span>
           <span>价值实现度：${d.value_realization}</span>
         </div>

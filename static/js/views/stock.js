@@ -16,7 +16,7 @@ window.addEventListener('resize', () => {
 });
 
 ROX.register('/stock', async function(container, params) {
-  const code = params.code || '600519';
+  const code = params.code || params.query?.code || '600519';  // 兼容 /stock?code=xxxxx（异动雷达跳转）
 
   // Load data in parallel
   const [info, analysis, kline, indicators, fundamentals] = await Promise.all([
@@ -42,10 +42,10 @@ ROX.register('/stock', async function(container, params) {
         <div class="card stock-hero stock-summary-card">
           <div class="stock-hero-row">
             <div class="stock-identity">
-              <h2 style="font-size:18px;font-weight:600;">${info.name}</h2>
-              <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);">${info.code}</span>
-              <span class="tag tag-gray">${info.industry}</span>
-              <span class="evidence-badge ${info.stale ? 'is-stale' : 'is-live'}"><i></i>${info.stale ? `快照 · ${info.as_of || ''}` : `实时 · ${info.as_of || ''}`}</span>
+              <h2 style="font-size:18px;font-weight:600;">${ROX.escape(info.name)}</h2>
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);">${ROX.escape(info.code)}</span>
+              <span class="tag tag-gray">${ROX.escape(info.industry)}</span>
+              <span class="evidence-badge ${info.stale ? 'is-stale' : 'is-live'}"><i></i>${info.stale ? `快照 · ${ROX.escape(info.as_of || '')}` : `实时 · ${ROX.escape(info.as_of || '')}`}</span>
             </div>
             <div class="stock-hero-actions stock-action-bar">
               <div class="stock-live-price">
@@ -56,7 +56,7 @@ ROX.register('/stock', async function(container, params) {
                 <button class="btn btn-secondary btn-sm" data-period="daily" id="btn-daily">日线</button>
                 <button class="btn btn-secondary btn-sm" data-period="weekly" id="btn-weekly">周线</button>
               </div>
-              <button class="btn btn-secondary btn-sm" id="btn-add-watch" data-code="${info.code}" data-name="${ROX.escape(info.name)}">+ 自选</button>
+              <button class="btn btn-secondary btn-sm" id="btn-add-watch" data-code="${ROX.escape(info.code)}" data-name="${ROX.escape(info.name)}">+ 自选</button>
               <button class="btn btn-primary btn-sm" data-action="create-research-card" data-code="${info.code}" data-name="${ROX.escape(info.name)}" data-price="${info.price ?? ''}" data-data-status="${ROX.escape(info.data_status || '')}" data-data-source="${ROX.escape(info.data_source || '')}" data-as-of="${ROX.escape(info.as_of || '')}">开始研究</button>
               <button class="btn btn-secondary btn-sm" data-action="open-evidence-drawer" data-title="${ROX.escape(info.name)}" data-content="${ROX.escape(`行情：${info.name} ${ROX.fmt.num(info.price)}（${ROX.fmt.pct(info.change_pct)}）`)}" data-source="${ROX.escape(info.data_source || '')}" data-as-of="${ROX.escape(info.as_of || '')}" data-code="${info.code}" data-stock="${ROX.escape(info.name)}">存为证据</button>
               <button class="btn btn-secondary btn-sm" data-action="add-decision" data-code="${info.code}" data-name="${ROX.escape(info.name)}">记录决策</button>
@@ -67,7 +67,7 @@ ROX.register('/stock', async function(container, params) {
             <span>PE <span style="color:var(--text-secondary);font-family:var(--font-mono);">${ROX.fmt.num(info.pe,1)}</span></span>
             <span>PB <span style="color:var(--text-secondary);font-family:var(--font-mono);">${ROX.fmt.num(info.pb)}</span></span>
             <span>ROE <span style="color:var(--text-secondary);font-family:var(--font-mono);">${ROX.fmt.num(info.roe,1)}%</span></span>
-            <span>市值 <span style="color:var(--text-secondary);">${info.market_cap}</span></span>
+            <span>市值 <span style="color:var(--text-secondary);">${ROX.escape(info.market_cap)}</span></span>
             <span>换手 <span style="color:var(--text-secondary);font-family:var(--font-mono);">${ROX.fmt.num(info.turnover)}%</span></span>
           </div>
         </div>
@@ -81,7 +81,7 @@ ROX.register('/stock', async function(container, params) {
 
         <!-- K-Line Chart -->
         <div class="card stock-chart-card" style="flex:1;padding:12px;overflow:hidden;">
-          ${kline?.data_status === 'unavailable' ? `<div class="empty-state"><p>${kline.message || 'K线数据暂不可用'}</p></div>` : `<div id="kline-chart" class="chart-container"></div>`}
+          ${kline?.data_status === 'unavailable' ? `<div class="empty-state"><p>${ROX.escape(kline.message || 'K线数据暂不可用')}</p></div>` : `<div id="kline-chart" class="chart-container"></div>`}
         </div>
         <div class="card" id="stock-research-links" style="padding:12px;"><div class="loading"><div class="spinner"></div></div></div>
 
@@ -104,15 +104,15 @@ ROX.register('/stock', async function(container, params) {
               <div class="card-title">框架一致性评分</div>
               <span class="score-badge ${analysis.consistency_score == null ? 'score-low' : ROX.fmt.scoreClass(analysis.consistency_score)}" style="font-size:16px;min-width:48px;height:28px;">${analysis.consistency_score ?? '--'}</span>
             </div>
-            <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:12px;">总体评价：${analysis.score_label}</div>
+            <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:12px;">总体评价：${ROX.escape(analysis.score_label)}</div>
             ${Object.entries(analysis.dimensions).map(([key, dim]) => `
               <div style="margin-bottom:10px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                  <span style="font-size:11px;color:var(--text-secondary);">${dim.label} <span style="color:var(--text-muted);">(${dim.weight}%)</span></span>
+                  <span style="font-size:11px;color:var(--text-secondary);">${ROX.escape(dim.label)} <span style="color:var(--text-muted);">(${dim.weight}%)</span></span>
                   <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);">${dim.score ?? '--'}</span>
                 </div>
                 ${dim.score != null ? `<div class="progress"><div class="progress-fill ${dim.score>=70?'green':dim.score>=45?'amber':'red'}" style="width:${dim.score}%"></div></div>` : ''}
-                <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">${dim.detail}</div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">${ROX.escape(dim.detail)}</div>
               </div>
             `).join('')}
           </div>
@@ -170,7 +170,7 @@ ROX.register('/stock', async function(container, params) {
                 <tbody>
                   ${fundamentals.summary.slice(-5).map(r => `
                     <tr style="border-bottom:1px solid var(--border-color-light);">
-                      <td style="padding:2px 4px;">${(r.period||'').slice(0,4)}</td>
+                      <td style="padding:2px 4px;">${ROX.escape((r.period||'').slice(0,4))}</td>
                       <td style="text-align:right;padding:2px 4px;font-family:var(--font-mono);">${r.revenue!=null?(r.revenue/1e8).toFixed(1):'--'}</td>
                       <td style="text-align:right;padding:2px 4px;font-family:var(--font-mono);">${r.net_profit!=null?(r.net_profit/1e8).toFixed(1):'--'}</td>
                       <td style="text-align:right;padding:2px 4px;font-family:var(--font-mono);">${r.roe!=null?r.roe.toFixed(1):'--'}</td>

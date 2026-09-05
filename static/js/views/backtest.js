@@ -33,14 +33,14 @@ ROX.register('/backtest', async function(container) {
         <div class="form-group" style="margin-bottom:10px;">
           <label class="form-label">股票</label>
           <select class="form-input" id="bt-stock">
-            ${stocks.map(s => `<option value="${s.code}">${s.name} (${s.code})</option>`).join('')}
+            ${stocks.map(s => `<option value="${ROX.escape(s.code)}">${ROX.escape(s.name)} (${ROX.escape(s.code)})</option>`).join('')}
           </select>
         </div>
 
         <div class="form-group" style="margin-bottom:10px;">
           <label class="form-label">策略</label>
           <select class="form-input" id="bt-strategy">
-            ${strategies.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+            ${strategies.map(s => `<option value="${ROX.escape(s.id)}">${ROX.escape(s.name)}</option>`).join('')}
           </select>
           <p id="bt-strategy-desc" style="font-size:12px;color:var(--text-tertiary);margin-top:4px;"></p>
         </div>
@@ -111,8 +111,8 @@ ROX.register('/backtest', async function(container) {
     descEl.textContent = strat.description;
     paramEl.innerHTML = (strat.params || []).map(p => `
       <div class="form-group" style="margin-bottom:8px;">
-        <label class="form-label">${p.label}</label>
-        <input class="form-input bt-param" type="number" data-key="${p.key}" value="${p.default}" min="${p.min}" max="${p.max}" step="1">
+        <label class="form-label">${ROX.escape(p.label)}</label>
+        <input class="form-input bt-param" type="number" data-key="${ROX.escape(p.key)}" value="${ROX.escape(p.default)}" min="${ROX.escape(p.min)}" max="${ROX.escape(p.max)}" step="1">
       </div>
     `).join('');
   }
@@ -160,7 +160,7 @@ ROX.register('/backtest', async function(container) {
     if (res && !res.error) {
       renderResults(res);
     } else {
-      document.getElementById('bt-results').innerHTML = `<div class="empty-state"><p>${res?.error || '回测失败，请重试'}</p></div>`;
+      document.getElementById('bt-results').innerHTML = `<div class="empty-state"><p>${ROX.escape(typeof res?.detail === 'string' ? res.detail : '回测失败，请重试')}</p></div>`;
     }
   });
 
@@ -302,7 +302,10 @@ ROX.register('/backtest', async function(container) {
     // 绘制权益曲线
     const chartEl = document.getElementById('equity-chart');
     if (chartEl && res.equity_curve && res.equity_curve.length > 0) {
+      if (_equityChart) { try { _equityChart.dispose(); } catch (_) {} }  // 重复回测前先释放，避免实例累积
       _equityChart = echarts.init(chartEl);
+      if (!ROX._chartInstances) ROX._chartInstances = [];
+      ROX._chartInstances.push(_equityChart);  // 路由切换时随统一清理机制释放
       _equityChart.setOption({
         tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>权益: ¥${p[0].data.toLocaleString()}` },
         xAxis: { type: 'category', data: res.equity_curve.map(e => e.date), axisLabel: { color: ROX.chartTheme().text, fontSize: 10, rotate: 30 } },

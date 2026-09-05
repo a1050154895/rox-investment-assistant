@@ -376,7 +376,8 @@ async def get_dcf_valuation(code: str, force: bool = False, overrides: dict[str,
     if terminal_g > 1:
         terminal_g = terminal_g / 100  # API 传 %，转为小数
 
-    # 尝试从腾讯行情获取总股本（用市值/股价）
+    # 尝试从腾讯行情获取总股本（用市值/股价）；行情不可用时置 None，走无股本降级路径
+    shares = None
     price = valuation.get("price")
     mktcap = valuation.get("market_cap")
     if price and mktcap and price > 0:

@@ -267,12 +267,17 @@ async def _get_stock_quote_raw(code: str) -> dict[str, Any]:
     # 回退到真实数据快照
     if code in REAL_QUOTES:
         q = REAL_QUOTES[code]
+        prev_close = q.get("prev_close")
+        if prev_close is None:
+            pct = q.get("change_pct")
+            prev_close = round(q["price"] / (1 + pct / 100), 2) if pct is not None else q["price"]
         return {
             "code": code, "name": q["name"], "industry": q["industry"],
-            "price": q["price"], "change": round(q["price"] - q["prev_close"], 2),
-            "change_pct": q["change_pct"], "pe": q["pe"], "pb": q["pb"],
-            "market_cap": f"{q['market_cap']:.0f}亿", "turnover": q["turnover"],
-            "open": q["open"], "high": q["high"], "low": q["low"],
+            "price": q["price"], "change": round(q["price"] - prev_close, 2),
+            "change_pct": q["change_pct"], "pe": q.get("pe"), "pb": q.get("pb"),
+            "market_cap": f"{q['market_cap']:.0f}亿" if q.get("market_cap") is not None else None,
+            "turnover": q.get("turnover"),
+            "open": q.get("open"), "high": q.get("high"), "low": q.get("low"),
             "data_status": "snapshot", "data_source": "NeoData 历史快照",
             "as_of": "2026-07-29", "stale": True,
         }

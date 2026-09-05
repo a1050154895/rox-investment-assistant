@@ -21,16 +21,6 @@ BASE_PW = "Test" + "1234!"
 SMTP_TEST_SECRET = "smtp" + "-test-secret"
 
 
-@pytest.fixture(autouse=True)
-def _reset_rate_limiter():
-    """slowapi 按 IP 计数，测试共享同一来源；每个用例前后清空计数窗口。"""
-    from app.core.limiter import limiter
-
-    limiter.reset()
-    yield
-    limiter.reset()
-
-
 @pytest.fixture
 def mailbox(monkeypatch):
     """捕获待发送邮件，替代真实 SMTP / 日志投递。"""
