@@ -49,6 +49,9 @@ def _ensure_compat_columns() -> None:
         ("research_cards", "hypothesis_status", "VARCHAR(20)"),
         ("research_cards", "next_review_at", "VARCHAR(10)"),
         ("research_cards", "targets_json", "TEXT DEFAULT '[]'"),
+        ("users", "email", "VARCHAR(120)"),
+        ("users", "email_verified_at", "DATETIME"),
+        ("users", "password_changed_at", "DATETIME"),
     ):
         columns = {column["name"] for column in inspect(engine).get_columns(table)}
         if column in columns:

@@ -835,6 +835,12 @@ summary { cursor: pointer; }
   border: 0.5px solid rgba(255,69,58,0.2); border-radius: var(--radius-md); padding: 10px 14px;
 }
 .auth-submit { width: 100%; }
+.auth-forgot {
+  background: none; border: none; padding: 4px; align-self: flex-end;
+  font-size: 12px; color: var(--text-tertiary); cursor: pointer;
+  min-height: 32px;
+}
+.auth-forgot:hover { color: var(--text-primary); }
 .auth-foot { font-size: 11px; color: var(--text-tertiary); margin: 18px 0 0; line-height: 1.6; }
 
 /* ============ User chip ============ */

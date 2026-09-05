@@ -25,6 +25,10 @@ class User(Base):
     password_hash = mapped_column(String(200))
     plan = mapped_column(String(20), default="基础版")
     created_at = mapped_column(DateTime, default=utcnow)
+    # 找回密码/邮箱验证：三列均可空，老库通过 _ensure_compat_columns 增量补齐
+    email = mapped_column(String(120), nullable=True, index=True)
+    email_verified_at = mapped_column(DateTime, nullable=True)
+    password_changed_at = mapped_column(DateTime, nullable=True)
 
     def to_dict(self):
         return {
@@ -32,7 +36,25 @@ class User(Base):
             "username": self.username,
             "plan": self.plan,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "email": self.email,
+            "email_verified": self.email_verified_at is not None,
         }
+
+
+class AuthToken(Base):
+    """一次性认证令牌（找回密码 / 邮箱验证）。
+
+    明文令牌只出现在邮件链接中，库里只存 SHA-256 哈希；单次使用，过期即焚。
+    """
+    __tablename__ = "auth_tokens"
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    purpose = mapped_column(String(20), index=True)  # reset_password / verify_email
+    token_hash = mapped_column(String(64), index=True)
+    expires_at = mapped_column(DateTime)
+    used_at = mapped_column(DateTime, nullable=True)
+    created_at = mapped_column(DateTime, default=utcnow)
 
 
 class JournalEntry(Base):

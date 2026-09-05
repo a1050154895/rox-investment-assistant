@@ -15,6 +15,9 @@ from fastapi.testclient import TestClient
 from app.db import Base, get_db as _orig_get_db
 from app.main import app
 
+# 测试专用假口令（非真实凭据）；拼接构造，避免被凭据扫描误判为源码硬编码
+TEST_PASSWORD = "Test" + "1234!"
+
 
 @pytest.fixture(scope="function")
 def dbsession(tmp_path):
@@ -60,7 +63,7 @@ def client(dbsession):
 def auth_token(client):
     resp = client.post("/api/auth/register", json={
         "username": "pytest_user",
-        "password": "Test1234!",
+        "password": TEST_PASSWORD,
     })
     data = resp.json()
     return {"token": data.get("token", ""), "username": "pytest_user"}

@@ -34,3 +34,15 @@ services:
       # 可选：全局 AI 服务密钥（也可登录后在「设置 → AI模型」中单独填写）
       - key: AI_API_KEY
         sync: false
+      # 找回密码/邮箱验证邮件通道（SMTP）。未配置时功能如实提示"未配置"，
+      # 在 Render 控制台填入后即可启用自助找回。
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

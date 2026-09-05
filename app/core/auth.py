@@ -44,11 +44,17 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-def create_token(user_id: int) -> str:
+def create_token(user_id: int, iat_epoch: float | None = None) -> str:
+    """签发 JWT。
+
+    iat_epoch 可显式指定为 Unix 秒（浮点）。密码变更后重签会话令牌时必须用它把 iat
+    精确设为变更时刻：早于变更时刻会被 get_current_user 的失效校验拒绝，而明显晚于
+    当前时间又会被 PyJWT 的未来 iat 校验（ImmatureSignatureError）拒绝。
+    """
     payload = {
         "sub": str(user_id),
         "exp": datetime.now(timezone.utc) + timedelta(hours=TOKEN_TTL_HOURS),
-        "iat": datetime.now(timezone.utc),
+        "iat": iat_epoch if iat_epoch is not None else datetime.now(timezone.utc),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -87,4 +93,20 @@ def get_current_user(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="用户不存在")
+    if _issued_before_password_change(payload, user):
+        raise HTTPException(status_code=401, detail="密码已变更，请重新登录")
     return user
+
+
+def _issued_before_password_change(payload: dict, user: User) -> bool:
+    """密码变更/重置后，此前签发的 JWT 一律失效：iat 严格早于变更时刻即拒绝。
+
+    重签发的令牌由调用方把 iat 设为变更时刻之后，因此不会被自身校验拒绝。
+    """
+    iat = payload.get("iat")
+    changed_at = user.password_changed_at
+    if iat is None or changed_at is None:
+        return False
+    iat_epoch = iat.timestamp() if isinstance(iat, datetime) else float(iat)
+    changed_epoch = changed_at.replace(tzinfo=timezone.utc).timestamp()
+    return iat_epoch < changed_epoch

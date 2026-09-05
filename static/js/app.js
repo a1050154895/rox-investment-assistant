@@ -173,8 +173,12 @@ const ROX = {
     { match: /^\/portfolio/,             handler: '/portfolio',  title: '持仓组合' },
     { match: /^\/watchlist/,             handler: '/watchlist',  title: '自选股' },
     { match: /^\/alerts/,                handler: '/alerts',     title: '价格预警' },
+    { match: /^\/reset-password\/?$/,    handler: '/reset-password', title: '重置密码' },
+    { match: /^\/verify-email\/?$/,      handler: '/verify-email',   title: '邮箱验证' },
   ],
   register(route, handler) { this.routes[route] = handler; },
+  // 免登录路由：邮件深链接（如密码重置链接的接收者必然处于未登录状态）
+  publicRoutes: new Set(['/reset-password', '/verify-email']),
 
   resolveRoute(path) {
     for (const pattern of this.routePatterns) {
@@ -293,6 +297,7 @@ const ROX = {
     }
     const s = this.state.settings || {};
     const m = this.state.membership || {};
+    const user = this.state.user || {};
 
     const tabs = {
       ai: `
@@ -403,6 +408,18 @@ const ROX = {
             </div>
             ${m.note ? `<div style="font-size:12px;color:var(--text-tertiary);line-height:1.7;">${ROX.escape(m.note)}</div>` : ''}
           </div>
+          <h4>绑定邮箱</h4>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="form-group">
+              <label class="form-label" for="set-account-email">邮箱（用于找回密码）</label>
+              <input class="form-input" type="email" id="set-account-email" value="${ROX.escape(user.email || '')}" placeholder="name@example.com" autocomplete="email">
+              ${user.email ? (user.email_verified
+                ? '<div style="font-size:11px;color:var(--color-up);margin-top:6px;">✓ 已验证 · 忘记密码时可通过该邮箱找回</div>'
+                : '<div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">尚未验证：请查收验证邮件；验证通过后才能用于找回密码。未收到可点击下方按钮重发。</div>')
+              : '<div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">建议绑定并验证邮箱，否则忘记密码将无法找回账号。</div>'}
+            </div>
+            <button class="btn btn-secondary btn-sm" data-action="save-account-email">${user.email && !user.email_verified ? '重新发送验证邮件' : '发送验证邮件'}</button>
+          </div>
           <h4>套餐选择</h4>
           ${(m.plans||[]).map(p => `
             <div class="card" style="margin-bottom:12px;">
@@ -502,7 +519,14 @@ const ROX = {
       this.showOnboarding();
     } else {
       this.state.user = null;
-      this.showAuthGate();
+      // 免登录路由照常渲染（如邮件里的重置链接），其余显示登录门禁
+      const resolved = this.resolveRoute(location.pathname);
+      if (resolved && this.publicRoutes.has(resolved.handler)) {
+        if (gate) gate.style.display = 'none';
+        this.render(location.pathname + location.search);
+      } else {
+        this.showAuthGate();
+      }
     }
   },
 
@@ -531,6 +555,10 @@ const ROX = {
       t.classList.toggle('active', t.dataset.authTab === mode));
     const submit = document.getElementById('auth-submit');
     if (submit) submit.textContent = mode === 'login' ? '登录' : '注册并进入';
+    const emailGroup = document.getElementById('auth-email-group');
+    if (emailGroup) emailGroup.style.display = mode === 'register' ? 'block' : 'none';
+    const forgot = document.getElementById('auth-forgot');
+    if (forgot) forgot.style.display = mode === 'login' ? 'block' : 'none';
     this.hideAuthError();
   },
 
@@ -549,9 +577,15 @@ const ROX = {
     const password = document.getElementById('auth-password')?.value || '';
     if (!username || !password) { this.showAuthError('请输入用户名和密码'); return; }
     if (this.state.authMode === 'register' && password.length < 6) { this.showAuthError('密码至少 6 位'); return; }
+    const payload = { username, password };
+    if (this.state.authMode === 'register') {
+      const email = document.getElementById('auth-email')?.value.trim() || '';
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { this.showAuthError('邮箱格式不正确'); return; }
+      if (email) payload.email = email;
+    }
     const url = this.state.authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
     if (submit) { submit.disabled = true; submit.textContent = this.state.authMode === 'login' ? '登录中…' : '注册中…'; }
-    const res = await this.api.post(url, { username, password });
+    const res = await this.api.post(url, payload);
     if (submit) submit.disabled = false;
     if (res && res.success) {
       this.state.user = res.user;
@@ -580,6 +614,70 @@ const ROX = {
     this.closeSettings();
     this.closeNav();
     document.getElementById('view-container').innerHTML = '';
+  },
+
+  async showForgotPassword() {
+    // 邮件服务未配置时如实说明，不提供假入口
+    const status = await this.api.get('/api/auth/recovery-status');
+    if (!status || !status.email_configured) {
+      this.showModal(`
+        <div class="modal-header"><div class="modal-title">找回密码</div><div class="modal-close" data-action="close-modal">✕</div></div>
+        <div style="padding:0 4px;font-size:13px;color:var(--text-secondary);line-height:1.8;">当前服务未配置邮件通道，暂时无法自助找回密码。请通过 GitHub Issues 联系管理员协助重置。</div>
+        <div class="modal-actions"><button class="btn btn-primary" data-action="close-modal">知道了</button></div>`);
+      return;
+    }
+    this.showModal(`
+      <div class="modal-header"><div class="modal-title">找回密码</div><div class="modal-close" data-action="close-modal">✕</div></div>
+      <div style="padding:0 4px;">
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin:0 0 14px;">输入用户名。如果该账号绑定了<b>已验证邮箱</b>，我们将向该邮箱发送重置链接。</p>
+        <div class="form-group">
+          <label class="form-label" for="forgot-username">用户名</label>
+          <input class="form-input" id="forgot-username" autocomplete="username">
+        </div>
+        <div id="forgot-error" class="auth-error" style="display:none;margin-bottom:10px;"></div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-action="close-modal">取消</button>
+          <button class="btn btn-primary" id="forgot-submit" data-action="forgot-submit">发送重置链接</button>
+        </div>
+      </div>`);
+  },
+
+  async submitForgotPassword() {
+    const btn = document.getElementById('forgot-submit');
+    const errEl = document.getElementById('forgot-error');
+    const username = document.getElementById('forgot-username')?.value.trim() || '';
+    const showError = (msg) => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+    if (!username) { showError('请输入用户名'); return; }
+    if (btn) { btn.disabled = true; btn.textContent = '发送中…'; }
+    const res = await this.api.post('/api/auth/forgot-password', { username });
+    if (btn) { btn.disabled = false; btn.textContent = '发送重置链接'; }
+    if (res && res.success) {
+      this.closeModal();
+      this.showModal(`
+        <div class="modal-header"><div class="modal-title">请查收邮件</div><div class="modal-close" data-action="close-modal">✕</div></div>
+        <div style="padding:0 4px;font-size:13px;color:var(--text-secondary);line-height:1.8;">${ROX.escape(res.message || '')}</div>
+        <div class="modal-actions"><button class="btn btn-primary" data-action="close-modal">好的</button></div>`);
+    } else {
+      const detail = res && res.detail;
+      showError(typeof detail === 'string' ? detail : '发送失败，请稍后再试');
+    }
+  },
+
+  async saveAccountEmail() {
+    const input = document.getElementById('set-account-email');
+    const email = input?.value.trim() || '';
+    if (!email) { this.toast('请输入邮箱地址', 'warn'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { this.toast('邮箱格式不正确', 'warn'); return; }
+    const res = await this.api.post('/api/auth/email/bind', { email });
+    if (res && res.success) {
+      const me = await this.api.get('/api/auth/me');
+      if (me && me.user) this.state.user = me.user;
+      await this.renderSettings('account');
+      this.toast(res.message || '验证邮件已发送', 'success');
+    } else {
+      const detail = res && res.detail;
+      this.toast(typeof detail === 'string' ? detail : '发送失败，请稍后再试', 'error');
+    }
   },
 
   updateUserChip() {
@@ -759,6 +857,9 @@ const ROX = {
             this.render('/review');
           },
           'auth-submit': () => this.submitAuth(),
+          'forgot-password': () => this.showForgotPassword(),
+          'forgot-submit': () => this.submitForgotPassword(),
+          'save-account-email': () => this.saveAccountEmail(),
           'logout': () => this.logout(),
           'onboarding-prev': () => this.onboardingPrev(),
           'onboarding-next': () => this.onboardingNext(),
@@ -854,7 +955,8 @@ const ROX = {
     });
     this.loadIndexTicker(true);
     this.startAlertPolling();
-    this.render(location.pathname);
+    // 携带 query（邮件深链接的 token 等参数依赖它）
+    this.render(location.pathname + location.search);
     // Show keyboard shortcut hint (once per session)
     if (!sessionStorage.getItem('kbd-hint-shown')) {
       const hint = document.getElementById('kbd-hint');

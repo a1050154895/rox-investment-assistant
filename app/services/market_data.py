@@ -6,6 +6,7 @@
 """
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from app.services.tencent_data import fetch_kline, fetch_quotes, fetch_sina_quote, to_tencent_symbol
@@ -531,8 +532,10 @@ def load_stock_universe(refresh: bool = False) -> list[dict]:
     if stocks:
         try:
             os.makedirs(_settings.DATA_DIR, exist_ok=True)
-            with open(UNIVERSE_CACHE_FILE, "w", encoding="utf-8") as f:
-                _json.dump({"ts": now, "stocks": stocks}, f, ensure_ascii=False)
+            Path(UNIVERSE_CACHE_FILE).write_text(
+                _json.dumps({"ts": now, "stocks": stocks}, ensure_ascii=False),
+                encoding="utf-8",
+            )
         except Exception as e:
             logger.warning(f"股票名录缓存写入失败: {e}")
         _universe_cache = stocks

@@ -236,8 +236,13 @@
                 <label class="form-label" for="auth-password">密码</label>
                 <input class="form-input" type="password" id="auth-password" placeholder="至少 6 位" autocomplete="current-password">
             </div>
+            <div class="form-group" id="auth-email-group" style="display:none;">
+                <label class="form-label" for="auth-email">邮箱（可选）</label>
+                <input class="form-input" type="email" id="auth-email" placeholder="用于找回密码，需在设置中验证" autocomplete="email">
+            </div>
             <div id="auth-error" class="auth-error" style="display:none;"></div>
             <button class="btn btn-primary auth-submit" id="auth-submit" data-action="auth-submit">登录</button>
+            <button type="button" class="auth-forgot" id="auth-forgot" data-action="forgot-password" style="display:none;">忘记密码？</button>
         </div>
         <p class="auth-foot">数据按账号隔离 · 密码经 PBKDF2 加盐哈希存储 · 决策日志跨设备持久化</p>
         <div id="db-warning" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;font-size:12px;color:#f59e0b;line-height:1.6;">
@@ -288,5 +293,6 @@
 <script defer src="/static/js/views/watchlist.js?v={{ version }}"></script>
 <script defer src="/static/js/views/alerts.js?v={{ version }}"></script>
 <script defer src="/static/js/views/guide.js?v={{ version }}"></script>
+<script defer src="/static/js/views/auth-recovery.js?v={{ version }}"></script>
 </body>
 </html>
