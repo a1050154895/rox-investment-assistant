@@ -535,6 +535,7 @@ const ROX = {
       if (gate) gate.style.display = 'none';
       this.updateUserChip();
       this.showOnboarding();
+      this.maybeShowAnnouncement();
     } else {
       this.state.user = null;
       // 免登录路由照常渲染（如邮件里的重置链接），其余显示登录门禁
@@ -614,6 +615,7 @@ const ROX = {
       this.loadIndexTicker();
       this.render(location.pathname);
       this.showOnboarding();
+      this.maybeShowAnnouncement();
     } else {
       const detail = res?.detail;
       const msg = typeof detail === 'string' ? detail : (this.state.authMode === 'login' ? '登录失败，请检查用户名或密码' : '注册失败，用户名可能已存在');
@@ -717,6 +719,59 @@ const ROX = {
       const detail = res && res.detail;
       this.toast(typeof detail === 'string' ? detail : '修改失败，请重试', 'error');
     }
+  },
+
+  // ============ 更新公告与软件介绍 ============
+  async maybeShowAnnouncement() {
+    // 新用户不弹（他们看新手引导）；老用户每个版本只弹一次；版本号写 localStorage 作已读标记
+    try {
+      const seen = localStorage.getItem('rox_seen_announce');
+      const data = await this.api.get('/api/changelog');
+      if (!data || data.error || !data.latest_version) return;
+      localStorage.setItem('rox_seen_announce', data.latest_version);
+      if (seen !== data.latest_version && localStorage.getItem('rox_onboarded') === '1') {
+        this.showAnnouncement(data, 'log');
+      }
+    } catch (_) { /* 公告失败不影响主流程 */ }
+  },
+
+  showAnnouncement(data, tab = 'log') {
+    this._announcementData = data;
+    const markHtml = (sn) => ROX.escape(sn).replace(/\[\[/g, '<mark>').replace(/\]\]/g, '</mark>');
+    const logHtml = (data.entries || []).map(e => `
+      <div style="border:1px solid var(--border-default);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+          <strong style="font-size:13px;">v${ROX.escape(e.version)} · ${ROX.escape(e.title)}</strong>
+          <span class="tag tag-gray">${ROX.escape(e.date)}</span>
+        </div>
+        <ul style="margin:8px 0 0;padding-left:18px;font-size:12px;color:var(--text-secondary);line-height:1.9;">${(e.items || []).map(i => `<li>${ROX.escape(i)}</li>`).join('')}</ul>
+      </div>`).join('');
+    const intro = data.intro || {};
+    const introHtml = `
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.9;">
+        <p style="margin:0 0 10px;"><strong style="color:var(--text-primary);">${ROX.escape(intro.name)}</strong><br>${ROX.escape(intro.tagline)}</p>
+        <p style="margin:0 0 14px;">${ROX.escape(intro.positioning)}</p>
+        ${(intro.core_objects || []).map(([k, v]) => `
+          <div style="margin-bottom:12px;">
+            <span class="tag tag-blue">${ROX.escape(k)}</span>
+            <div style="margin-top:4px;">${ROX.escape(v)}</div>
+          </div>`).join('')}
+        <div class="auth-error" style="display:block;">${ROX.escape(intro.risk)}</div>
+      </div>`;
+    const bodyHtml = tab === 'intro' ? introHtml : logHtml;
+    this.showModal(`
+      <div class="modal-header"><div class="modal-title">ROX 投资助手</div><div class="modal-close" data-action="close-modal">✕</div></div>
+      <div class="auth-tabs" style="margin:0 0 12px;">
+        <div class="auth-tab ${tab === 'log' ? 'active' : ''}" data-ann-tab="log">更新公告</div>
+        <div class="auth-tab ${tab === 'intro' ? 'active' : ''}" data-ann-tab="intro">软件介绍</div>
+      </div>
+      <div id="ann-body" style="max-height:56vh;overflow:auto;padding:0 4px;">${bodyHtml}</div>
+      <div class="modal-actions"><button class="btn btn-primary" data-action="close-modal">知道了</button></div>`);
+    document.querySelectorAll('#modal-content [data-ann-tab]').forEach(el => {
+      el.addEventListener('click', () => {
+        if (this._announcementData) this.showAnnouncement(this._announcementData, el.dataset.annTab);
+      });
+    });
   },
 
   updateUserChip() {
@@ -900,6 +955,10 @@ const ROX = {
           'forgot-submit': () => this.submitForgotPassword(),
           'save-account-email': () => this.saveAccountEmail(),
           'change-account-password': () => this.saveAccountPassword(),
+          'open-announcement': async () => {
+            const d = await this.api.get('/api/changelog');
+            if (d && !d.error) this.showAnnouncement(d);
+          },
           'logout': () => this.logout(),
           'onboarding-prev': () => this.onboardingPrev(),
           'onboarding-next': () => this.onboardingNext(),
