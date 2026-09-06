@@ -31,6 +31,7 @@ class IndicatorSpec:
     group: str
     scorer: Callable[[float], float]
     unit: str = "%"
+    alternates: tuple[str, ...] = ()  # 主接口失败时依次尝试的备用 AKShare 接口
 
 
 def _clamp(value: float, minimum: float = 0.0, maximum: float = 100.0) -> float:
@@ -72,14 +73,14 @@ def _neutral_score(value: float) -> float:
 
 
 # 降级快照：当 AKShare 不可用时（Render 网络限制等）使用最近已知值。
-# 数据来源：westock-data 技能 core_indicators_cur（腾讯自选股宏观接口）。
+# 数据来源：生产环境 /api/macro/matrix 实测值（2026-09-06 抓取），各条目附原始观察期。
 FALLBACK_SNAPSHOT: dict[str, dict[str, Any]] = {
-    "fiscal_revenue_yoy": {"value": 8.65, "period": "2026年06月", "publisher": "中华人民共和国财政部"},
-    "tax_revenue_yoy": {"value": 3.6, "period": "2026年06月", "publisher": "国家税务总局"},
-    "m2_yoy": {"value": 8.0, "period": "2026年06月", "publisher": "中国人民银行"},
-    "retail_sales_yoy": {"value": 1.0, "period": "2026年06月", "publisher": "中华人民共和国国家统计局"},
+    "fiscal_revenue_yoy": {"value": 11.72, "period": "2026年07月份", "publisher": "中华人民共和国财政部"},
+    "tax_revenue_yoy": {"value": 2.2, "period": "2026年第1季度", "publisher": "国家税务总局"},
+    "m2_yoy": {"value": 7.7, "period": "2026年07月份", "publisher": "中国人民银行"},
+    "retail_sales_yoy": {"value": 0.6, "period": "2026年07月份", "publisher": "中华人民共和国国家统计局"},
     "cpi_yoy": {"value": 0.1, "period": "2026年06月", "publisher": "中华人民共和国国家统计局"},
-    "pmi": {"value": 49.2, "period": "2026年07月", "publisher": "中华人民共和国国家统计局"},
+    "pmi": {"value": 49.8, "period": "2026年08月份", "publisher": "中华人民共和国国家统计局"},
     "ppi_yoy": {"value": 4.1, "period": "2026年06月", "publisher": "中华人民共和国国家统计局"},
     "social_finance": {"value": 7.4, "period": "2026年06月", "publisher": "中国人民银行"},
 }
@@ -116,6 +117,7 @@ SPECS = (
         value_columns=("今值", "最新值", "同比增长", "数值", "value"),
         date_columns=("日期", "时间", "月份", "date"), publisher="中华人民共和国国家统计局",
         group="value_realization", scorer=_cpi_score,
+        alternates=("macro_china_cpi_monthly",),
     ),
     IndicatorSpec(
         key="pmi", label="制造业 PMI", function_name="macro_china_pmi",
@@ -128,6 +130,7 @@ SPECS = (
         value_columns=("今值", "最新值", "同比增长", "数值", "value"),
         date_columns=("日期", "时间", "月份", "date"), publisher="中华人民共和国国家统计局",
         group="value_realization", scorer=_ppi_score,
+        alternates=("macro_china_ppi_monthly",),
     ),
     IndicatorSpec(
         key="social_finance", label="社会融资规模存量同比", function_name="macro_china_shrzgm",
@@ -167,7 +170,7 @@ def _to_number(value: Any) -> float | None:
 
 
 def _period_age(period: str) -> int | None:
-    """Estimate observation age from a YYYY年MM月/ISO period label."""
+    """Estimate observation age from a YYYY年MM月/ISO/YYYYMM period label."""
     text = str(period or "").strip()
     try:
         if "年" in text:
@@ -175,6 +178,11 @@ def _period_age(period: str) -> int | None:
             quarter = re.search(r"第([1-4])季度", tail)
             month = str((int(quarter.group(1)) - 1) * 3 + 2) if quarter else tail.split("月", 1)[0]
             return max(0, (datetime.now().date() - datetime(int(year), int(month), 1).date()).days)
+        compact = re.fullmatch(r"(20\d{2})(\d{2})", text)
+        if compact:  # 社融等接口的 YYYYMM 紧凑格式
+            year, month = int(compact.group(1)), int(compact.group(2))
+            if 1 <= month <= 12:
+                return max(0, (datetime.now().date() - datetime(year, month, 1).date()).days)
         return max(0, (datetime.fromisoformat(text[:10]).date() - datetime.now().date()).days * -1)
     except (TypeError, ValueError, IndexError):
         return None
@@ -287,9 +295,19 @@ async def _fetch_indicator(spec: IndicatorSpec) -> dict[str, Any]:
     try:
         import akshare as ak
         from app.services.akshare_gate import gated_call
-        function = getattr(ak, spec.function_name)
-        frame = await asyncio.wait_for(gated_call(function), timeout=12)
-        return parse_indicator_frame(frame, spec)
+        function_names = [spec.function_name, *spec.alternates]
+        last_error: Exception | None = None
+        for function_name in function_names:  # 主接口失败依次尝试备用接口（如金十源被屏蔔回落东财）
+            function = getattr(ak, function_name, None)
+            if function is None:
+                continue
+            try:
+                frame = await asyncio.wait_for(gated_call(function), timeout=12)
+                return parse_indicator_frame(frame, spec)
+            except Exception as exc:  # noqa: BLE001 — 尝试下一个备用接口
+                last_error = exc
+                logger.warning("macro_indicator_unavailable key=%s interface=%s error=%s", spec.key, function_name, exc)
+        raise last_error or RuntimeError("无可用接口")
     except Exception as exc:
         logger.warning("macro_indicator_unavailable key=%s error=%s", spec.key, exc)
         # 降级：使用最近已知快照值
