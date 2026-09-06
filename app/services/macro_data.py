@@ -253,19 +253,13 @@ def parse_indicator_frame(frame: Any, spec: IndicatorSpec) -> dict[str, Any]:
     if value_column is None:
         raise ValueError(f"未识别数值列，返回列: {columns}")
 
-    # 日期过滤：只看最近1年半的数据，更旧的数据由快照降级处理
-    cutoff_year = datetime.now().year - 1
-    if datetime.now().month <= 6:
-        cutoff_year = datetime.now().year - 1  # 上半年允许去年数据
-    else:
-        cutoff_year = datetime.now().year  # 下半年只要今年数据
-    rows = list(frame.iloc[::-1].iterrows())
-    for _, row in rows:
+    cutoff_year = datetime.now().year if datetime.now().month > 6 else datetime.now().year - 1
+    candidates: list[tuple[int, str, float]] = []
+    for _, row in frame.iterrows():
         value = _to_number(row.get(value_column))
         if value is None:
             continue
         period = str(row.get(date_column, "未知日期")) if date_column else "未知日期"
-        # 过滤掉cutoff_year之前的数据
         period_year = None
         for part in period.replace("年", " ").replace("-", " ").split():
             if part.isdigit() and len(part) == 4:
@@ -273,14 +267,20 @@ def parse_indicator_frame(frame: Any, spec: IndicatorSpec) -> dict[str, Any]:
                 break
         if period_year and period_year < cutoff_year:
             continue
-        score = round(spec.scorer(value), 1)
-        return {
-            "key": spec.key, "label": spec.label, "value": round(value, 2), "unit": spec.unit,
-            "period": period, "score": score, "status": "available", "publisher": spec.publisher,
-            "data_source": f"AKShare / {spec.publisher}公开数据", "value_column": value_column,
-            "freshness": _freshness(period, "available"),
-        }
-    raise ValueError(f"近{cutoff_year}年后无有效数据")
+        age = _period_age(period)
+        # age 为 None（日期无法解析）时排到最后，绝不因表序假设错过最新数据
+        candidates.append((age if age is not None else 10**9, period, value))
+    if not candidates:
+        raise ValueError(f"近{cutoff_year}年后无有效数据")
+    # 取观察期最新的一行——对接口返回顺序（升序/降序）不做任何假设
+    age, period, value = min(candidates, key=lambda c: c[0])
+    score = round(spec.scorer(value), 1)
+    return {
+        "key": spec.key, "label": spec.label, "value": round(value, 2), "unit": spec.unit,
+        "period": period, "score": score, "status": "available", "publisher": spec.publisher,
+        "data_source": f"AKShare / {spec.publisher}公开数据", "value_column": value_column,
+        "freshness": _freshness(period, "available"),
+    }
 
 
 async def _fetch_indicator(spec: IndicatorSpec) -> dict[str, Any]:
