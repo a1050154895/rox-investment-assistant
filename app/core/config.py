@@ -20,6 +20,8 @@ class Settings:
     EMAIL_FROM: str = os.getenv("EMAIL_FROM", "").strip() or os.getenv("SMTP_USER", "").strip()
     # 邮件里的链接指向的应用地址；默认取 CORS 白名单第一项
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "").strip() or (ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else "http://localhost:8008")
+    # 用户反馈转发邮箱（可选）；未配置时反馈仅存数据库，由备份导出收取
+    FEEDBACK_EMAIL: str = os.getenv("FEEDBACK_EMAIL", "").strip()
 
     def __init__(self):
         os.makedirs(self.DATA_DIR, exist_ok=True)

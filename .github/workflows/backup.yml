@@ -1,0 +1,40 @@
+# 数据库自动备份 —— 免费方案：GitHub Actions 定时 pg_dump，产物留存为构建工件（默认保留 90 天）。
+#
+# 启用步骤（一次性，由仓库管理员操作）：
+# 1. GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret
+#    名称: DATABASE_URL，值: Render 控制台中 Postgres 实例的 External Database URL
+# 2. 本工作流随仓库启用后自动按计划运行；也可在 Actions 页面手动 Run workflow
+# 3. 恢复方法: 下载工件后执行
+#    pg_restore --clean --if-exists -d "$DATABASE_URL" backup.dump
+name: database-backup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # 每天 UTC 03:00（北京时间 11:00）
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secret
+        run: |
+          if [ -z "${{ secrets.DATABASE_URL }}" ]; then
+            echo "::error::未配置 DATABASE_URL secret，备份跳过"
+            exit 1
+          fi
+      - name: Install pg client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Dump database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          STAMP=$(date -u +"%Y%m%d-%H%M%S")
+          pg_dump "$DATABASE_URL" --format=custom --file "rox-backup-${STAMP}.dump"
+          echo "BACKUP_FILE=rox-backup-${STAMP}.dump" >> "$GITHUB_ENV"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 90

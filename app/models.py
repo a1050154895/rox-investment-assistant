@@ -359,3 +359,23 @@ class AnomalyEvent(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+class Feedback(Base):
+    """用户反馈：免费公测期的主要需求来源，仅存本地数据库，不外发。"""
+
+    __tablename__ = "feedback"
+
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(ForeignKey("users.id"), index=True)
+    content = mapped_column(Text, default="")
+    contact = mapped_column(String(100), default="")
+    page = mapped_column(String(100), default="")
+    created_at = mapped_column(DateTime, default=utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id, "content": self.content, "contact": self.contact,
+            "page": self.page,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

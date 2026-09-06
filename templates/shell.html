@@ -153,6 +153,7 @@
                 </button>
                 <span class="topbar-title" id="page-title">仪表盘</span>
                 <span class="topbar-version" data-action="open-announcement" title="更新公告与软件介绍" role="button" style="cursor:pointer;">v{{ version }}</span>
+                <span class="topbar-version" data-route="/legal" title="用户协议 · 隐私政策 · 风险揭示" role="button" style="cursor:pointer;">法律</span>
             </div>
             <div class="topbar-right">
                 <div class="index-ticker" id="index-ticker"></div>
@@ -244,7 +245,7 @@
             <button class="btn btn-primary auth-submit" id="auth-submit" data-action="auth-submit">登录</button>
             <button type="button" class="auth-forgot" id="auth-forgot" data-action="forgot-password" style="display:none;">忘记密码？</button>
         </div>
-        <p class="auth-foot">数据按账号隔离 · 密码经 PBKDF2 加盐哈希存储 · 决策日志跨设备持久化</p>
+        <p class="auth-foot">数据按账号隔离 · 密码经 PBKDF2 加盐哈希存储 · 决策日志跨设备持久化<br><a data-route="/legal" style="color:var(--text-tertiary);text-decoration:underline;cursor:pointer;">用户协议 · 隐私政策 · 风险揭示</a></p>
         <div id="db-warning" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;font-size:12px;color:#f59e0b;line-height:1.6;">
             <strong>注意：</strong>当前使用本地 SQLite（未配置 PostgreSQL）。本地重启数据会保留；但 Render 免费实例重启会清空数据。正式使用请在 Render 控制台配置 <code>DATABASE_URL</code>（PostgreSQL）以持久化数据。
         </div>
@@ -294,5 +295,6 @@
 <script defer src="/static/js/views/alerts.js?v={{ version }}"></script>
 <script defer src="/static/js/views/guide.js?v={{ version }}"></script>
 <script defer src="/static/js/views/auth-recovery.js?v={{ version }}"></script>
+<script defer src="/static/js/views/legal.js?v={{ version }}"></script>
 </body>
 </html>

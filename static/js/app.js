@@ -52,7 +52,7 @@ const ROX = {
     get(url) { return this._request(url, { headers: this._headers(false) }); },
     post(url, data) { return this._request(url, { method: 'POST', headers: this._headers(), body: JSON.stringify(data) }); },
     put(url, data) { return this._request(url, { method: 'PUT', headers: this._headers(), body: JSON.stringify(data) }); },
-    delete(url) { return this._request(url, { method: 'DELETE', headers: this._headers(false) }); },
+    delete(url, data) { return this._request(url, { method: 'DELETE', headers: this._headers(), body: data != null ? JSON.stringify(data) : undefined }); },
   },
 
   // Utils
@@ -176,10 +176,11 @@ const ROX = {
     { match: /^\/alerts/,                handler: '/alerts',     title: '价格预警' },
     { match: /^\/reset-password\/?$/,    handler: '/reset-password', title: '重置密码' },
     { match: /^\/verify-email\/?$/,      handler: '/verify-email',   title: '邮箱验证' },
+    { match: /^\/legal\/?$/,             handler: '/legal',          title: '法律与合规' },
   ],
   register(route, handler) { this.routes[route] = handler; },
   // 免登录路由：邮件深链接（如密码重置链接的接收者必然处于未登录状态）
-  publicRoutes: new Set(['/reset-password', '/verify-email']),
+  publicRoutes: new Set(['/reset-password', '/verify-email', '/legal']),
 
   resolveRoute(path) {
     for (const pattern of this.routePatterns) {
@@ -212,6 +213,16 @@ const ROX = {
     const resolved = this.resolveRoute(url.pathname);
     const handler = resolved ? this.routes[resolved.handler] : null;
     const params = resolved ? { ...resolved.params, query: Object.fromEntries(url.searchParams.entries()) } : {};
+
+    // 登录门与公开路由互斥：未登录看公开页时收起门，回到受限页时恢复门
+    if (!this.state.user && resolved) {
+      const gate = document.getElementById('auth-gate');
+      if (resolved && this.publicRoutes.has(resolved.handler)) {
+        if (gate) gate.style.display = 'none';
+      } else {
+        this.showAuthGate();
+      }
+    }
 
     // Update nav active state
     document.querySelectorAll('.nav-item[data-route]').forEach(item => {
@@ -437,6 +448,15 @@ const ROX = {
             </div>
             <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;">修改成功后其他设备需要重新登录；忘记密码可使用已验证邮箱自助找回。</div>
             <button class="btn btn-secondary btn-sm" data-action="change-account-password">修改密码</button>
+          </div>
+          <h4>数据与隐私</h4>
+          <div class="card" style="margin-bottom:16px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7;">研究数据归你所有：可随时导出完整备份（JSON），也可注销账号并不可逆删除全部数据。<a data-route="/legal" style="color:var(--rox-primary);cursor:pointer;text-decoration:underline;">用户协议 · 隐私政策 · 风险揭示</a></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" data-action="download-backup">导出完整备份</button>
+              <button class="btn btn-secondary btn-sm" data-action="open-feedback">意见反馈</button>
+              <button class="btn btn-secondary btn-sm" data-action="open-delete-account" style="color:var(--color-down);">注销账号</button>
+            </div>
           </div>
           <h4>套餐选择</h4>
           ${(m.plans||[]).map(p => `
@@ -774,6 +794,81 @@ const ROX = {
     });
   },
 
+  showFeedbackModal() {
+    this.showModal(`
+      <div class="modal-header"><div class="modal-title">意见反馈</div><div class="modal-close" data-action="close-modal">✕</div></div>
+      <div style="padding:0 4px;">
+        <p style="font-size:12px;color:var(--text-tertiary);margin:0 0 10px;">免费公测期的每一条反馈都会被认真对待。欢迎吐槽功能、报告错误、提出你希望有的能力。</p>
+        <div class="form-group">
+          <label class="form-label" for="feedback-content">反馈内容</label>
+          <textarea class="form-textarea" id="feedback-content" rows="4" placeholder="描述问题或建议（至少 5 个字）"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="feedback-contact">联系方式（可选，便于回访）</label>
+          <input class="form-input" id="feedback-contact" placeholder="邮箱 / 微信 / 其他">
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-action="close-modal">取消</button>
+          <button class="btn btn-primary" id="feedback-submit" data-action="submit-feedback">提交反馈</button>
+        </div>
+      </div>`);
+  },
+
+  async submitFeedback() {
+    const content = document.getElementById('feedback-content')?.value.trim() || '';
+    const contact = document.getElementById('feedback-contact')?.value.trim() || '';
+    if (content.length < 5) { this.toast('反馈内容太短了，至少 5 个字', 'warn'); return; }
+    const btn = document.getElementById('feedback-submit');
+    if (btn) { btn.disabled = true; btn.textContent = '提交中…'; }
+    const res = await this.api.post('/api/feedback', { content, contact, page: location.pathname.slice(0, 100) });
+    if (btn) { btn.disabled = false; btn.textContent = '提交反馈'; }
+    if (res && res.success) { this.closeModal(); this.toast(res.message || '反馈已收到', 'success'); }
+    else {
+      const detail = res && res.detail;
+      this.toast(typeof detail === 'string' ? detail : '提交失败，请稍后再试', 'error');
+    }
+  },
+
+  showDeleteAccountModal() {
+    this.showModal(`
+      <div class="modal-header"><div class="modal-title">注销账号</div><div class="modal-close" data-action="close-modal">✕</div></div>
+      <div style="padding:0 4px;">
+        <div class="auth-error" style="display:block;margin-bottom:10px;">注销将不可逆删除你的全部数据：研究卡、决策日志、速记、持仓、预警、自选、纪律档案与邮箱信息。此操作无法撤销——请先在「导出完整备份」中保存你需要的数据。</div>
+        <div class="form-group">
+          <label class="form-label" for="delete-account-password">输入当前密码以确认注销</label>
+          <input class="form-input" type="password" id="delete-account-password" autocomplete="current-password">
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-action="close-modal">取消</button>
+          <button class="btn btn-primary" id="delete-account-submit" data-action="submit-delete-account" style="background:var(--color-down);">确认注销</button>
+        </div>
+      </div>`);
+  },
+
+  async submitDeleteAccount() {
+    const pwd = document.getElementById('delete-account-password')?.value || '';
+    if (!pwd) { this.toast('请输入当前密码以确认', 'warn'); return; }
+    const btn = document.getElementById('delete-account-submit');
+    if (btn) { btn.disabled = true; btn.textContent = '注销中…'; }
+    const res = await this.api.delete('/api/account', { password: pwd });
+    if (res && res.success) {
+      this.closeModal();
+      this.closeSettings();
+      this.state.user = null;
+      this.state.settings = null;
+      this.state.membership = null;
+      localStorage.removeItem('rox-discipline-profile');
+      this.stopAlertPolling();
+      this.updateUserChip();
+      this.showAuthGate();
+      this.toast(res.message || '账号已注销', 'success');
+    } else {
+      if (btn) { btn.disabled = false; btn.textContent = '确认注销'; }
+      const detail = res && res.detail;
+      this.toast(typeof detail === 'string' ? detail : '注销失败，请稍后再试', 'error');
+    }
+  },
+
   updateUserChip() {
     const chip = document.getElementById('user-chip');
     const name = document.getElementById('user-chip-name');
@@ -959,6 +1054,12 @@ const ROX = {
             const d = await this.api.get('/api/changelog');
             if (d && !d.error) this.showAnnouncement(d);
           },
+          'open-legal': () => this.navigate('/legal'),
+          'open-feedback': () => this.showFeedbackModal(),
+          'submit-feedback': () => this.submitFeedback(),
+          'download-backup': () => { window.location.href = '/api/export/backup'; },
+          'open-delete-account': () => this.showDeleteAccountModal(),
+          'submit-delete-account': () => this.submitDeleteAccount(),
           'logout': () => this.logout(),
           'onboarding-prev': () => this.onboardingPrev(),
           'onboarding-next': () => this.onboardingNext(),

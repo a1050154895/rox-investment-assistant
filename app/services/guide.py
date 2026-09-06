@@ -61,6 +61,14 @@ ONBOARDING_STEPS: list[dict[str, Any]] = [
 
 FEATURES: list[dict[str, Any]] = [
     {
+        "id": "legal",
+        "name": "法律与合规",
+        "route": "/legal",
+        "what": "用户服务协议、隐私政策与风险揭示书：服务的定位边界、你的数据权利（导出/删除）与投资风险声明。",
+        "when": "首次使用前，以及想了解「我的数据归谁、怎么处理」时。",
+        "how": "登录页底部或顶栏「法律」入口进入；三个文档可切换阅读，注销与导出入口在「设置 → 账户」。",
+    },
+    {
         "id": "dashboard",
         "name": "仪表盘",
         "route": "/",

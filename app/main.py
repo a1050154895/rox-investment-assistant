@@ -29,11 +29,12 @@ from app.api import (
     dashboard, stock, journal, framework, settings_api, intelligence,
     discipline, macro, auth, ai, screener, backtest, review, fundamentals, portfolio, export_api, alerts, watchlist,
     guide, research, funds, data, knowledge, notes, anomaly, changelog,
+    legal, feedback, account,
 )
 
 app = FastAPI(
     title="ROX投资助手",
-    version="4.47.0",
+    version="4.48.0",
     description="投资认知系统 — 宏观定调 · 矛盾追踪 · 334纪律 · 决策日志",
 )
 
@@ -107,6 +108,9 @@ app.include_router(knowledge.router, prefix="/api/knowledge", tags=["knowledge"]
 app.include_router(notes.router, prefix="/api/notes", tags=["notes"])
 app.include_router(anomaly.router, prefix="/api/anomaly", tags=["anomaly"])
 app.include_router(changelog.router, prefix="/api/changelog", tags=["changelog"])
+app.include_router(legal.router, prefix="/api/legal", tags=["legal"])
+app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
+app.include_router(account.router, prefix="/api/account", tags=["account"])
 
 
 # ========== Health Check (必须在 catch-all 之前) ==========
