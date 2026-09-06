@@ -3,7 +3,7 @@
 反馈仅存本地数据库；配置了 FEEDBACK_EMAIL 且 SMTP 可用时，额外转发一封邮件
 （尽力而为，失败不影响反馈保存）。
 """
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -48,4 +48,43 @@ async def submit_feedback(request: Request, data: FeedbackIn, user: User = Depen
         "message": "反馈已收到，感谢！免费公测期的每一条反馈都会被认真对待。",
         "forwarded": forwarded,
         "id": row.id,
+    }
+
+
+def _is_admin(user: User) -> bool:
+    admins = {n.strip() for n in settings.ADMIN_USERNAMES.split(",") if n.strip()}
+    return user.username in admins
+
+
+@router.get("")
+async def list_feedback(
+    limit: int = Query(200, ge=1, le=500),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """管理员查看全部用户反馈（按时间倒序）；非管理员一律 403，不泄露任何内容。"""
+    if not _is_admin(user):
+        raise HTTPException(status_code=403, detail="仅管理员可查看用户反馈")
+    rows = (
+        db.query(Feedback, User.username)
+        .join(User, Feedback.user_id == User.id)
+        .order_by(Feedback.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return {
+        "success": True,
+        "total": len(rows),
+        "is_admin": True,
+        "items": [
+            {
+                "id": fb.id,
+                "username": uname,
+                "content": fb.content,
+                "contact": fb.contact,
+                "page": fb.page,
+                "created_at": fb.created_at.isoformat() if fb.created_at else None,
+            }
+            for fb, uname in rows
+        ],
     }

@@ -22,6 +22,8 @@ class Settings:
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "").strip() or (ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else "http://localhost:8008")
     # 用户反馈转发邮箱（可选）；未配置时反馈仅存数据库，由备份导出收取
     FEEDBACK_EMAIL: str = os.getenv("FEEDBACK_EMAIL", "").strip()
+    # 管理员用户名列表（逗号分隔）：可查看用户反馈与运营数据
+    ADMIN_USERNAMES: str = os.getenv("ADMIN_USERNAMES", "").strip()
 
     def __init__(self):
         os.makedirs(self.DATA_DIR, exist_ok=True)

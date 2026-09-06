@@ -74,8 +74,13 @@ class VerifyEmailIn(BaseModel):
 
 
 def _user_payload(db: Session, user: User) -> dict:
-    """用户信息 + 邮箱字段（与既有前端契约保持一致）。"""
-    return {**user.to_dict(), **account_settings.account_public_fields(db, user.id)}
+    """用户信息 + 邮箱字段 + 管理员标记（与既有前端契约保持一致）。"""
+    admins = {n.strip() for n in settings.ADMIN_USERNAMES.split(",") if n.strip()}
+    return {
+        **user.to_dict(),
+        **account_settings.account_public_fields(db, user.id),
+        "is_admin": user.username in admins,
+    }
 
 
 @router.post("/register")

@@ -84,3 +84,33 @@ class TestAccountDeletion:
         assert client.get("/api/auth/me", headers=headers).status_code == 401
         assert dbsession.query(User).filter(User.username == "deleter_user").first() is None
         assert dbsession.query(JournalEntry).filter(JournalEntry.code == "600001").all() == []
+
+
+# ---------- 管理员反馈视图（v4.49） ----------
+
+class TestFeedbackAdmin:
+    def test_list_rejected_for_normal_user(self, client, auth_headers):
+        resp = client.get("/api/feedback", headers=auth_headers)
+        assert resp.status_code == 403
+
+    def test_admin_can_list_all_feedback(self, client, monkeypatch):
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "ADMIN_USERNAMES", "admin_guy")
+        reg = client.post("/api/auth/register", json={"username": "admin_guy", "password": "Adm" + "in123!"})
+        headers = {"Authorization": "Bearer " + reg.json()["token"]}
+        assert client.post("/api/feedback", json={"content": "希望支持港美股研究"}, headers=headers).status_code == 200
+        resp = client.get("/api/feedback", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["is_admin"] is True and data["total"] >= 1
+        assert any("港美股" in item["content"] for item in data["items"])
+
+    def test_me_exposes_is_admin(self, client, monkeypatch):
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "ADMIN_USERNAMES", "the_boss")
+        reg = client.post("/api/auth/register", json={"username": "the_boss", "password": "Bos" + "s123!"})
+        headers = {"Authorization": "Bearer " + reg.json()["token"]}
+        assert client.get("/api/auth/me", headers=headers).json()["user"]["is_admin"] is True
+        reg2 = client.post("/api/auth/register", json={"username": "normal_guy", "password": "Nor" + "mal123!"})
+        me2 = client.get("/api/auth/me", headers={"Authorization": "Bearer " + reg2.json()["token"]}).json()
+        assert me2["user"]["is_admin"] is False

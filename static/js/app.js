@@ -177,6 +177,7 @@ const ROX = {
     { match: /^\/reset-password\/?$/,    handler: '/reset-password', title: '重置密码' },
     { match: /^\/verify-email\/?$/,      handler: '/verify-email',   title: '邮箱验证' },
     { match: /^\/legal\/?$/,             handler: '/legal',          title: '法律与合规' },
+    { match: /^\/admin\/feedback\/?$/,   handler: '/admin/feedback', title: '用户反馈' },
   ],
   register(route, handler) { this.routes[route] = handler; },
   // 免登录路由：邮件深链接（如密码重置链接的接收者必然处于未登录状态）
@@ -458,6 +459,12 @@ const ROX = {
               <button class="btn btn-secondary btn-sm" data-action="open-delete-account" style="color:var(--color-down);">注销账号</button>
             </div>
           </div>
+          ${user.is_admin ? `
+          <h4>运营（管理员）</h4>
+          <div class="card" style="margin-bottom:16px;">
+            <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7;margin-bottom:8px;">查看用户通过「意见反馈」提交的全部内容；管理员身份由服务端 ADMIN_USERNAMES 配置决定。</div>
+            <button class="btn btn-secondary btn-sm" data-route="/admin/feedback">查看用户反馈</button>
+          </div>` : ''}
           <h4>套餐选择</h4>
           ${(m.plans||[]).map(p => `
             <div class="card" style="margin-bottom:12px;">
