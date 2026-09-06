@@ -75,6 +75,18 @@ def auth_headers(auth_token):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_knowledge_dir(tmp_path, monkeypatch):
+    """知识库测试与本地真实语料（可能数百 MB、重建以分钟计）隔离：
+    每个用例使用空临时目录，索引状态全新，避免真实语料被反复解析。"""
+    from app.services import knowledge_base as kb
+
+    fake_dir = tmp_path / "knowledge"
+    fake_dir.mkdir()
+    monkeypatch.setattr(kb, "knowledge_dir", lambda: str(fake_dir))
+    monkeypatch.setattr(kb, "_INDEX", kb.KBIndex())
+
+
+@pytest.fixture(autouse=True)
 def _reset_rate_limiter():
     """每个用例前后清空 slowapi 计数窗口：全局限流 200/min 已真实生效，
     测试共享同一来源 IP，不清窗会互相耗尽配额。"""

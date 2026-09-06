@@ -138,3 +138,38 @@ class TestKnowledgeEnhancements:
     def test_pdf_support_flag_reported(self, client, auth_headers):
         data = client.get("/api/knowledge/status", headers=auth_headers).json()
         assert "pdf_support" in data and "playbooks" in data
+
+
+# ---------- 知识库递归索引与截断（v4.46） ----------
+
+class TestKnowledgeRecursiveAndCaps:
+    def test_recursive_subdirectory_indexing(self, tmp_path):
+        (tmp_path / "sub").mkdir()
+        (tmp_path / "sub" / "inner.md").write_text("递归索引测试关键词斑马线", encoding="utf-8")
+        (tmp_path / "top.txt").write_text("顶层文件", encoding="utf-8")
+        result = rebuild(str(tmp_path))
+        try:
+            names = [d["filename"] for d in result["files"]]
+            assert "sub/inner.md" in names and "top.txt" in names
+            hits = search("斑马线")
+            assert any("sub/inner.md" == r["filename"] for r in hits["results"])
+        finally:
+            rebuild()
+
+    def test_oversize_doc_truncated_honestly(self, tmp_path, monkeypatch):
+        import app.services.knowledge_base as kb
+        monkeypatch.setattr(kb, "MAX_DOC_CHARS", 500)
+        (tmp_path / "long.md").write_text("字" * 2000, encoding="utf-8")
+        result = rebuild(str(tmp_path))
+        try:
+            doc = next(d for d in result["files"] if d["filename"] == "long.md")
+            assert doc["truncated"] is True and doc["chars"] == 500
+        finally:
+            rebuild()
+
+    def test_new_playbooks_registered(self):
+        listed = knowledge_playbooks.list_playbooks()
+        ids = [pb["id"] for pb in listed["playbooks"]]
+        assert "pb_lin_senchi_quality" in ids
+        assert "pb_community_strategy_audit" in ids
+        assert listed["count"] == 10

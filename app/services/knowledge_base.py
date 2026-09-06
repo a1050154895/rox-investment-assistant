@@ -31,6 +31,7 @@ except ImportError:  # pragma: no cover - 取决于环境
 
 SUPPORTED_EXT = (".txt", ".md", ".docx", ".pdf")
 MAX_FILE_BYTES = 10 * 1024 * 1024  # 单文件 10MB 上限（PDF 通常更大）
+MAX_DOC_CHARS = 1_500_000  # 单文档入索引的最大字符数（保护内存），超出截断并标注
 SNIPPET_RADIUS = 40
 _MAX_SNIPPETS = 3
 
@@ -47,9 +48,11 @@ class KnowledgeDoc:
     title: str
     text: str
     mtime: float
+    truncated: bool = False
 
     def to_dict(self) -> dict:
-        return {"filename": self.filename, "title": self.title, "chars": len(self.text)}
+        return {"filename": self.filename, "title": self.title, "chars": len(self.text),
+                "truncated": self.truncated}
 
 
 @dataclass
@@ -57,6 +60,8 @@ class KBIndex:
     docs: list[KnowledgeDoc] = field(default_factory=list)
     built_at: float = 0.0
     skipped: list[str] = field(default_factory=list)
+    index_dir: str | None = None  # 索引来源目录（测试可指向临时目录）
+    signature: tuple | None = None  # (文件数, 最大mtime, 总字节)，用于跳过无谓重建
 
     def to_dict(self) -> dict:
         return {
@@ -93,7 +98,7 @@ def _read_pdf(path: str) -> str:
         return ""
 
 
-def _load_doc(path: str) -> KnowledgeDoc | None:
+def _load_doc(path: str, relname: str | None = None) -> KnowledgeDoc | None:
     if os.path.getsize(path) > MAX_FILE_BYTES:
         return None
     ext = os.path.splitext(path)[1].lower()
@@ -106,40 +111,71 @@ def _load_doc(path: str) -> KnowledgeDoc | None:
             text = fh.read()
     if not text.strip():
         return None
+    truncated = len(text) > MAX_DOC_CHARS
+    if truncated:
+        text = text[:MAX_DOC_CHARS]
     first_line = next((line.strip() for line in text.splitlines() if line.strip()), os.path.basename(path))
     return KnowledgeDoc(
-        filename=os.path.basename(path),
+        filename=relname or os.path.basename(path),
         title=first_line[:60],
         text=text,
         mtime=os.path.getmtime(path),
+        truncated=truncated,
     )
 
 
 def rebuild(directory: str | None = None) -> dict:
-    """重建索引；目录不存在或为空时返回诚实空状态。"""
+    """重建索引：递归扫描子目录；目录不存在或为空时返回诚实空状态。"""
     directory = directory or knowledge_dir()
     docs: list[KnowledgeDoc] = []
     skipped: list[str] = []
-    for name in sorted(os.listdir(directory)):
-        path = os.path.join(directory, name)
-        if not os.path.isfile(path) or not name.lower().endswith(SUPPORTED_EXT):
-            continue
-        doc = _load_doc(path)
-        if doc:
-            docs.append(doc)
-        elif name.lower().endswith(".pdf") and not PDF_SUPPORT:
-            skipped.append(name)
+    for root, _dirs, files in os.walk(directory):
+        rel_root = os.path.relpath(root, directory)
+        for name in sorted(files):
+            if name == ".DS_Store" or not name.lower().endswith(SUPPORTED_EXT):
+                continue
+            path = os.path.join(root, name)
+            relname = name if rel_root == "." else f"{rel_root}/{name}"
+            doc = _load_doc(path, relname)
+            if doc:
+                docs.append(doc)
+            elif name.lower().endswith(".pdf") and not PDF_SUPPORT:
+                skipped.append(relname)
+    docs.sort(key=lambda d: d.filename)
     _INDEX.docs = docs
     _INDEX.skipped = skipped
     _INDEX.built_at = time.time()
+    _INDEX.index_dir = directory
+    _INDEX.signature = _dir_signature(directory)
     return _INDEX.to_dict()
 
 
+def _dir_signature(directory: str) -> tuple:
+    """廉价签名：文件数 / 最大 mtime / 总字节。stat 全部文件约毫秒级，远快于解析。"""
+    count = 0
+    max_mtime = 0.0
+    total_bytes = 0
+    for root, _dirs, files in os.walk(directory):
+        for name in files:
+            if name == ".DS_Store" or not name.lower().endswith(SUPPORTED_EXT):
+                continue
+            try:
+                st = os.stat(os.path.join(root, name))
+                count += 1
+                max_mtime = max(max_mtime, st.st_mtime)
+                total_bytes += st.st_size
+            except OSError:
+                continue
+    return (count, round(max_mtime, 3), total_bytes)
+
+
 def _ensure_index() -> KBIndex:
-    if not _INDEX.docs and _INDEX.built_at == 0.0:
+    if _INDEX.built_at == 0.0 or _INDEX.index_dir is None:
         rebuild()
-    elif _INDEX.built_at and time.time() - _INDEX.built_at > 600:
-        rebuild()
+    elif _INDEX.index_dir == knowledge_dir():
+        # 仅当索引来自知识库目录本身时做签名比对；测试指向临时目录时保持不动
+        if _dir_signature(knowledge_dir()) != _INDEX.signature:
+            rebuild()
     return _INDEX
 
 
@@ -202,8 +238,13 @@ def search(query: str, limit: int = 8) -> dict:
 
 def status() -> dict:
     index = _ensure_index()
-    note = "将 txt/md/docx/pdf 放入上述目录即可被索引；文件不入 git、不上传。"
+    note = "将 txt/md/docx/pdf 放入上述目录（含子目录）即可被索引；文件不入 git、不上传。"
     if index.skipped:
         note += f" {len(index.skipped)} 个 PDF 未索引（需安装 pypdf：pip install pypdf）。"
+    total_chars = sum(len(d.text) for d in index.docs)
+    truncated = sum(1 for d in index.docs if d.truncated)
+    if truncated:
+        note += f" {truncated} 份超长文档已截断至 {MAX_DOC_CHARS // 10000} 万字符。"
     return {**index.to_dict(), "directory": knowledge_dir(), "pdf_support": PDF_SUPPORT,
-            "skipped_pdfs": index.skipped, "note": note}
+            "skipped_pdfs": index.skipped, "total_chars": total_chars,
+            "truncated_docs": truncated, "note": note}
