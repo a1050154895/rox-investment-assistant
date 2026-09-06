@@ -56,4 +56,18 @@ async def source_diagnosis():
 
     specs = list(SPECS) + list(DERIVED_SPECS)
     results = await asyncio.gather(*(probe(spec) for spec in specs))
-    return {"diagnosed_at": __import__("datetime").datetime.now().isoformat(), "sources": results}
+    available_interfaces = []
+    try:
+        import akshare as ak
+        keywords = ("cpi", "ppi", "shrzgm", "social", "tax", "fiscal", "money", "pmi", "credit")
+        available_interfaces = sorted(
+            name for name in dir(ak)
+            if name.startswith("macro_china") and any(k in name for k in keywords)
+        )
+    except Exception:  # noqa: BLE001 — 接口发现失败不影响诊断主体
+        available_interfaces = []
+    return {
+        "diagnosed_at": __import__("datetime").datetime.now().isoformat(),
+        "sources": results,
+        "available_interfaces": available_interfaces,
+    }
