@@ -426,6 +426,8 @@ uvicorn app.main:app --host 0.0.0.0 --port 8008 --reload
 | `SMTP_PASSWORD` | 未设置 | SMTP 登录密码 |
 | `EMAIL_FROM` | 同 `SMTP_USER` | 发件人地址 |
 | `APP_BASE_URL` | 取 `ALLOWED_ORIGINS` 第一项 | 邮件内链接指向的应用地址 |
+| `FEEDBACK_EMAIL` | 未设置 | 用户反馈转发邮箱（可选）；未配置时反馈仅存数据库 |
+| `ADMIN_USERNAMES` | 未设置 | 管理员用户名列表（逗号分隔）；配置后可在「设置 → 账户」查看用户反馈 |
 
 生产环境默认只允许：
 
