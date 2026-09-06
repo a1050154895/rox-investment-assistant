@@ -61,6 +61,14 @@ ONBOARDING_STEPS: list[dict[str, Any]] = [
 
 FEATURES: list[dict[str, Any]] = [
     {
+        "id": "funnel",
+        "name": "宏观行业漏斗",
+        "route": "/funnel",
+        "what": "三段式过滤器：宏观状态 → 行业排序（方法论规则匹配 + 实测资金流）→ 行业内候选样本（确定性因子排序）。",
+        "when": "宏观矩阵给出方向后，想快速聚焦行业与候选样本时。",
+        "how": "读第一步的宏观状态 → 看行业排序的命中规则与资金流 → 点「查看候选样本」逐一进入个股透视与研究卡。候选池不是投资建议。",
+    },
+    {
         "id": "legal",
         "name": "法律与合规",
         "route": "/legal",

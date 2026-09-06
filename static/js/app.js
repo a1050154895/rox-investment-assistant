@@ -177,6 +177,7 @@ const ROX = {
     { match: /^\/reset-password\/?$/,    handler: '/reset-password', title: '重置密码' },
     { match: /^\/verify-email\/?$/,      handler: '/verify-email',   title: '邮箱验证' },
     { match: /^\/legal\/?$/,             handler: '/legal',          title: '法律与合规' },
+    { match: /^\/funnel\/?$/,             handler: '/funnel',         title: '宏观行业漏斗' },
     { match: /^\/admin\/feedback\/?$/,   handler: '/admin/feedback', title: '用户反馈' },
   ],
   register(route, handler) { this.routes[route] = handler; },

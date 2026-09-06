@@ -172,4 +172,4 @@ class TestKnowledgeRecursiveAndCaps:
         ids = [pb["id"] for pb in listed["playbooks"]]
         assert "pb_lin_senchi_quality" in ids
         assert "pb_community_strategy_audit" in ids
-        assert listed["count"] == 10
+        assert listed["count"] == 12
