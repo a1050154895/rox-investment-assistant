@@ -93,19 +93,24 @@ def get_current_user(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="用户不存在")
-    if _issued_before_password_change(payload, user):
+    if _issued_before_password_change(payload, user.id, db):
         raise HTTPException(status_code=401, detail="密码已变更，请重新登录")
     return user
 
 
-def _issued_before_password_change(payload: dict, user: User) -> bool:
+def _issued_before_password_change(payload: dict, user_id: int, db: Session) -> bool:
     """密码变更/重置后，此前签发的 JWT 一律失效：iat 严格早于变更时刻即拒绝。
 
-    重签发的令牌由调用方把 iat 设为变更时刻之后，因此不会被自身校验拒绝。
+    重签发的令牌由调用方把 iat 设为变更时刻，因此不会被自身校验拒绝。
+    变更时刻存于键值表（services/account_settings），None 表示从未改过密码。
     """
     iat = payload.get("iat")
-    changed_at = user.password_changed_at
-    if iat is None or changed_at is None:
+    if iat is None:
+        return False
+    from app.services.account_settings import get_password_changed_at
+
+    changed_at = get_password_changed_at(db, user_id)
+    if changed_at is None:
         return False
     iat_epoch = iat.timestamp() if isinstance(iat, datetime) else float(iat)
     changed_epoch = changed_at.replace(tzinfo=timezone.utc).timestamp()

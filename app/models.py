@@ -25,10 +25,8 @@ class User(Base):
     password_hash = mapped_column(String(200))
     plan = mapped_column(String(20), default="基础版")
     created_at = mapped_column(DateTime, default=utcnow)
-    # 找回密码/邮箱验证：三列均可空，老库通过 _ensure_compat_columns 增量补齐
-    email = mapped_column(String(120), nullable=True, index=True)
-    email_verified_at = mapped_column(DateTime, nullable=True)
-    password_changed_at = mapped_column(DateTime, nullable=True)
+    # 邮箱/验证时间/密码变更时间存于 Setting 键值表（见 services/account_settings.py），
+    # 不再作为 users 表列——避免运行时 ALTER 迁移。
 
     def to_dict(self):
         return {
@@ -36,8 +34,6 @@ class User(Base):
             "username": self.username,
             "plan": self.plan,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "email": self.email,
-            "email_verified": self.email_verified_at is not None,
         }
 
 

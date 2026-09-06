@@ -1,4 +1,7 @@
-"""认证 API — 注册 / 登录 / 当前用户 / 找回密码 / 修改密码 / 邮箱绑定与验证。"""
+"""认证 API — 注册 / 登录 / 当前用户 / 找回密码 / 修改密码 / 邮箱绑定与验证。
+
+邮箱与账号安全时间戳存于键值表（services/account_settings），不做运行时 DDL。
+"""
 import re
 from datetime import timedelta, timezone
 
@@ -18,7 +21,7 @@ from app.core.config import settings
 from app.core.limiter import limiter
 from app.db import get_db
 from app.models import User, utcnow
-from app.services import mailer
+from app.services import account_settings, mailer
 from app.services.auth_tokens import (
     RESET_TOKEN_TTL_MINUTES,
     VERIFY_TOKEN_TTL_MINUTES,
@@ -70,6 +73,11 @@ class VerifyEmailIn(BaseModel):
     token: str = Field(..., min_length=16, max_length=200)
 
 
+def _user_payload(db: Session, user: User) -> dict:
+    """用户信息 + 邮箱字段（与既有前端契约保持一致）。"""
+    return {**user.to_dict(), **account_settings.account_public_fields(db, user.id)}
+
+
 @router.post("/register")
 @limiter.limit("10/minute")
 async def register(request: Request, data: RegisterIn, response: Response, db: Session = Depends(get_db)):
@@ -85,13 +93,16 @@ async def register(request: Request, data: RegisterIn, response: Response, db: S
         email = data.email.strip().lower()
         if not _EMAIL_RE.match(email):
             raise HTTPException(status_code=422, detail="邮箱格式不正确")
-        user.email = email
-    db.add(user)
+        db.add(user)
+        db.flush()  # 先取 id，邮箱写入键值表需要 user_id
+        account_settings.set_email(db, user.id, email)
+    else:
+        db.add(user)
     db.commit()
     db.refresh(user)
     token = create_token(user.id)
     set_auth_cookie(response, token)
-    return {"success": True, "token": token, "user": user.to_dict()}
+    return {"success": True, "token": token, "user": _user_payload(db, user)}
 
 
 @router.post("/login")
@@ -103,7 +114,7 @@ async def login(request: Request, response: Response, data: LoginIn, db: Session
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     token = create_token(user.id)
     set_auth_cookie(response, token)
-    return {"success": True, "token": token, "user": user.to_dict()}
+    return {"success": True, "token": token, "user": _user_payload(db, user)}
 
 
 @router.post("/logout")
@@ -114,9 +125,9 @@ async def logout(response: Response):
 
 
 @router.get("/me")
-async def me(user: User = Depends(get_current_user)):
+async def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """当前登录用户信息。"""
-    return {"user": user.to_dict()}
+    return {"user": _user_payload(db, user)}
 
 
 @router.get("/recovery-status")
@@ -134,24 +145,27 @@ async def forgot_password(request: Request, data: ForgotPasswordIn, db: Session 
     一律返回与成功时完全相同的响应；仅 SMTP 未配置时统一返回 503。
     """
     user = db.query(User).filter(User.username == data.username.strip()).first()
-    if user and user.email and user.email_verified_at is not None:
-        last = last_issued_at(db, user.id, _PURPOSE_RESET)
-        throttled = last is not None and (utcnow() - last).total_seconds() < _RESEND_THROTTLE_SECONDS
-        if not throttled:
-            raw = issue_token(db, user.id, _PURPOSE_RESET, RESET_TOKEN_TTL_MINUTES)
-            link = f"{settings.APP_BASE_URL.rstrip('/')}/reset-password?token={raw}"
-            html = _email_html(
-                "ROX 密码重置",
-                "我们收到了您的找回密码请求。请点击下面的链接设置新密码：",
-                link,
-                f"链接 30 分钟内有效。如果您没有发起找回密码，请忽略本邮件，您的密码不会被修改。",
-            )
-            try:
-                mailer.send_email(user.email, "ROX 密码重置", html)
-            except Exception:
-                db.rollback()
-                raise HTTPException(status_code=503, detail="邮件服务暂不可用，请稍后再试")
-            db.commit()
+    if user:
+        email = account_settings.get_email(db, user.id)
+        verified = account_settings.get_email_verified_at(db, user.id) is not None
+        if email and verified:
+            last = last_issued_at(db, user.id, _PURPOSE_RESET)
+            throttled = last is not None and (utcnow() - last).total_seconds() < _RESEND_THROTTLE_SECONDS
+            if not throttled:
+                raw = issue_token(db, user.id, _PURPOSE_RESET, RESET_TOKEN_TTL_MINUTES)
+                link = f"{settings.APP_BASE_URL.rstrip('/')}/reset-password?token={raw}"
+                html = _email_html(
+                    "ROX 密码重置",
+                    "我们收到了您的找回密码请求。请点击下面的链接设置新密码：",
+                    link,
+                    "链接 30 分钟内有效。如果您没有发起找回密码，请忽略本邮件，您的密码不会被修改。",
+                )
+                try:
+                    mailer.send_email(email, "ROX 密码重置", html)
+                except Exception:
+                    db.rollback()
+                    raise HTTPException(status_code=503, detail="邮件服务暂不可用，请稍后再试")
+                db.commit()
     return {
         "success": True,
         "message": "如果该用户名绑定了已验证邮箱，重置链接已发送，请查收邮件（注意垃圾箱）。60 秒内重复请求不会重复发送。",
@@ -170,7 +184,7 @@ async def reset_password(request: Request, data: ResetPasswordIn, db: Session = 
         db.rollback()
         raise HTTPException(status_code=400, detail="重置链接无效或已过期，请重新发起找回密码")
     user.password_hash = hash_password(data.new_password)
-    user.password_changed_at = utcnow()
+    account_settings.mark_password_changed(db, user_id)
     invalidate_user_tokens(db, user.id, _PURPOSE_RESET)
     db.commit()
     return {"success": True, "message": "密码已重置，请使用新密码登录。"}
@@ -190,7 +204,7 @@ async def change_password(
         raise HTTPException(status_code=400, detail="当前密码不正确")
     changed_at = utcnow()
     user.password_hash = hash_password(data.new_password)
-    user.password_changed_at = changed_at
+    account_settings.set_value(db, user.id, account_settings.KEY_PASSWORD_CHANGED_AT, changed_at.isoformat())
     db.commit()
     # 重签发的当前会话令牌：iat 精确等于变更时刻（见 create_token 说明）
     token = create_token(user.id, iat_epoch=changed_at.replace(tzinfo=timezone.utc).timestamp())
@@ -210,20 +224,16 @@ async def bind_email(
     email = data.email.strip().lower()
     if not _EMAIL_RE.match(email):
         raise HTTPException(status_code=422, detail="邮箱格式不正确")
-    if user.email == email and user.email_verified_at is not None:
-        return {"success": True, "message": "该邮箱已验证，无需重复绑定。", "email": user.email, "email_verified": True}
-    taken = (
-        db.query(User)
-        .filter(User.email == email, User.id != user.id, User.email_verified_at.isnot(None))
-        .first()
-    )
-    if taken:
+    current_email = account_settings.get_email(db, user.id)
+    current_verified = account_settings.get_email_verified_at(db, user.id) is not None
+    if current_email == email and current_verified:
+        return {"success": True, "message": "该邮箱已验证，无需重复绑定。", "email": current_email, "email_verified": True}
+    if account_settings.email_verified_by_other(db, email, user.id):
         raise HTTPException(status_code=409, detail="该邮箱已被其他账号验证使用")
     last = last_issued_at(db, user.id, _PURPOSE_VERIFY)
     if last is not None and (utcnow() - last).total_seconds() < _RESEND_THROTTLE_SECONDS:
         raise HTTPException(status_code=429, detail="验证邮件发送过于频繁，请 60 秒后再试")
-    user.email = email
-    user.email_verified_at = None
+    account_settings.set_email(db, user.id, email)  # 写入并清空验证状态
     raw = issue_token(db, user.id, _PURPOSE_VERIFY, VERIFY_TOKEN_TTL_MINUTES)
     link = f"{settings.APP_BASE_URL.rstrip('/')}/verify-email?token={raw}"
     html = _email_html(
@@ -241,7 +251,7 @@ async def bind_email(
     return {
         "success": True,
         "message": f"验证邮件已发送至 {email}，请查收并点击验证链接（注意垃圾箱）。",
-        "email": user.email,
+        "email": email,
         "email_verified": False,
     }
 
@@ -254,18 +264,14 @@ async def verify_email(request: Request, data: VerifyEmailIn, db: Session = Depe
     if user_id is None:
         raise HTTPException(status_code=400, detail="验证链接无效或已过期，请在设置中重新发送验证邮件")
     user = db.get(User, user_id)
-    if user is None or not user.email:
+    email = account_settings.get_email(db, user_id) if user else None
+    if user is None or not email:
         db.rollback()
         raise HTTPException(status_code=400, detail="验证链接无效或已过期，请在设置中重新发送验证邮件")
-    conflict = (
-        db.query(User)
-        .filter(User.email == user.email, User.id != user.id, User.email_verified_at.isnot(None))
-        .first()
-    )
-    if conflict:
+    if account_settings.email_verified_by_other(db, email, user.id):
         db.rollback()
         raise HTTPException(status_code=409, detail="该邮箱已被其他账号验证使用，请在设置中更换邮箱")
-    user.email_verified_at = utcnow()
+    account_settings.mark_email_verified(db, user_id)
     db.commit()
     return {"success": True, "message": "邮箱验证成功，找回密码功能已可用。"}
 

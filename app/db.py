@@ -6,7 +6,8 @@ postgresql://user:pass@host:5432/roxdb）。
 """
 import os
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.core.config import settings
@@ -19,7 +20,8 @@ if DATABASE_URL:
     DB_BACKEND = "postgresql"
 else:
     db_path = os.path.join(settings.DATA_DIR, "rox.db")
-    engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    # URL.create 结构化构造连接串，避免任何字符串拼接
+    engine = create_engine(URL.create("sqlite", database=db_path), connect_args={"check_same_thread": False})
     DB_BACKEND = "sqlite"
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -36,28 +38,9 @@ def get_db():
 
 
 def init_db() -> None:
-    """启动时建表（幂等）。"""
+    """启动时建表（幂等）。新列一律通过键值表（Setting）或新表演进，不做运行时 ALTER。"""
     from app import models  # noqa: F401  确保模型已注册
     Base.metadata.create_all(bind=engine)
-    _ensure_compat_columns()
-
-
-def _ensure_compat_columns() -> None:
-    """补齐早期版本缺失的轻量字段；重复执行安全。"""
-    for table, column, ddl in (
-        ("journal_entries", "research_card_id", "INTEGER"),
-        ("research_cards", "hypothesis_status", "VARCHAR(20)"),
-        ("research_cards", "next_review_at", "VARCHAR(10)"),
-        ("research_cards", "targets_json", "TEXT DEFAULT '[]'"),
-        ("users", "email", "VARCHAR(120)"),
-        ("users", "email_verified_at", "DATETIME"),
-        ("users", "password_changed_at", "DATETIME"),
-    ):
-        columns = {column["name"] for column in inspect(engine).get_columns(table)}
-        if column in columns:
-            continue
-        with engine.begin() as conn:
-            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
 
 
 def check_database() -> bool:
