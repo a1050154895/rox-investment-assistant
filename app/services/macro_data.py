@@ -114,10 +114,10 @@ SPECS = (
     ),
     IndicatorSpec(
         key="cpi_yoy", label="居民消费价格指数 CPI 同比", function_name="macro_china_cpi_yearly",
-        value_columns=("今值", "最新值", "同比增长", "数值", "value"),
+        value_columns=("今值", "最新值", "同比增长", "同比", "数值", "value"),
         date_columns=("日期", "时间", "月份", "date"), publisher="中华人民共和国国家统计局",
         group="value_realization", scorer=_cpi_score,
-        alternates=("macro_china_cpi_monthly",),
+        alternates=("macro_china_cpi", "macro_china_cpi_monthly"),
     ),
     IndicatorSpec(
         key="pmi", label="制造业 PMI", function_name="macro_china_pmi",
@@ -127,10 +127,10 @@ SPECS = (
     ),
     IndicatorSpec(
         key="ppi_yoy", label="工业品出厂价格 PPI 同比", function_name="macro_china_ppi_yearly",
-        value_columns=("今值", "最新值", "同比增长", "数值", "value"),
+        value_columns=("今值", "最新值", "同比增长", "同比", "数值", "value"),
         date_columns=("日期", "时间", "月份", "date"), publisher="中华人民共和国国家统计局",
         group="value_realization", scorer=_ppi_score,
-        alternates=("macro_china_ppi_monthly",),
+        alternates=("macro_china_ppi", "macro_china_ppi_monthly"),
     ),
     IndicatorSpec(
         key="social_finance", label="社会融资规模存量同比", function_name="macro_china_shrzgm",
