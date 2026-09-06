@@ -11,3 +11,4 @@ PyJWT==2.13.0
 httpx==0.28.1
 slowapi==0.1.10
 cryptography==50.0.0
+pypdf==6.17.0

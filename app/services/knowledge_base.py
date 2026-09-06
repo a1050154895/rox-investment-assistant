@@ -1,10 +1,12 @@
-"""本地知识库索引器（吸收自 ROX3.0 knowledge_base 的轻量思想，纯标准库重写）。
+"""本地知识库索引器（吸收自 ROX3.0 knowledge_base 的轻量思想）。
 
 定位与边界：
-- 只索引用户自行放入 data/knowledge/ 的文件（txt/md/docx），文件不进 git、
+- 只索引用户自行放入 data/knowledge/ 的文件（txt/md/docx/pdf），文件不进 git、
   不上传任何外部服务、默认不发送给 AI；
+- PDF 解析用可选依赖 pypdf（纯 Python、本地解析）；未安装时 PDF 被跳过并在
+  状态里如实说明，其余格式不受影响（txt/md/docx 仍为纯标准库实现）；
 - 检索是"关键词 + 二元组"匹配（中文友好），不是语义检索——诚实降级，
-  不假装 RAG；
+  不假装 RAG；命中文本以 [[ ]] 标记包裹，由前端转义后渲染为高亮；
 - 知识库内容仅作研究参考素材，进入研究卡时仍需用户自行核验原文。
 """
 from __future__ import annotations
@@ -12,6 +14,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 import zipfile
 from dataclasses import dataclass, field
 
@@ -19,9 +22,17 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_EXT = (".txt", ".md", ".docx")
-MAX_FILE_BYTES = 5 * 1024 * 1024  # 单文件 5MB 上限
+try:  # 可选依赖：未安装时 PDF 诚实跳过
+    from pypdf import PdfReader
+    PDF_SUPPORT = True
+except ImportError:  # pragma: no cover - 取决于环境
+    PdfReader = None
+    PDF_SUPPORT = False
+
+SUPPORTED_EXT = (".txt", ".md", ".docx", ".pdf")
+MAX_FILE_BYTES = 10 * 1024 * 1024  # 单文件 10MB 上限（PDF 通常更大）
 SNIPPET_RADIUS = 40
+_MAX_SNIPPETS = 3
 
 
 def knowledge_dir() -> str:
@@ -45,6 +56,7 @@ class KnowledgeDoc:
 class KBIndex:
     docs: list[KnowledgeDoc] = field(default_factory=list)
     built_at: float = 0.0
+    skipped: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -69,12 +81,26 @@ def _read_docx(path: str) -> str:
         return ""
 
 
+def _read_pdf(path: str) -> str:
+    """pypdf 逐页提取文本；未安装或解析失败时返回空（由调用方如实跳过）。"""
+    if not PDF_SUPPORT:
+        return ""
+    try:
+        reader = PdfReader(path)
+        return "\n".join((page.extract_text() or "") for page in reader.pages)
+    except Exception as exc:  # noqa: BLE001 — 单文件损坏不拖垮整库
+        logger.warning("pdf 解析失败 %s: %s", path, exc)
+        return ""
+
+
 def _load_doc(path: str) -> KnowledgeDoc | None:
     if os.path.getsize(path) > MAX_FILE_BYTES:
         return None
     ext = os.path.splitext(path)[1].lower()
     if ext == ".docx":
         text = _read_docx(path)
+    elif ext == ".pdf":
+        text = _read_pdf(path)
     else:
         with open(path, encoding="utf-8", errors="ignore") as fh:
             text = fh.read()
@@ -93,6 +119,7 @@ def rebuild(directory: str | None = None) -> dict:
     """重建索引；目录不存在或为空时返回诚实空状态。"""
     directory = directory or knowledge_dir()
     docs: list[KnowledgeDoc] = []
+    skipped: list[str] = []
     for name in sorted(os.listdir(directory)):
         path = os.path.join(directory, name)
         if not os.path.isfile(path) or not name.lower().endswith(SUPPORTED_EXT):
@@ -100,14 +127,15 @@ def rebuild(directory: str | None = None) -> dict:
         doc = _load_doc(path)
         if doc:
             docs.append(doc)
+        elif name.lower().endswith(".pdf") and not PDF_SUPPORT:
+            skipped.append(name)
     _INDEX.docs = docs
-    _INDEX.built_at = __import__("time").time()
+    _INDEX.skipped = skipped
+    _INDEX.built_at = time.time()
     return _INDEX.to_dict()
 
 
 def _ensure_index() -> KBIndex:
-    import time
-
     if not _INDEX.docs and _INDEX.built_at == 0.0:
         rebuild()
     elif _INDEX.built_at and time.time() - _INDEX.built_at > 600:
@@ -122,36 +150,46 @@ def _terms(query: str) -> list[str]:
     return out
 
 
-def _snippet(text: str, pos: int) -> str:
-    start = max(0, pos - SNIPPET_RADIUS)
-    end = min(len(text), pos + SNIPPET_RADIUS)
-    prefix = "…" if start > 0 else ""
-    suffix = "…" if end < len(text) else ""
-    clean = text[start:end].replace("\n", " ")
-    return f"{prefix}{clean}{suffix}"
+def _snippet(text: str, terms: list[str]) -> str:
+    """取包含关键词的上下文片段；命中的词用 [[ ]] 标记（前端转义后渲染高亮）。"""
+    positions = sorted(
+        {m.start() for term in terms for m in re.finditer(re.escape(term), text)}
+    )
+    if not positions:
+        return ""
+    # 合并相邻命中的采样窗口，最多取 _MAX_SNIPPETS 段
+    windows: list[int] = []
+    for pos in positions:
+        if not windows or pos - windows[-1] > SNIPPET_RADIUS * 2:
+            windows.append(pos)
+    parts: list[str] = []
+    for start in windows[:_MAX_SNIPPETS]:
+        lo = max(0, start - SNIPPET_RADIUS)
+        hi = min(len(text), start + SNIPPET_RADIUS * 2)
+        seg = text[lo:hi].replace("\n", " ")
+        for term in sorted({t for t in terms if t}, key=len, reverse=True):
+            seg = seg.replace(term, f"[[{term}]]")
+        prefix = "…" if lo > 0 else ""
+        suffix = "…" if hi < len(text) else ""
+        parts.append(f"{prefix}{seg}{suffix}")
+    return "\n".join(parts)
 
 
 def search(query: str, limit: int = 8) -> dict:
-    """关键词检索：按命中次数排序，返回片段与出处。无结果时如实返回空。"""
+    """关键词检索：按命中次数排序，返回带高亮标记的片段与出处。无结果时如实返回空。"""
     index = _ensure_index()
     terms = _terms(query)
     results = []
     for doc in index.docs:
         hits = 0
-        snippets: list[str] = []
         for term in terms:
-            count = doc.text.count(term)
-            if count:
-                hits += count
-                pos = doc.text.find(term)
-                if len(snippets) < 2:
-                    snippets.append(_snippet(doc.text, pos))
+            hits += doc.text.count(term)
         if hits:
             results.append({
                 "filename": doc.filename,
                 "title": doc.title,
                 "hits": hits,
-                "snippets": snippets,
+                "snippets": _snippet(doc.text, terms).split("\n") if terms else [],
             })
     results.sort(key=lambda r: r["hits"], reverse=True)
     return {
@@ -163,5 +201,9 @@ def search(query: str, limit: int = 8) -> dict:
 
 
 def status() -> dict:
-    return {**_ensure_index().to_dict(), "directory": knowledge_dir(),
-            "note": "将 txt/md/docx 放入上述目录即可被索引；文件不入 git、不上传。"}
+    index = _ensure_index()
+    note = "将 txt/md/docx/pdf 放入上述目录即可被索引；文件不入 git、不上传。"
+    if index.skipped:
+        note += f" {len(index.skipped)} 个 PDF 未索引（需安装 pypdf：pip install pypdf）。"
+    return {**index.to_dict(), "directory": knowledge_dir(), "pdf_support": PDF_SUPPORT,
+            "skipped_pdfs": index.skipped, "note": note}

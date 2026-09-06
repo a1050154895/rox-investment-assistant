@@ -1,0 +1,174 @@
+"""内置操作指引（策展层）——知识库的"怎么用"部分。
+
+设计判断（辨证）：
+- "操作模式和指引"必须有确定性来源：全部由人工从方法论蒸馏（含思想来源登记，
+  见 docs/strategy_origins.md），系统不自动"提炼"用户文档——自动提炼不可验证，
+  本质是编造；
+- 指引只描述方法、步骤与边界，不输出任何标的判断、时点结论或买卖信号；
+- 检索时与用户文档明确区分（source: builtin / user），内置指引不覆盖用户观点。
+
+检索语义与 knowledge_base 一致：关键词 + 中文二元组命中计数，确定性排序。
+"""
+from __future__ import annotations
+
+import re
+
+PLAYBOOKS: list[dict] = [
+    {
+        "id": "pb_multi_tf_trend",
+        "title": "多周期趋势状态确认（MACD 矩阵用法）",
+        "summary": "同一指标在年/季/月/周/日多周期上分别读状态：高周期定方向，低周期找时机。",
+        "tags": ["MACD", "趋势", "多周期", "个股研究", "技术状态"],
+        "steps": [
+            "打开个股透视 → 多周期 MACD 状态卡，逐周期记录状态与最近交叉日期",
+            "高周期（季/月）定方向：状态与我的方向判断矛盾时，先书面解释矛盾再谈操作",
+            "低周期（周/日）找时机：交叉只作时机参考，不作为方向依据",
+            "与基本面、宏观证据至少一项交叉验证后，把状态快照写入研究卡作为事实证据",
+        ],
+        "boundary": "指标只描述历史状态，不预测未来；周期间矛盾是常态，强行消除矛盾本身就是过度解读。",
+        "source": "ROX 方法论蒸馏（外来思想来源见 docs/strategy_origins.md）",
+    },
+    {
+        "id": "pb_334_positioning",
+        "title": "334 仓位纪律（三池分离）",
+        "summary": "核心 30% / 卫星 30% / 现金 40%，先定比例再谈标的选择。",
+        "tags": ["仓位", "纪律", "334", "资金管理", "风控"],
+        "steps": [
+            "在 334 纪律工作台录入自己的仓位上限与当前三类持仓比例",
+            "逐项核对：总仓上限、单票集中度、行业集中度、止损距离、操作频率",
+            "超限项先整改再谈新买入；AI 助手只负责解释，不修改风控边界",
+        ],
+        "boundary": "纪律是风险约束，不保证收益；任何一段未触发，后续动作不启动。",
+        "source": "ROX 方法论（L4 一致性框架）",
+    },
+    {
+        "id": "pb_staged_entry",
+        "title": "三段建仓节奏（触发条件具体化参考）",
+        "summary": "首仓 30% 在方向确认后；确认仓 30% 需量能+基本面+政策至少两项确认；主升仓 40% 只在更高级别确认后。",
+        "tags": ["建仓", "节奏", "三三四", "分批", "仓位"],
+        "steps": [
+            "建仓前在研究卡写明每一段的触发条件（写于建仓前，不许事后改写）",
+            "首仓只在趋势结构初步出现时进入；任一段未触发，后续段不启动",
+            "每笔操作记入决策日志，操作后重算持仓成本",
+        ],
+        "boundary": "节奏框架不构成买卖信号；与 334 三池纪律是同一体系的两面（比例 × 触发），不要混用外来版本的具体标的案例。",
+        "source": "ROX 方法论蒸馏（外来思想来源见 docs/strategy_origins.md）",
+    },
+    {
+        "id": "pb_cost_reduction",
+        "title": "成本压降（振荡期的“庸”）",
+        "summary": "用分批进出场与分红把持仓成本降下来：成本 =（Σ买入 − Σ卖出 − 分红）/ 当前股数。",
+        "tags": ["持仓成本", "振荡", "压降成本", "分红", "复盘"],
+        "steps": [
+            "每笔买卖记入决策日志，注明是计划内压降操作还是新判断",
+            "定期重算持仓成本，观察盈亏平衡点的移动方向",
+            "压降操作同样受 334 纪律约束：操作频率与单笔规模不因“做T”豁免",
+        ],
+        "boundary": "压降成本不改变标的基本面判断的独立性；下跌中压成本的每一步都在增加风险敞口，需预设总敞口上限。",
+        "source": "ROX 方法论蒸馏（外来思想来源见 docs/strategy_origins.md）",
+    },
+    {
+        "id": "pb_no_top_bottom",
+        "title": "执两用中：不摸顶、不抠底",
+        "summary": "放弃在极值点进出的执念，只取趋势的中间段；腰部进入、状态确认退出即可接受。",
+        "tags": ["心态", "纪律", "顶底", "执两用中"],
+        "steps": [
+            "研究卡里写明“我取哪一段”，而不是“我猜顶底在哪”",
+            "错过极端行情是该方法主动承担的成本，不是失误——把这句写进复盘",
+            "发现自己开始预测顶/底时，回到多周期状态卡核对是否有证据",
+        ],
+        "boundary": "该方法放弃两端利润是设计选择；用结果反推“应该摸顶抠底”属于后视镜偏差。",
+        "source": "ROX 方法论蒸馏（外来思想来源见 docs/strategy_origins.md）",
+    },
+    {
+        "id": "pb_worst_case_first",
+        "title": "最坏情况先行（入场前自查）",
+        "summary": "入场前先书面确认最大可接受回撤、最长可接受不涨期、仓位上限，写入研究卡失效条件。",
+        "tags": ["风险", "自查", "回撤", "失效条件", "研究卡"],
+        "steps": [
+            "用「最坏情况先行」研究卡模板逐项填写：回撤上限、不涨期、仓位上限",
+            "反证自查：如果明天下跌 30% 我会恐慌卖出吗？会——说明仓位超限或资金性质不匹配",
+            "实际回撤接近预设上限时触发强制复核，不许用「这次不一样」豁免",
+        ],
+        "boundary": "接受最坏结果不等于放任风险，仍受 334 纪律硬约束。",
+        "source": "ROX 方法论蒸馏（外来思想来源见 docs/strategy_origins.md）",
+    },
+    {
+        "id": "pb_news_verification",
+        "title": "资讯 → 研究卡验证流程",
+        "summary": "标题只是线索：事实/观点拆分 → 传导路径 → 验证动作 → 加入研究卡。",
+        "tags": ["资讯", "验证", "研究卡", "事实", "观点"],
+        "steps": [
+            "把资讯标题拆成「事实部分」和「观点部分」，分别标注来源与日期",
+            "写出传导路径：事件 → 行业 → 公司利润，列出可验证的中间环节",
+            "为每个环节设定验证动作（数据、公告、订单），到期回看",
+            "验证通过的事实进研究卡事实层；未验证的保持「待验证」状态",
+        ],
+        "boundary": "资讯不构成结论；同一资讯必须至少寻找一条反证。",
+        "source": "ROX 方法论（研究闭环）",
+    },
+    {
+        "id": "pb_review_loop",
+        "title": "决策复盘闭环（每日/每周）",
+        "summary": "把感知变成研究、研究变成决策、决策变成复盘、复盘变成下一次更好的判断。",
+        "tags": ["复盘", "决策日志", "闭环", "胜率"],
+        "steps": [
+            "每次决策后补全结果与复盘字段；核对决策与框架的一致性评分",
+            "每周查看研究档案页：关联决策胜率、复核到期提醒",
+            "低一致性决策（<60）暂停新开仓，先复核框架假设",
+        ],
+        "boundary": "胜率衡量的是决策与框架的一致性，不是盈亏预测；样本不足时不解读胜率。",
+        "source": "ROX 方法论（ROX Loop）",
+    },
+]
+
+
+def _terms(query: str) -> list[str]:
+    terms = re.findall(r"[A-Za-z0-9]+|[\u4e00-\u9fff]{1,4}", query)
+    return list(dict.fromkeys(t.strip() for t in terms if t.strip()))
+
+
+def _highlight(text: str, terms: list[str]) -> str:
+    for term in sorted(set(terms), key=len, reverse=True):
+        text = text.replace(term, f"[[{term}]]")
+    return text
+
+
+def search_playbooks(query: str, limit: int = 4) -> list[dict]:
+    """在策展指引中检索：标题/标签命中权重高于正文，确定性排序。"""
+    terms = _terms(query)
+    if not terms:
+        return []
+    scored = []
+    for pb in PLAYBOOKS:
+        title_hits = sum(pb["title"].count(t) for t in terms)
+        tag_hits = sum(sum(tag.count(t) for tag in pb["tags"]) for t in terms)
+        body_hits = sum((pb["summary"] + "".join(pb["steps"])).count(t) for t in terms)
+        hits = title_hits * 3 + tag_hits * 2 + body_hits
+        if hits:
+            matched_terms = [t for t in terms if t in pb["title"] + "".join(pb["tags"]) + pb["summary"] + "".join(pb["steps"])]
+            scored.append({
+                "id": pb["id"],
+                "title": pb["title"],
+                "summary": _highlight(pb["summary"], matched_terms),
+                "tags": pb["tags"],
+                "steps": pb["steps"][:4],
+                "boundary": pb["boundary"],
+                "source": pb["source"],
+                "hits": hits,
+                "match_terms": matched_terms,
+            })
+    scored.sort(key=lambda r: r["hits"], reverse=True)
+    return scored[:limit]
+
+
+def list_playbooks() -> dict:
+    return {
+        "count": len(PLAYBOOKS),
+        "playbooks": [
+            {"id": pb["id"], "title": pb["title"], "summary": pb["summary"],
+             "tags": pb["tags"], "source": pb["source"]}
+            for pb in PLAYBOOKS
+        ],
+        "note": "内置指引为人工策展的方法论蒸馏，只描述方法与边界，不构成投资建议；检索时与用户文档区分来源。",
+    }

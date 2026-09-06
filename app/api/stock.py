@@ -117,3 +117,14 @@ async def indicators(code: str):
         "data_source": kline_data.get("data_source"),
         "stale": kline_data.get("stale", True),
     }
+
+
+@router.get("/{code}/macd-matrix")
+async def macd_matrix_endpoint(code: str):
+    """多周期 MACD 状态矩阵：日/周/月/季各周期独立输出状态，年线样本不足如实标注。
+
+    只描述历史指标状态，不构成买卖信号（见服务层边界说明）。
+    """
+    from app.services.macd_matrix import macd_matrix
+
+    return await macd_matrix(code)

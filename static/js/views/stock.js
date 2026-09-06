@@ -73,6 +73,15 @@ ROX.register('/stock', async function(container, params) {
         </div>
 
         <div class="mobile-stock-tabs" role="tablist" aria-label="个股信息分区">
+
+        <!-- 多周期 MACD 状态矩阵 -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header">
+            <div><div class="card-title">多周期 MACD 状态</div><div class="card-subtitle">同一指标在多周期上的历史状态并排 · 高周期看方向，低周期看节奏</div></div>
+            <span class="tag tag-gray" id="macd-matrix-status">加载中</span>
+          </div>
+          <div id="macd-matrix-body"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
           <button class="mobile-stock-tab active" data-stock-panel="quote" role="tab">行情</button>
           <button class="mobile-stock-tab" data-stock-panel="research" role="tab">研究</button>
           <button class="mobile-stock-tab" data-stock-panel="flow" role="tab">资金</button>
@@ -187,6 +196,49 @@ ROX.register('/stock', async function(container, params) {
       </aside>
     </div>
   `;
+
+  // 多周期 MACD 状态（异步慢层，不阻塞首屏渲染）
+  (async () => {
+    const res = await ROX.api.get(`/api/stock/${code}/macd-matrix`);
+    const body = document.getElementById('macd-matrix-body');
+    const badge = document.getElementById('macd-matrix-status');
+    if (!body) return;
+    if (!res || res.error || !res.periods) {
+      if (badge) badge.textContent = '不可用';
+      body.innerHTML = '<div class="empty-state"><p>状态矩阵暂不可用，请稍后刷新。</p></div>';
+      return;
+    }
+    if (badge) badge.textContent = res.data_status === 'realtime' ? '实时' : res.data_status === 'partial' ? '部分周期' : '不可用';
+    const stateTag = (p) => p.state === 'golden'
+      ? '<span class="tag tag-red">金叉 · DIF 在 DEA 上方</span>'
+      : '<span class="tag tag-green">死叉 · DIF 在 DEA 下方</span>';
+    body.innerHTML = `
+      <div class="table-wrap" style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="color:var(--text-tertiary);text-align:left;">
+            <th style="padding:6px 8px;">周期</th><th style="padding:6px 8px;">状态</th>
+            <th style="padding:6px 8px;">DIF / DEA</th><th style="padding:6px 8px;">最近交叉</th>
+            <th style="padding:6px 8px;">样本</th><th style="padding:6px 8px;">数据状态</th>
+          </tr></thead>
+          <tbody>
+          ${res.periods.map(p => p.data_status === 'realtime' ? `
+            <tr style="border-top:1px solid var(--border-default);">
+              <td style="padding:6px 8px;font-weight:600;">${ROX.escape(({ yearly: '年', quarterly: '季', monthly: '月', weekly: '周', daily: '日' })[p.period] || p.period)}</td>
+              <td style="padding:6px 8px;">${stateTag(p)}</td>
+              <td style="padding:6px 8px;font-family:var(--font-mono);">${ROX.fmt.num(p.dif, 3)} / ${ROX.fmt.num(p.dea, 3)}</td>
+              <td style="padding:6px 8px;">${p.last_cross ? `${p.last_cross.type === 'golden' ? '金叉' : '死叉'}（${p.last_cross.bars_ago} 根前）` : '区间内无交叉'}</td>
+              <td style="padding:6px 8px;font-family:var(--font-mono);">${p.bars} 根</td>
+              <td style="padding:6px 8px;color:var(--text-tertiary);">${ROX.escape(p.as_of || '')}</td>
+            </tr>` : `
+            <tr style="border-top:1px solid var(--border-default);color:var(--text-tertiary);">
+              <td style="padding:6px 8px;font-weight:600;">${ROX.escape(({ yearly: '年', quarterly: '季', monthly: '月', weekly: '周', daily: '日' })[p.period] || p.period)}</td>
+              <td style="padding:6px 8px;" colspan="5">${ROX.escape(p.message || '数据不可用——如实不计算')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:10px;color:var(--text-tertiary);margin-top:8px;line-height:1.7;">${ROX.escape(res.note)} 数据状态：${ROX.escape(res.data_status)} · ${ROX.escape(res.data_source)}</div>`;
+  })();
 
   const mobilePanels = [
     ...container.querySelectorAll('.stock-main-column > .stock-chart-card'),
